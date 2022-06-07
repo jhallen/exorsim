@@ -50,7 +50,7 @@ very rudimentary terimnal.</li>
 intercepting calls to the controller ROM</li>
 
 <li><a href="https://en.wikipedia.org/wiki/Western_Digital_FD1771">FD1771</a> hardware emulation for <a
-href="https://deramp.com/www.swtpc.com/mholley/MF_68/MF_68_Index.htm">MF68
+href="https://deramp.com/swtpc.com/MF_68/MF_68_Index.htm">MF68
 with DC_1 controller</a> floppy drive</li>
 </ul>
 </ul>
