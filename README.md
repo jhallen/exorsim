@@ -144,7 +144,7 @@ Some text documentation and notes can be found here:
 
 To run FLEX2:
 
-	./exor --swtpc flex2.dsk
+	./exor --swtpc flex.dsk
 
 You can get FLEX2 disk images here:
 
