@@ -148,6 +148,4 @@ To run FLEX2:
 
 You can get FLEX2 disk images here:
 
-[http://www.evenson-consulting.com/swtpc/Downloads.htm](http://www.evenson-consulting.com/swtpc/Downloads.htm)
-
-Download the "FULL kit", install it and find the FLEX2 .DSK files.
+[http://www.flexusergroup.com/flexusergroup/fugdflx2.htm](http://www.flexusergroup.com/flexusergroup/fugdflx2.htm)
