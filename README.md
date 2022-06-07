@@ -24,7 +24,7 @@ Some pictures of this development system can be found at Pekka Tanskanen's
 website <a href="http://www.exorciser.net/index_en.htm">here.</a>
 
 <p>EXORsim also simulates a <a
-href="http://www.swtpc.com/mholley/swtpc_6800.htm">SWTPC 6800 Computer
+href="https://deramp.com/swtpc.html">SWTPC 6800 Computer
 System</a>, which allows you to run the <a
 href="http://en.wikipedia.org/wiki/FLEX_%28operating_system%29">TSC FLEX</a>
 operating system.
