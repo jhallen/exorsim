@@ -131,7 +131,7 @@ You can get ImageDisk from here:
 
 Documentation about MDOS can be found here:
 
-[http://www.bitsavers.org/pdf/motorola](http://www.bitsavers.org/pdf/motorola/)
+[http://www.bitsavers.org/components/motorola/6800/exorciser/](http://www.bitsavers.org/components/motorola/6800/exorciser/)
 
 		M68MDOS3_MDOS3um_Jun79.pdf	Operating system user's manual.
 		MEK6800D2.pdf			Microprocessor datasheet
