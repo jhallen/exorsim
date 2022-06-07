@@ -23,10 +23,8 @@ href="http://en.wikipedia.org/wiki/Motorola_6800">6800</a> microprocessor.
 Some pictures of this development system can be found at Pekka Tanskanen's
 website <a href="http://www.exorciser.net/index_en.htm">here.</a>
 
-<p>EXORsim also simulates a <a
-href="https://deramp.com/swtpc.html">SWTPC 6800 Computer
-System</a>, which allows you to run the <a
-href="http://en.wikipedia.org/wiki/FLEX_%28operating_system%29">TSC FLEX</a>
+<p>EXORsim also simulates a <a href="https://deramp.com/swtpc.html">SWTPC 6800 Computer System</a>, which allows you to run
+the <a href="http://en.wikipedia.org/wiki/FLEX_%28operating_system%29">TSC FLEX</a>
 operating system.
 
 <p>EXORsim now emulates an EXORterm!  I was finally able to find
@@ -51,8 +49,8 @@ very rudimentary terimnal.</li>
 <ul><li>EXORdisk-II floppy diskette controller emulated by
 intercepting calls to the controller ROM</li>
 
-<li><a href="http://en.wikipedia.org/wiki/Western_Digital_FD1771">FD1771</a> hardware emulation for <a
-href="http://www.swtpc.com/mholley/MF_68/MF_68_Index.htm">MF68
+<li><a href="https://en.wikipedia.org/wiki/Western_Digital_FD1771">FD1771</a> hardware emulation for <a
+href="https://deramp.com/www.swtpc.com/mholley/MF_68/MF_68_Index.htm">MF68
 with DC_1 controller</a> floppy drive</li>
 </ul>
 </ul>
