@@ -1,3 +1,5 @@
+#pragma once
+
 /* Controls */
 
 extern int skip;

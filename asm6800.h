@@ -1,3 +1,5 @@
+#pragma once
+
 unsigned assemble(unsigned char *mem, unsigned addr, char *buf);
 
 void show_syms(FILE *f);

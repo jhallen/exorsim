@@ -1,3 +1,5 @@
+#pragma once
+
 /* Initialize the EXORterm */
 void izexorterm();
 

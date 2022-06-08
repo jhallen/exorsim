@@ -1,3 +1,5 @@
+#pragma once
+
 int skipws(char **at_p);
 int match_word(char **at_p, char *word);
 int parse_word(char **at_p, char *buf);
