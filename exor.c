@@ -62,7 +62,7 @@ int count = 10;
 
 int polling = 1; /* Allow ACIA polling */
 
-int saved;
+int _saved;
 
 void getsect(int n, int addr, int sect, int len)
 {
@@ -206,10 +206,10 @@ unsigned char mread(unsigned short addr)
                                         if (c == 8)
                                                 c = 127;
                                 }
-                                saved = c;
+                                _saved = c;
                                 return c;
                         } case 0x8007: { /* Alias, used to test if this is really an ACIA */
-                                return saved;
+                                return _saved;
                         } case 0x8018: { /* status */
                                 if (cur_state == 1) {
                                         if (count1) {
