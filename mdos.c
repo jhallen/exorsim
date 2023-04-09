@@ -145,9 +145,9 @@ void dump_rib(struct rib *r)
                         return;
                 } else {
                         int clust = (sdw & 0x3FF);
-                        int sect = clust * 4;
+                        //int sect = clust * 4;
                         int siz = ((sdw >> 10) & 0x1F) + 1;
-                        int len = (((sdw >> 10) & 0x1F) + 1) * 4;
+                        //int len = (((sdw >> 10) & 0x1F) + 1) * 4;
                         printf("Segment start=%d, size=%d\n", clust, siz);
                 }
         }
@@ -404,11 +404,13 @@ int lsn_to_psn(struct rib *r, int lsn)
                         }
                 }
         }
+        printf("End of SDW?  Internal error.\n");
+        exit(-1);
 }
 
 /* Write a file */
 
-int write_file(unsigned char *cat, char *buf, int sects)
+int write_file(unsigned char *cat, unsigned char *buf, int sects)
 {
         int x;
         int rib_sect;
@@ -557,6 +559,48 @@ int del_file(int rib_sector)
         }
         putsect(cat, SECTOR_CAT);
         return 0;
+}
+
+/* Find a file, return sector number of its rib */
+
+int find_file(char *filename, int *type, int del)
+{
+        unsigned char buf[SECTOR_SIZE];
+        int x;
+        for (x = SECTOR_DIR; x != SECTOR_DIR + SECTOR_DIR_SIZE; ++x) {
+                int y;
+                getsect(buf, x);
+                for (y = 0; y != SECTOR_SIZE; y += sizeof(struct dirent)) {
+                        struct dirent *d = (struct dirent *)(buf + y);
+                        if (d->name[0] && d->name[0] != 0xFF) {
+                                //struct rib *rib = (struct rib *)rib_buf;
+                                char s[50];
+                                int p = 0;
+                                int i;
+                                for (i = 0; i != sizeof(d->name); i++) {
+                                        s[p++] = lower(d->name[i]);
+                                }
+                                while (p && s[p - 1] == ' ') --p;
+                                s[p++] = '.';
+                                for (i = 0; i != sizeof(d->suffix); i++) {
+                                        s[p++] = lower(d->suffix[i]);
+                                }
+                                while (p && s[p - 1] == ' ') --p;
+                                s[p] = 0;
+                                if (!strcmp(s, filename)) {
+                                        if (type)
+                                                *type = (d->attr_high & 7);
+                                        if (del) {
+                                                d->name[0] = 0xFF;
+                                                d->name[1] = 0xFF;
+                                                putsect(buf, x);
+                                        }
+                                        return (d->sector_high << 8) + d->sector_low;
+                                }
+                        }
+                }
+        }
+        return -1;
 }
 
 /* Delete file name */
@@ -800,50 +844,6 @@ void mdos_dir(int all, int full, int single, int only_ascii)
                         printf("\n");
                 }
         }
-}
-
-/* Find a file, return sector number of its rib */
-
-int find_file(char *filename, int *type, int del)
-{
-        unsigned char buf[SECTOR_SIZE];
-        unsigned char rib_buf[SECTOR_SIZE];
-        int x, y;
-        for (x = SECTOR_DIR; x != SECTOR_DIR + SECTOR_DIR_SIZE; ++x) {
-                int y;
-                getsect(buf, x);
-                for (y = 0; y != SECTOR_SIZE; y += sizeof(struct dirent)) {
-                        struct dirent *d = (struct dirent *)(buf + y);
-                        if (d->name[0] && d->name[0] != 0xFF) {
-                                struct name *nam;
-                                struct rib *rib = (struct rib *)rib_buf;
-                                char s[50];
-                                int p = 0;
-                                int i;
-                                for (i = 0; i != sizeof(d->name); i++) {
-                                        s[p++] = lower(d->name[i]);
-                                }
-                                while (p && s[p - 1] == ' ') --p;
-                                s[p++] = '.';
-                                for (i = 0; i != sizeof(d->suffix); i++) {
-                                        s[p++] = lower(d->suffix[i]);
-                                }
-                                while (p && s[p - 1] == ' ') --p;
-                                s[p] = 0;
-                                if (!strcmp(s, filename)) {
-                                        if (type)
-                                                *type = (d->attr_high & 7);
-                                        if (del) {
-                                                d->name[0] = 0xFF;
-                                                d->name[1] = 0xFF;
-                                                putsect(buf, x);
-                                        }
-                                        return (d->sector_high << 8) + d->sector_low;
-                                }
-                        }
-                }
-        }
-        return -1;
 }
 
 /* cat a file */
