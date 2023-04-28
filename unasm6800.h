@@ -1,3 +1,5 @@
+#pragma once
+
 /* A known fact */
 
 struct fact {

@@ -28,8 +28,8 @@
 #include "sim6800.h"
 #include "exor.h"
 
-FILE *mon_out;
-FILE *mon_in;
+extern FILE *mon_out;
+extern FILE *mon_in;
 
 int last;
 unsigned short last_u;
