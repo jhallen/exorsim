@@ -1,5 +1,5 @@
 
-OBJS = unasm.o utils.o exor.o sim6800.o asm6800.o mdos.o unasm6800.o exorterm.o
+OBJS = unasm.o utils.o exor.o sim6800.o asm6800.o mdos.o unasm6800.o exorterm.o mon.o
 
 DIST = unasm.c utils.c exor.c sim6800.c asm6800.c mdos.c unasm6800.c mon.c exorterm.c Makefile \
   exbug.bin swtbug.bin utils.h sim6800.h asm6800.h unasm6800.h exor.h facts README COPYING \
@@ -77,6 +77,8 @@ mdos : mdos.o
 
 clean :
 	rm -f ${OBJS} ${OBJS:.o=.d}
+	rm -f unasm.o utils.o unasm6800.o
+	rm -f mdos.o
 
 dist :
 	rm -rf $(NAME)

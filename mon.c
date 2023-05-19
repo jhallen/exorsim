@@ -22,8 +22,10 @@
 #include <fcntl.h>
 #include <sys/poll.h>
 #include <signal.h>
+#include <unistd.h>
 
 #include "utils.h"
+#include "unasm6800.h"
 #include "asm6800.h"
 #include "sim6800.h"
 #include "exor.h"
@@ -328,10 +330,12 @@ int a_cmd(char *p)
 int u_cmd(char *p)
 {
         char buf[180];
-        int addr = last_u;
-        if (parse_hex(&p, &addr) || !*p) {
+        int iaddr;
+        unsigned short addr = last_u;
+        if (parse_hex(&p, &iaddr) || !*p) {
                 int target;
                 int x;
+                addr = (unsigned short)iaddr;
                 for (x = 0; x != 22; ++x) {
                         unasm_line(mem, &addr, buf, &target, 1);
                         fprintf(mon_out, "%s\n", buf);
