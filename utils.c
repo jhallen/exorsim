@@ -358,7 +358,7 @@ int jstricmp(char *d, char *s)
 
 /* Save current TERMIOS settings */
 
-struct termios saved; // Original attributes of local system
+static struct termios saved; // Original attributes of local system
 int termios_good; // Set if 'saved' is valid.
 
 void save_termios()

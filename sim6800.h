@@ -7,7 +7,7 @@ extern int reset;
 extern int abrt;
 extern int sp_stop;
 
-extern int brk;
+extern int mybrk;
 extern unsigned short brk_addr;
 
 /* CPU registers */

@@ -176,11 +176,11 @@ int b_cmd(char *p)
 {
         int val;
         if (!*p) {
-                brk = 0;
+                mybrk = 0;
                 printf("Breakpoint cleared\n");
         } else if (parse_hex(&p, &val)) {
                 brk_addr = val;
-                brk = 1;
+                mybrk = 1;
                 printf("Breakpoint set at %4.4X\n", brk_addr);
         } else
                 huh();

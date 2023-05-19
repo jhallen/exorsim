@@ -21,6 +21,7 @@
 #include <string.h>
 #include <fcntl.h>
 #include <sys/poll.h>
+#include <unistd.h>
 #include "exorterm.h"
 
 /* State of real terminal */

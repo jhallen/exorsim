@@ -46,7 +46,7 @@ unsigned char i_flag; /* 1=masked, 0=enabled */
 unsigned char h_flag;
 
 /* Breakpoint */
-int brk;
+int mybrk;
 unsigned short brk_addr;
 
 /* Trace buffer */
@@ -693,8 +693,8 @@ void sim(void)
 		t->ea = 0;
 		t->data = 0;
 
-		if (brk && brk_addr == pc || stop) {
-		        if (brk && brk_addr == pc)
+		if (mybrk && brk_addr == pc || stop) {
+		        if (mybrk && brk_addr == pc)
         		        printf("\r\nBreakpoint!\n");
 		        monitor();
                         t->pc = pc;

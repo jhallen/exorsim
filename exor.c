@@ -24,10 +24,12 @@
 #include <fcntl.h>
 #include <sys/poll.h>
 #include <signal.h>
+#include <unistd.h>
 
 #include "sim6800.h"
 #include "exor.h"
 #include "exorterm.h"
+#include "utils.h"
 
 /* Options */
 
@@ -62,7 +64,7 @@ int count = 10;
 
 int polling = 1; /* Allow ACIA polling */
 
-int saved;
+static int saved;
 
 void getsect(int n, int addr, int sect, int len)
 {

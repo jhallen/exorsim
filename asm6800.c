@@ -20,6 +20,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "asm6800.h"
+#include "utils.h"
 
 /* Fixup types */
 

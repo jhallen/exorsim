@@ -21,6 +21,7 @@
 #include <string.h>
 
 #include "unasm6800.h"
+#include "utils.h"
 
 struct fact *swi_facts;
 int targets[65536];
@@ -53,6 +54,7 @@ void parse_facts(FILE *f)
 		if (buf[0] && buf[strlen(buf)-1]=='\r')
 			buf[strlen(buf)-1] = 0;
 		p = buf;
+		int iaddr;
 		unsigned short addr;
 		char keyword[100];
 		int len;
@@ -63,7 +65,8 @@ void parse_facts(FILE *f)
 		len = 0;
 		label[0] = 0;
 		++line;
-		if (parse_hex(&p, &addr) && skipws(&p)) {
+		if (parse_hex(&p, &iaddr) && skipws(&p)) {
+			addr = (unsigned short)iaddr;
 			if (parse_word(&p, keyword) && skipws(&p)) {
 				if (!strcmp(keyword, "code")) {
 					if (parse_word(&p, label) && skipws(&p)) {
