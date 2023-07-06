@@ -974,7 +974,7 @@ int main(int argc, char *argv[])
                 char *mdos_name;
                 if (!strcmp(argv[x], "rawget"))
                         no_convert = 1;
-                else if (!strcmp(argv[x], "acat"))
+                else if (!strcmp(argv[x], "aget"))
                         force_convert = 1;
                 ++x;
                 if (x == argc) {
