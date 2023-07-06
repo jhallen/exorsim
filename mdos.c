@@ -154,6 +154,7 @@ void dump_rib(struct rib *r)
 }
 
 int no_convert;
+int force_convert;
 
 void read_file(int sector, int type, FILE *f)
 {
@@ -193,7 +194,7 @@ void read_file(int sector, int type, FILE *f)
                                 if (sect + x != sector) {
                                         /* printf("Sector %d:\n", sect + x); */
                                         getsect(buf, sect + x);
-                                        if (type == 5 && !no_convert) {
+                                        if (type == 5 && !no_convert || force_convert) {
                                                 /* Convert line end of ASCII file to UNIX unless no_convert is set */
                                                 /* ASCII ends when we get a NUL which is not right after
                                                  * a CR or LF, but we also strip NULs */
@@ -910,8 +911,10 @@ int main(int argc, char *argv[])
                 printf("                  -A show only ASCII files\n");
                 printf("      cat mdos-name                 Type file to console\n");
                 printf("      rawcat mdos-name              Type file to console, no ASCII conversion\n");
+                printf("      acat mdos-name                Type file to console, force ASCII conv\n");
                 printf("      get mdos-name [local-name]    Copy file from diskette to local-name\n");
                 printf("      rawget mdos-name [local-name] Copy file from disk, no ASCII conversion\n");
+                printf("      aget mdos-name [local-name]   Copy file from disk, force ASCII conv\n");
                 printf("      put local-name [mdos-name]    Copy file to diskette to mdos-name\n");
                 printf("      free                          Print amount of free space\n");
                 printf("      rm mdos-name                  Delete a file\n");
@@ -953,9 +956,11 @@ int main(int argc, char *argv[])
                 goto dir;
         } else if (!strcmp(argv[x], "free")) {
                 return do_free();
-	} else if (!strcmp(argv[x], "cat") || !strcmp(argv[x], "rawcat")) {
+	} else if (!strcmp(argv[x], "cat") || !strcmp(argv[x], "rawcat") || !strcmp(argv[x], "acat")) {
 	        if (!strcmp(argv[x], "rawcat"))
 	                no_convert = 1;
+                else if (!strcmp(argv[x], "acat"))
+                        force_convert = 1;
 	        ++x;
 	        if (x == argc) {
 	                printf("Missing file name to cat\n");
@@ -964,11 +969,13 @@ int main(int argc, char *argv[])
 	                cat(argv[x++]);
 	                return 0;
 	        }
-	} else if (!strcmp(argv[x], "get") || !strcmp(argv[x], "rawget")) {
+	} else if (!strcmp(argv[x], "get") || !strcmp(argv[x], "rawget") || !strcmp(argv[x], "aget")) {
                 char *local_name;
                 char *mdos_name;
                 if (!strcmp(argv[x], "rawget"))
                         no_convert = 1;
+                else if (!strcmp(argv[x], "acat"))
+                        force_convert = 1;
                 ++x;
                 if (x == argc) {
                         printf("Missing file name to get\n");
