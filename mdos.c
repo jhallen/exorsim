@@ -153,6 +153,8 @@ void dump_rib(struct rib *r)
         }
 }
 
+int no_convert;
+
 void read_file(int sector, int type, FILE *f)
 {
         unsigned char rib_buf[SECTOR_SIZE];
@@ -191,13 +193,13 @@ void read_file(int sector, int type, FILE *f)
                                 if (sect + x != sector) {
                                         /* printf("Sector %d:\n", sect + x); */
                                         getsect(buf, sect + x);
-                                        if (type == 5) {
-                                                /* Convert line end of ASCII file to UNIX */
+                                        if (type == 5 && !no_convert) {
+                                                /* Convert line end of ASCII file to UNIX unless no_convert is set */
                                                 /* ASCII ends when we get a NUL which is not right after
-                                                 * a CR or LF */
+                                                 * a CR or LF, but we also strip NULs */
                                                 for (n = 0; n != SECTOR_SIZE; ++n) {
                                                         int c = buf[n];
-                                                        if (c & 0x80) {
+                                                        if (c & 0x80) { // Expand compressed spaces
                                                                 int z;
                                                                 for (z = 0; z != (c & 0x7F); ++z)
                                                                         fputc(' ', f);
@@ -211,8 +213,6 @@ void read_file(int sector, int type, FILE *f)
                                                         } else if (c == 0) {
                                                                 if (!ign)
                                                                         return;
-                                                                else
-                                                                        /* putchar('@') */;
                                                                 ign = 0;
                                                         } else {
                                                                 ign = 0;
@@ -233,7 +233,7 @@ void read_file(int sector, int type, FILE *f)
                                                         secno++;
                                                 }
                                         } else {
-                                                /* Unknown file.  Send all sectors out. */
+                                                /* Unknown file.  Send all sectors out as-is. */
                                                 fwrite(buf, SECTOR_SIZE, 1, f);
                                         }
                                 }
@@ -895,7 +895,9 @@ int main(int argc, char *argv[])
 	int x;
 	char *disk_name;
 	x = 1;
-	if (x == argc) {
+	if (x == argc || !strcmp(argv[x], "--help") || !strcmp(argv[x], "-h"))
+	{
+                help:
                 printf("\nEXORciser MDOS diskette access\n");
                 printf("\n");
                 printf("Syntax: mdos path-to-diskette command args\n");
@@ -907,7 +909,9 @@ int main(int argc, char *argv[])
                 printf("                  -1 to show a single name per line\n");
                 printf("                  -A show only ASCII files\n");
                 printf("      cat mdos-name                 Type file to console\n");
+                printf("      rawcat mdos-name              Type file to console, no ASCII conversion\n");
                 printf("      get mdos-name [local-name]    Copy file from diskette to local-name\n");
+                printf("      rawget mdos-name [local-name] Copy file from disk, no ASCII conversion\n");
                 printf("      put local-name [mdos-name]    Copy file to diskette to mdos-name\n");
                 printf("      free                          Print amount of free space\n");
                 printf("      rm mdos-name                  Delete a file\n");
@@ -942,12 +946,16 @@ int main(int argc, char *argv[])
 	        /* Just print a directory listing */
 	        mdos_dir(all, full, single, only_ascii);
 	        return 0;
+        } else if (!strcmp(argv[x], "help")) {
+                goto help;
         } else if (!strcmp(argv[x], "ls")) {
                 ++x;
                 goto dir;
         } else if (!strcmp(argv[x], "free")) {
                 return do_free();
-	} else if (!strcmp(argv[x], "cat")) {
+	} else if (!strcmp(argv[x], "cat") || !strcmp(argv[x], "rawcat")) {
+	        if (!strcmp(argv[x], "rawcat"))
+	                no_convert = 1;
 	        ++x;
 	        if (x == argc) {
 	                printf("Missing file name to cat\n");
@@ -956,9 +964,11 @@ int main(int argc, char *argv[])
 	                cat(argv[x++]);
 	                return 0;
 	        }
-	} else if (!strcmp(argv[x], "get")) {
+	} else if (!strcmp(argv[x], "get") || !strcmp(argv[x], "rawget")) {
                 char *local_name;
                 char *mdos_name;
+                if (!strcmp(argv[x], "rawget"))
+                        no_convert = 1;
                 ++x;
                 if (x == argc) {
                         printf("Missing file name to get\n");
