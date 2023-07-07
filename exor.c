@@ -31,6 +31,8 @@
 #include "exorterm.h"
 #include "utils.h"
 
+FILE *lpt_file; /* Line printer file */
+
 /* Options */
 
 int swtpc = 0;
@@ -572,6 +574,27 @@ int check_sect(int n, int sect)
         return 0;
 }
 
+/* Send character to printer */
+
+void lpt_out(unsigned char c)
+{
+        if (c)
+        {
+                if (lpt_file)
+                {
+                        fputc(c, lpt_file);
+                        if (c == '\n')
+                        {
+                                fflush(lpt_file);
+                        }
+                }
+                else
+                {
+                        term_out(c);
+                }
+        }
+}
+
 /* All jumps go through this function */
 
 void jump(unsigned short addr)
@@ -771,30 +794,25 @@ void jump(unsigned short addr)
                                 break;
                         } case 0xEBCC: /* LIST */ {
                                 if (trace_disk) printf("LIST\n");
-                                term_out(acca);
-                                /* putchar(acca); fflush(stdout); */
+                                lpt_out(acca);
                                 c_flag = 0;
                                 break;
                         } case 0xEBE4: /* LDATA */ {
                                 if (trace_disk)printf("LDATA\n");
                                 while (mem[ix] != 4) {
-                                        term_out(mem[ix]);
-                                        /* putchar(mem[ix]); */
+                                        lpt_out(mem[ix]);
                                         ++ix;
                                 }
-                                term_out('\r');
-                                term_out('\n');
-                                /* printf("\n"); */
+                                lpt_out('\r');
+                                lpt_out('\n');
                                 c_flag = 0;
                                 break;
                         } case 0xEBF2: /* LDATA1 */ {
                                 if (trace_disk) printf("LDATA1\n");
                                 while (mem[ix] != 4) {
-                                        /* putchar(mem[ix]); */
-                                        term_out(mem[ix]);
+                                        lpt_out(mem[ix]);
                                         ++ix;
                                 }
-                                /* fflush(stdout); */
                                 c_flag = 0;
                                 break;
                         } default: {
@@ -925,6 +943,7 @@ int main(int argc, char *argv[])
         mon_out = stdout;
         mon_in = stdin;
         char *facts_name = "facts";
+        char *lpt_name = NULL;
         for (x = 1; x != argc; ++x) {
                 if (argv[x][0] == '-') {
                         if (!strcmp(argv[x], "--facts") && x + 1 != argc) {
@@ -945,6 +964,8 @@ int main(int argc, char *argv[])
                                 exbug_name = argv[++x];
                         } else if (!strcmp(argv[x], "-x")) {
                                 gotox = 1;
+                        } else if (!strcmp(argv[x], "--lpt") && x + 1 != argc) {
+                                lpt_name = argv[++x];
                         } else if (!strcmp(argv[x], "--lower")) {
                                 lower = 1;
                         } else {
@@ -961,6 +982,7 @@ int main(int argc, char *argv[])
                                 printf("  --facts file  Process facts files for commented disassembly\n");
                                 printf("  --lower       Allow lowercase\n");
                                 printf("  --mon         Start at monitor prompt\n");
+                                printf("  --lpt file    Save line printer output to a file\n");
                                 printf("\n");
                                 printf("Default disk0 is mdos.dsk/flex.dsk\n");
                                 printf("\n");
@@ -978,6 +1000,17 @@ int main(int argc, char *argv[])
                         } else {
                                 drive[diskn++].name = argv[x];
                         }
+                }
+        }
+
+        /* Open line printer */
+        if (lpt_name)
+        {
+                lpt_file = fopen(lpt_name, "w");
+                if (!lpt_file)
+                {
+                        fprintf(stderr, "Couldn't open line printer file %s\n", lpt_name);
+                        return -1;
                 }
         }
 
@@ -1058,5 +1091,7 @@ int main(int argc, char *argv[])
 
         /* system("stty cooked echo icrnl"); */
         restore_termios();
+        if (lpt_file)
+                fclose(lpt_file);
         return 0;
 }

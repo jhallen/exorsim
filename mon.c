@@ -44,10 +44,14 @@ void huh()
         printf("Huh?\n");
 }
 
+extern FILE *lpt_file;
+
 int quit_cmd(char *p)
 {
         printf("\nBye\n");
         restore_termios();
+        if (lpt_file)
+                fclose(lpt_file);
         exit(-1);
         return 0;
 }
@@ -414,6 +418,27 @@ int read_cmd(char *p)
         return 0;
 }
 
+int lpt_cmd(char *p)
+{
+        char name[180];
+
+        if (lpt_file)
+        {
+                fclose(lpt_file);
+                lpt_file = 0;
+        }
+
+        if (parse_word(&p, name))
+        {
+                lpt_file = fopen(name, "w");
+                if (lpt_file)
+                        fprintf(stderr, "Line printer file %s opened\n", name);
+                else
+                        fprintf(stderr, "Couldn't open %s\n", name);
+        }
+        return 0;
+}
+
 int t_cmd(char *p)
 {
         if (match_word(&p, "on"))
@@ -463,6 +488,7 @@ struct cmd cmds[]=
         { "l", l_cmd,		"			Load S19" },
         { "save", dump_cmd,	" [file [hhhh [nnnn]]]	Save memory to file in binary\n" },
         { "read", read_cmd,	" [file [hhhh]]		Read binary file into memory\n" },
+        { "lpt", lpt_cmd,       " [file]                Open line printer file\n" },
         { 0, 0, 0 }
 };
 
@@ -558,4 +584,5 @@ void monitor()
         }
         /* system("stty isig"); */
         sig_termios();
+        izexorterm();
 }
