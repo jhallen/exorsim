@@ -64,7 +64,7 @@ CFLAGS = -g
 
 CC = gcc
 
-all : mdos exor unasm
+all : mdos exor unasm edos
 
 unasm : unasm.o utils.o unasm6800.o
 	$(CC) -o unasm unasm.o utils.o unasm6800.o
@@ -74,6 +74,9 @@ exor : exor.o utils.o sim6800.o asm6800.o unasm6800.o mon.o exorterm.o
 
 mdos : mdos.o
 	$(CC) -o mdos mdos.o
+
+edos : edos.o
+	$(CC) -o edos edos.o
 
 clean :
 	rm -f ${OBJS} ${OBJS:.o=.d}
