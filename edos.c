@@ -131,7 +131,8 @@ int find_file(char *filename, int *size)
                 getsect(buf, x);
                 for (y = 0; y <= SECTOR_SIZE - ENTRY_SIZE; y += ENTRY_SIZE) {
                         struct dirent *d = (struct dirent *)(buf + y);
-                        if (d->mark != 0xff && d->name[0] != '*') { /* Not deleted */
+                        /* if (d->mark != 0xff && d->name[0] != '*') { */ /* Not deleted */
+                        if (d->name[0] >= 'A' && d->name[0] <= 'Z') {
                                 char s[50];
                                 int p = 0;
                                 int i;
@@ -161,7 +162,8 @@ void edos_load_dir()
                 getsect(buf, x);
                 for (y = 0; y <= SECTOR_SIZE - ENTRY_SIZE; y += ENTRY_SIZE) {
                         struct dirent *d = (struct dirent *)(buf + y);
-                        if (d->mark != 0xff && d->name[0] != '*') {
+                        /* if (d->mark != 0xff && d->name[0] != '*') { */
+                        if (d->name[0] >= 'A' && d->name[0] <= 'Z') {
                                 struct name *nam;
                                 char s[50];
                                 int p = 0;
