@@ -193,7 +193,7 @@ void read_file(int sector, int type, FILE *f)
                                 if (sect + x != sector) { /* Not RIB sector */
                                         /* printf("Sector %d:\n", sect + x); */
                                         getsect(buf, sect + x);
-                                        if (type == 5 && !no_convert || force_convert) {
+                                        if ((type == 5 && !no_convert) || force_convert) {
                                                 int ends = SECTOR_SIZE;
                                                 if (secno + 1 == size) {
                                                         /* Last sector of file, truncate trailing NULs */
@@ -707,7 +707,7 @@ void mdos_load_dir(int all, int only_ascii)
 {
         unsigned char buf[SECTOR_SIZE];
         unsigned char rib_buf[SECTOR_SIZE];
-        int x, y;
+        int x;
         for (x = SECTOR_DIR; x != SECTOR_DIR + SECTOR_DIR_SIZE; ++x) {
                 int y;
                 getsect(buf, x);

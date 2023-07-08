@@ -51,7 +51,6 @@ int main(int argc, char *argv[])
                                 char *p = argv[x];
                                 parse_hex(&p, &addr);
                         } else {
-                                err:
                                 printf("M6800 unassembler\n");
                                 printf("\n");
                                 printf("unasm [options] dumpfile\n");

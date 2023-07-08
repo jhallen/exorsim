@@ -60,7 +60,7 @@ PDFS = \
 
 NAME = exor-1.1
 
-CFLAGS = -g
+CFLAGS = -g -Wall
 
 CC = gcc
 

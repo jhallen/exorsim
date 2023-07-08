@@ -86,7 +86,7 @@ int parse_word(char **at_p, char *buf)
 int parse_hex1(char **at_p, int *hex)
 {
 	char *p = *at_p;
-	if (*p >= '0' && *p <= '9' || *p >= 'a' && *p <= 'f' || *p >= 'A' && *p <= 'F') {
+	if ((*p >= '0' && *p <= '9') || (*p >= 'a' && *p <= 'f') || (*p >= 'A' && *p <= 'F')) {
 		unsigned short val = 0;
                 if (*p >= '0' && *p <= '9')
                         val = val * 16 + *p++ - '0';
@@ -107,7 +107,7 @@ int parse_hex1(char **at_p, int *hex)
 int parse_hex(char **at_p, int *hex)
 {
 	char *p = *at_p;
-	if (*p >= '0' && *p <= '9' || *p >= 'a' && *p <= 'f' || *p >= 'A' && *p <= 'F') {
+	if ((*p >= '0' && *p <= '9') || (*p >= 'a' && *p <= 'f') || (*p >= 'A' && *p <= 'F')) {
 		unsigned short val = 0;
 		int dig;
 		while (parse_hex1(&p, &dig))
@@ -262,7 +262,7 @@ int jgetline(FILE *f, char *buf)
 int hatoi(unsigned char *buf)
 {
         int addr;
-        sscanf(buf, "%x", &addr);
+        sscanf((char *)buf, "%x", &addr);
         return addr;
 }
 
@@ -329,7 +329,7 @@ int fields(char *buf, char *words[])
 char *jstrcpy(char *d, char *s)
 {
         char *org_d = d;
-        while (*d++ = *s++);
+        while ((*d++ = *s++));
         return org_d;
 }
 

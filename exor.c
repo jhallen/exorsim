@@ -164,7 +164,6 @@ unsigned char mread(unsigned short addr)
                                                 pending_read_ahead = 1;
                                                 return 0x03;
                                         } else {
-                                                skip:
                                                 if (count == 1000)
                                                         poll(NULL, 0, 1); /* Don't hog CPU time */
                                                 else
@@ -501,9 +500,9 @@ void mwrite(unsigned short addr, unsigned char data)
                 }
         } else {
                 /* Do not write to ROM */
-                if (addr >= 0xE800 && addr < 0xEC00 ||
-                    addr >= 0xF000 && addr < 0xFC00 ||
-                    addr >= 0xFCFC && addr < 0xFD00)
+                if ((addr >= 0xE800 && addr < 0xEC00) ||
+                    (addr >= 0xF000 && addr < 0xFC00) ||
+                    (addr >= 0xFCFC && addr < 0xFD00))
                         return;
                 mem[addr] = data;
                 switch (addr) {
@@ -726,7 +725,6 @@ void jump(unsigned short addr)
                                 int first = (mem[STRSCT] << 8) + mem[STRSCT + 1];
                                 int num = (mem[NUMSCT] << 8) + mem[NUMSCT + 1];
                                 int addr = (mem[CURADR] << 8) + mem[CURADR + 1];
-                                int last = mem[LSCTLN];
                                 if (trace_disk) printf("WRTEST\n");
                                 if (check_drive(n))
                                         break;
@@ -1016,10 +1014,12 @@ int main(int argc, char *argv[])
 
         /* Default disk image name */
         if (!drive[0].name)
+        {
                 if (swtpc)
                         drive[0].name = "flex.dsk";
                 else
                         drive[0].name = "mdos.dsk";
+        }
 
         /* Default memory image name */
         if (!exbug_name) {

@@ -667,14 +667,11 @@ void sim(void)
 	for (;;) {
 	        int org_trace_idx = trace_idx;
 		struct trace_entry *t = (trace_buf + (trace_idx++ & (TRACESIZE - 1)));
-		int ti = 0;
 		char offset;
-		unsigned char imm;
 		unsigned short ea;
 		unsigned char a;
 		unsigned char b;
 		unsigned char f;
-		unsigned char data;
 		unsigned short w;
 		unsigned short fw;
 		int wb;
@@ -693,7 +690,7 @@ void sim(void)
 		t->ea = 0;
 		t->data = 0;
 
-		if (mybrk && brk_addr == pc || stop) {
+		if ((mybrk && (brk_addr == pc)) || stop) {
 		        if (mybrk && brk_addr == pc)
         		        printf("\r\nBreakpoint!\n");
 		        monitor();

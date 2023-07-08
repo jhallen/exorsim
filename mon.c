@@ -29,6 +29,7 @@
 #include "asm6800.h"
 #include "sim6800.h"
 #include "exor.h"
+#include "exorterm.h"
 
 FILE *mon_out;
 FILE *mon_in;
@@ -87,7 +88,7 @@ int m_cmd(char *p)
                         printf("%4.4x %2.2x ", addr, mem[addr]);
                         if (!jgetline(stdin, buf)) {
                                if (buf[0]) {
-                                       mem[addr] = hatoi(buf);
+                                       mem[addr] = hatoi((unsigned char *)buf);
                                }
                                ++addr;
                         } else {
@@ -253,10 +254,6 @@ int l_cmd(char *p)
 {
         char buf[180];
         int line = 0;
-        unsigned short addr;
-        unsigned short start = 0;
-        int cksum;
-        int l;
         while (!jgetline(mon_in, buf)) {
                 ++line;
                 if (buf[0] == 'S' && buf[1] == '1') {
@@ -372,7 +369,13 @@ int dump_cmd(char *p)
         int fd;
         strcpy(name, "dump");
 
-        parse_word(&p, name) && skipws(&p) && parse_hex(&p, &start) && skipws(&p) && parse_hex(&p, &size);
+        if (parse_word(&p, name) && skipws(&p))
+        {
+                if (parse_hex(&p, &start) && skipws(&p))
+                {
+                        parse_hex(&p, &size);
+                }
+        }
 
         if (!size || start + size > 65536) {
                 printf("start + size > 64K or size == 0\n");
@@ -398,7 +401,8 @@ int read_cmd(char *p)
         FILE *f;
         strcpy(name, "dump");
 
-        parse_word(&p, name) && skipws(&p) && parse_hex(&p, &start);
+        if (parse_word(&p, name) && skipws(&p))
+                parse_hex(&p, &start);
         f = fopen(name, "r");
         if (!f) {
                 printf("Couldn't open '%s'\n", name);
@@ -458,6 +462,7 @@ int poll_cmd(char *p)
                 polling = 0;
         else
                 huh();
+        return 0;
 }
 
 /* Command table */

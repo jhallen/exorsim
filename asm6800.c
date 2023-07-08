@@ -116,10 +116,10 @@ void show_syms(FILE *f)
 void clr_syms(void)
 {
         struct symbol *sy;
-        while (sy = symbols) {
+        while ((sy = symbols)) {
                 struct fixup *fix;
                 symbols = sy->next;
-                while (fix = sy->fixups) {
+                while ((fix = sy->fixups)) {
                         sy->fixups = fix->next;
                         free(fix);
                 }
@@ -141,7 +141,7 @@ void set_symbol(unsigned char *mem, struct symbol *sy, unsigned short val)
         }
         sy->valid = 1;
         sy->val = val;
-        while (fix = sy->fixups) {
+        while ((fix = sy->fixups)) {
                 sy->fixups = fix->next;
                 if (fix->type == FIXUP_EXT) {
                         mem[fix->fixup] = ((val + fix->ofst) >> 8);
@@ -394,8 +394,6 @@ unsigned assemble(unsigned char *mem, unsigned addr, char *buf)
         int opcode = -1;
         int operand;
         int type;
-        char *p;
-        int c;
         int x;
 
         label_sy = 0;
