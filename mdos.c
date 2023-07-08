@@ -122,10 +122,8 @@ int calc_sects(struct rib *r)
         for (x = 0; x != sizeof(r->sdw); x += 2) {
                 int sdw = ((r->sdw[x] << 8) + r->sdw[x + 1]);
                 if (sdw & 0x8000) {
-                        /*
-                        printf("Total = %d\n", total * 4);
-                        printf("Logical last = %d\n", (sdw & 0x7FFF));
-                        */
+                        /* printf("Total = %d\n", total * 4);
+                        printf("Logical last = %d\n", (sdw & 0x7FFF)); */
                         return (sdw & 0x7FFF) + 1; /* Size in sectors */
                         break;
                 }
@@ -161,14 +159,15 @@ void read_file(int sector, int type, FILE *f)
         unsigned char rib_buf[SECTOR_SIZE];
         struct rib *r = (struct rib *)rib_buf;
         int x;
-        int ign = 0;
         int secno = 0;
         unsigned char last_size;
         unsigned short size;
+        unsigned short ribsize;
 
         getsect(rib_buf, sector);
 
-        size = (r->size_high << 8) + r->size_low;
+        ribsize = (r->size_high << 8) + r->size_low; /* Only valid for loadable type == 2 files */
+        size = calc_sects(r); /* Should be valid for all file types.. */
         last_size = r->last_size;
 
         /* printf("Size is %d sectors, %d bytes in last, total=%d bytes\n", size, last_size,
@@ -191,39 +190,37 @@ void read_file(int sector, int type, FILE *f)
                         for (x = 0; x != len; ++x) {
                                 unsigned char buf[SECTOR_SIZE];
                                 int n;
-                                if (sect + x != sector) {
+                                if (sect + x != sector) { /* Not RIB sector */
                                         /* printf("Sector %d:\n", sect + x); */
                                         getsect(buf, sect + x);
                                         if (type == 5 && !no_convert || force_convert) {
+                                                int ends = SECTOR_SIZE;
+                                                if (secno + 1 == size) {
+                                                        /* Last sector of file, truncate trailing NULs */
+                                                        while (ends && buf[ends-1] == 0) --ends;
+                                                }
                                                 /* Convert line end of ASCII file to UNIX unless no_convert is set */
-                                                /* ASCII ends when we get a NUL which is not right after
-                                                 * a CR or LF, but we also strip NULs */
-                                                for (n = 0; n != SECTOR_SIZE; ++n) {
+                                                for (n = 0; n != ends; ++n) {
                                                         int c = buf[n];
                                                         if (c & 0x80) { // Expand compressed spaces
                                                                 int z;
                                                                 for (z = 0; z != (c & 0x7F); ++z)
                                                                         fputc(' ', f);
-                                                                ign = 0;
                                                         } else if (c == 13) {
+                                                                /* Convert to UNIX */
                                                                 fputc('\n', f);
-                                                                ign = 1;
                                                         } else if (c == 10) {
-                                                                /* putchar('J'); */
-                                                                ign = 1;
+                                                                /* Delete Line Feeds */
                                                         } else if (c == 0) {
-                                                                if (!ign)
-                                                                        return;
-                                                                ign = 0;
+                                                                /* Delete NULs */
                                                         } else {
-                                                                ign = 0;
                                                                 fputc(c, f);
                                                         }
                                                 }
                                                 /* printf("EOS\n"); */
                                         } else if (type == 2) {
                                                 /* Binary image file.  Exact size is in RIB */
-                                                if (secno + 1 == size) {
+                                                if (secno + 1 == ribsize) {
                                                         /* printf("Sector %d, size=%d\n", secno, last_size); */
                                                         /* Last sector */
                                                         fwrite(buf, last_size, 1, f);
@@ -231,12 +228,14 @@ void read_file(int sector, int type, FILE *f)
                                                 } else {
                                                         /* printf("Sector %d, size=128\n", secno); */
                                                         fwrite(buf, SECTOR_SIZE, 1, f);
-                                                        secno++;
                                                 }
                                         } else {
                                                 /* Unknown file.  Send all sectors out as-is. */
                                                 fwrite(buf, SECTOR_SIZE, 1, f);
                                         }
+                                        secno++;
+                                        if (secno == size)
+                                                return;
                                 }
                         }
                 }
@@ -704,13 +703,11 @@ char *typestr[]=
         "7 ASCII coverted"
 };
 
-void mdos_dir(int all, int full, int single, int only_ascii)
+void mdos_load_dir(int all, int only_ascii)
 {
         unsigned char buf[SECTOR_SIZE];
         unsigned char rib_buf[SECTOR_SIZE];
         int x, y;
-        int rows;
-        int cols = (80 / 13);
         for (x = SECTOR_DIR; x != SECTOR_DIR + SECTOR_DIR_SIZE; ++x) {
                 int y;
                 getsect(buf, x);
@@ -788,6 +785,15 @@ void mdos_dir(int all, int full, int single, int only_ascii)
                 }
         }
         qsort(names, name_n, sizeof(struct name *), (int (*)(const void *, const void *))comp);
+}
+
+void mdos_dir(int all, int full, int single, int only_ascii)
+{
+        int x, y;
+        int rows;
+        int cols = (80 / 13);
+
+        mdos_load_dir(all, only_ascii);
 
         if (full) {
                 int totals = 0;
@@ -883,7 +889,7 @@ int get_file(char *mdos_name, char *local_name)
                         printf("Couldn't close local file '%s'\n", local_name);
                         return -1;
                 }
-                return -1;
+                return 0;
         }
 }
 
@@ -918,6 +924,9 @@ int main(int argc, char *argv[])
                 printf("      put local-name [mdos-name]    Copy file to diskette to mdos-name\n");
                 printf("      free                          Print amount of free space\n");
                 printf("      rm mdos-name                  Delete a file\n");
+                printf("      x [-aA]                       Extract all files into current directory\n");
+                printf("                  -a also extract system files\n");
+                printf("                  -A extract only ASCII files\n");
                 printf("\n");
                 return -1;
 	}
@@ -928,32 +937,31 @@ int main(int argc, char *argv[])
 	        return -1;
 	}
 
-	/* Directory options */
-	dir:
-	while (x != argc && argv[x][0] == '-') {
-	        int y;
-	        for (y = 1;argv[x][y];++y) {
-	                int opt = argv[x][y];
-	                switch (opt) {
-	                        case 'l': full = 1; break;
-	                        case 'a': all = 1; break;
-	                        case '1': single = 1; break;
-	                        case 'A': only_ascii = 1; break;
-	                        default: printf("Unknown option '%c'\n", opt); return -1;
-	                }
-	        }
-	        ++x;
-	}
-
-	if (x == argc) {
+	if (x == argc || argv[x][0] == '-') {
 	        /* Just print a directory listing */
-	        mdos_dir(all, full, single, only_ascii);
-	        return 0;
+	        goto dir;
         } else if (!strcmp(argv[x], "help")) {
                 goto help;
         } else if (!strcmp(argv[x], "ls")) {
                 ++x;
-                goto dir;
+                dir:
+                /* Directory options */
+                while (x != argc && argv[x][0] == '-') {
+                        int y;
+                        for (y = 1;argv[x][y];++y) {
+                                int opt = argv[x][y];
+                                switch (opt) {
+                                        case 'l': full = 1; break;
+                                        case 'a': all = 1; break;
+                                        case '1': single = 1; break;
+                                        case 'A': only_ascii = 1; break;
+                                        default: printf("Unknown option '%c'\n", opt); return -1;
+                                }
+                        }
+                        ++x;
+                }
+	        mdos_dir(all, full, single, only_ascii);
+	        return 0;
         } else if (!strcmp(argv[x], "free")) {
                 return do_free();
 	} else if (!strcmp(argv[x], "cat") || !strcmp(argv[x], "rawcat") || !strcmp(argv[x], "acat")) {
@@ -1009,6 +1017,32 @@ int main(int argc, char *argv[])
                         name = argv[x];
                 }
                 return rm(name);
+        } else if (!strcmp(argv[x], "x")) {
+                int sta = 0;
+                ++x;
+                while (x != argc && argv[x][0] == '-') {
+                        int y;
+                        for (y = 1;argv[x][y];++y) {
+                                int opt = argv[x][y];
+                                switch (opt) {
+                                        case 'a': all = 1; break;
+                                        case 'A': only_ascii = 1; break;
+                                        default: printf("Unknown option '%c'\n", opt); return -1;
+                                }
+                        }
+                        ++x;
+                }
+                mdos_load_dir(all, only_ascii);
+                for (x = 0; x != name_n; ++x)
+                {
+                        printf("Extracting %s\n", names[x]->name);
+                        if (get_file(names[x]->name, names[x]->name))
+                        {
+                                sta = -1;
+                                printf("  failed.\n");
+                        }
+                }
+                return sta;
 	} else {
 	        printf("Unknown command '%s'\n", argv[x]);
 	        return -1;

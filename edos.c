@@ -104,19 +104,55 @@ void read_file(int lsn, int size, FILE *f)
 {
         unsigned char buf[SECTOR_SIZE];
         int x;
+        int guess_type = 0;
         for (x = lsn; x != lsn + size; ++x)
         {
-            getsect(buf, x);
-            if (x + 1 == lsn + size)
-            {
-                    int y;
-                    /* Last sector of file- delete trailing NULs */
-                    for (y = SECTOR_SIZE - 1; y && !buf[y]; --y);
-                    if (y)
-                            fwrite(buf, y + 1, 1, f);
-            }
-            else
-                    fwrite(buf, SECTOR_SIZE, 1, f);
+                getsect(buf, x);
+
+                if (x == lsn && buf[0] == 'D')
+                        guess_type = 1; /* Object file- don't delete NULs */
+
+                if (guess_type)
+                {
+                        /* Not ASCII! */
+                        if (x + 1 == lsn + size)
+                        {
+                                int y;
+                                /* Last sector of file- delete trailing NULs */
+                                for (y = SECTOR_SIZE - 1; y && !buf[y]; --y);
+                                if (y)
+                                        fwrite(buf, y + 1, 1, f);
+                        }
+                        else
+                        {
+                                fwrite(buf, SECTOR_SIZE, 1, f);
+                        }
+                }
+                else
+                {
+                        /* ASCII */
+                        int ends = SECTOR_SIZE;
+                        int n;
+                        if (x + 1 == lsn + size)
+                        {
+                                /* Last sector, delete trailing NULs */
+                                while (ends && buf[ends-1] == 0) --ends;
+                        }
+                        for (n = 0; n != ends; ++n) {
+                                int c = buf[n];
+                                if (c == 13) {
+                                        /* Convert to UNIX */
+                                        fputc('\n', f);
+                                } else if (c == 10) {
+                                        /* Delete Line Feeds */
+                                } else if (c == 0) {
+                                        /* Delete NULs- not sure this is a good idea */
+                                } else {
+                                        fputc(c, f);
+                                }
+                        }
+                        
+                }
         }
 }
 
@@ -303,30 +339,29 @@ int main(int argc, char *argv[])
 	        return -1;
 	}
 
-	/* Directory options */
-	dir:
-	while (x != argc && argv[x][0] == '-') {
-	        int y;
-	        for (y = 1;argv[x][y];++y) {
-	                int opt = argv[x][y];
-	                switch (opt) {
-	                        case 'l': full = 1; break;
-	                        case '1': single = 1; break;
-	                        default: printf("Unknown option '%c'\n", opt); return -1;
-	                }
-	        }
-	        ++x;
-	}
-
-	if (x == argc) {
+	if (x == argc || argv[x][0] == '-') {
 	        /* Just print a directory listing */
-	        edos_dir(full, single);
-	        return 0;
+	        goto dir;
         } else if (!strcmp(argv[x], "help")) {
                 goto help;
         } else if (!strcmp(argv[x], "ls")) {
                 ++x;
-                goto dir;
+                dir:
+                /* Directory options */
+                while (x != argc && argv[x][0] == '-') {
+                        int y;
+                        for (y = 1;argv[x][y];++y) {
+                                int opt = argv[x][y];
+                                switch (opt) {
+                                        case 'l': full = 1; break;
+                                        case '1': single = 1; break;
+                                        default: printf("Unknown option '%c'\n", opt); return -1;
+                                }
+                        }
+                        ++x;
+                }
+	        edos_dir(full, single);
+                return 0;
 	} else if (!strcmp(argv[x], "cat") || !strcmp(argv[x], "acat")) {
                 if (!strcmp(argv[x], "acat"))
                         force_convert = 1;
@@ -359,7 +394,7 @@ int main(int argc, char *argv[])
                 int sta = 0;
                 for (x = 0; x != name_n; ++x)
                 {
-                        printf("Extracting %s...\n", names[x]->name);
+                        printf("Extracting %s\n", names[x]->name);
                         if (get_file(names[x]->name, names[x]->name))
                         {
                                 sta = -1;
