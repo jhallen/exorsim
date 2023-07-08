@@ -242,6 +242,37 @@ void read_file(int sector, int type, FILE *f)
         }
 }
 
+/* Read first byte of file - to guess if it's an object file */
+
+int read_first(int sector)
+{
+        unsigned char rib_buf[SECTOR_SIZE];
+        struct rib *r = (struct rib *)rib_buf;
+        int x;
+
+        getsect(rib_buf, sector);
+
+        for (x = 0; x != sizeof(r->sdw); x += 2) {
+                int sdw = ((r->sdw[x] << 8) + r->sdw[x + 1]);
+                if (sdw & 0x8000) {
+                        return -1;
+                } else {
+                        int clust = (sdw & 0x3FF);
+                        int sect = clust * 4;
+                        int len = (((sdw >> 10) & 0x1F) + 1) * 4;
+                        int y;
+                        for (y = 0; y != len; ++y) {
+                                unsigned char buf[SECTOR_SIZE];
+                                if (sect + y != sector) { /* Not RIB sector */
+                                        getsect(buf, sect + y);
+                                        return buf[0];
+                                }
+                        }
+                }
+        }
+        return -1;
+}
+
 /* Count free clusters */
 
 int amount_free(unsigned char *cat)
@@ -703,6 +734,8 @@ char *typestr[]=
         "7 ASCII coverted"
 };
 
+int fixcopy;
+
 void mdos_load_dir(int all, int only_ascii)
 {
         unsigned char buf[SECTOR_SIZE];
@@ -781,6 +814,14 @@ void mdos_load_dir(int all, int only_ascii)
 
                                 if ((all || !nam->system) && (!only_ascii || nam->type == 5))
                                         names[name_n++] = nam;
+
+                                if (fixcopy && d->suffix[0] == 'E' && d->suffix[1] == 'D' && read_first(nam->sector) != 'D')
+                                {
+                                        /* Set file type to 5 */
+                                        d->attr_high = ((d->attr_high & ~7) | 5);
+                                        printf("  Changed %s to ASCII\n", nam->name);
+                                        putsect(buf, x);
+                                }
                         }
                 }
         }
@@ -955,6 +996,7 @@ int main(int argc, char *argv[])
                                         case 'a': all = 1; break;
                                         case '1': single = 1; break;
                                         case 'A': only_ascii = 1; break;
+                                        case 'F': fixcopy = 1; break;
                                         default: printf("Unknown option '%c'\n", opt); return -1;
                                 }
                         }
