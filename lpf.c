@@ -134,7 +134,8 @@ void nextline()
   }
  else
   {
-  linep=0; /* Delete line */
+  linep = 0; /* Delete line */
+  cursor_x = 0;
   }
  ++line_count;
  if (line_count == lp_lines)
@@ -150,7 +151,13 @@ void pcl(int c)
    else if(c=='\b') line[linep++]=c;
    else if(c=='\t') do line[linep++]=' '; while(linep&7);
    else if(c=='\n') nextline();
-   else if(c=='\r') { flshline(); cursor_x=0; }
+   else if(c=='\r')
+    {
+    if (line_count >= lp_topskip && line_count < (lp_lines - lp_botskip))
+     flshline();
+    cursor_x = 0;
+    linep = 0;
+    }
    else if(c=='\f') flshpage();
    else if(c=='\033') state=1;
    break;
