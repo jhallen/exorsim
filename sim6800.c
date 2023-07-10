@@ -164,7 +164,7 @@ void show_trace(int insn_no, struct trace_entry *t)
 	char buf1[80];
 	char buf[80]; /* Address and fetched data */
 	char operand[20]; /* Address mode / operand */
-	char buf3[80]; /* Effective address and data */
+	char buf3[120]; /* Effective address and data */
 	char *insn = "Huh?";
 	int subr = 0;
 	operand[0] = 0;
