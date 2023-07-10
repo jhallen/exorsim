@@ -283,26 +283,30 @@ void cat(char *name)
 
 /* get a file from the disk */
 
+int get_file_lsn(int lsn, int size, char *local_name)
+{
+        FILE *f = fopen(local_name, "w");
+        if (!f) {
+                printf("Couldn't open local file '%s'\n", local_name);
+                return -1;
+        }
+        read_file(lsn, size, f);
+        if (fclose(f)) {
+                printf("Couldn't close local file '%s'\n", local_name);
+                return -1;
+        }
+        return 0;
+}
+
 int get_file(char *mdos_name, char *local_name)
 {
         int size;
         int lsn = find_file(mdos_name, &size);
         if (lsn == -1) {
-                printf("File '%s' not found\n", mdos_name);
+                fprintf(stderr, "File '%s' not found\n", mdos_name);
                 return -1;
         } else {
-                FILE *f = fopen(local_name, "w");
-                if (!f) {
-                        printf("Couldn't open local file '%s'\n", local_name);
-                        return -1;
-                }
-                /* printf("Found file.  Sector of rib is %d\n", sector); */
-                read_file(lsn, size, f);
-                if (fclose(f)) {
-                        printf("Couldn't close local file '%s'\n", local_name);
-                        return -1;
-                }
-                return 0;
+                return get_file_lsn(lsn, size, local_name);
         }
 }
 
@@ -325,9 +329,7 @@ int main(int argc, char *argv[])
                 printf("                  -l for long\n");
                 printf("                  -1 to show a single name per line\n");
                 printf("      cat mdos-name                 Type file to console\n");
-                printf("      acat mdos-name                Type file to console, force ASCII conv\n");
                 printf("      get mdos-name [local-name]    Copy file from diskette to local-name\n");
-                printf("      aget mdos-name [local-name]   Copy file from disk, force ASCII conv\n");
                 printf("      x                             Extract all files into current directory\n");
                 printf("\n");
                 return -1;
@@ -362,9 +364,7 @@ int main(int argc, char *argv[])
                 }
 	        edos_dir(full, single);
                 return 0;
-	} else if (!strcmp(argv[x], "cat") || !strcmp(argv[x], "acat")) {
-                if (!strcmp(argv[x], "acat"))
-                        force_convert = 1;
+	} else if (!strcmp(argv[x], "cat")) {
 	        ++x;
 	        if (x == argc) {
 	                printf("Missing file name to cat\n");
@@ -373,11 +373,9 @@ int main(int argc, char *argv[])
 	                cat(argv[x++]);
 	                return 0;
 	        }
-	} else if (!strcmp(argv[x], "get") || !strcmp(argv[x], "aget")) {
+	} else if (!strcmp(argv[x], "get")) {
                 char *local_name;
                 char *mdos_name;
-                if (!strcmp(argv[x], "aget"))
-                        force_convert = 1;
                 ++x;
                 if (x == argc) {
                         printf("Missing file name to get\n");
@@ -389,16 +387,38 @@ int main(int argc, char *argv[])
                         local_name = argv[++x];
                 return get_file(mdos_name, local_name);
         } else if (!strcmp(argv[x], "x")) {
+                char local_name[80];
                 edos_load_dir();
                 int x;
                 int sta = 0;
                 for (x = 0; x != name_n; ++x)
                 {
+                        int n;
                         printf("Extracting %s\n", names[x]->name);
-                        if (get_file(names[x]->name, names[x]->name))
+                        sprintf(local_name, "%s", names[x]->name);
+                        for (n = 1; n != 10; ++n)
+                        {
+                                FILE *f = fopen(local_name, "r");
+                                if (f)
+                                {
+                                        fclose(f);
+                                        sprintf(local_name, "%s.%d", names[x]->name, n);
+                                }
+                                else
+                                        break;
+                        }
+                        if (n == 10)
+                        {
+                                printf("Couldn't extract '%s' at LSN=%d, too many files with same name\n", names[x]->name, names[x]->lsn);
+                        }
+                        else if (n != 1)
+                        {
+                                printf("Multiple files same name, renamed to %s\n", local_name);
+                        }
+                        if (get_file_lsn(names[x]->lsn, names[x]->size, local_name))
                         {
                                 sta = -1;
-                                printf("  failed.\n");
+                                printf("  failed reading file.\n");
                         }
                 }
                 return sta;
