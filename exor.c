@@ -941,7 +941,8 @@ int main(int argc, char *argv[])
         mon_out = stdout;
         mon_in = stdin;
         char *facts_name = "facts";
-        char *lpt_name = NULL;
+        char *lpt_name = "listing.lp";
+        int lpt_append = 1;
         for (x = 1; x != argc; ++x) {
                 if (argv[x][0] == '-') {
                         if (!strcmp(argv[x], "--facts") && x + 1 != argc) {
@@ -963,6 +964,10 @@ int main(int argc, char *argv[])
                         } else if (!strcmp(argv[x], "-x")) {
                                 gotox = 1;
                         } else if (!strcmp(argv[x], "--lpt") && x + 1 != argc) {
+                                lpt_append = 0;
+                                lpt_name = argv[++x];
+                        } else if (!strcmp(argv[x], "--append") && x + 1 != argc) {
+                                lpt_append = 1;
                                 lpt_name = argv[++x];
                         } else if (!strcmp(argv[x], "--lower")) {
                                 lower = 1;
@@ -981,6 +986,7 @@ int main(int argc, char *argv[])
                                 printf("  --lower       Allow lowercase\n");
                                 printf("  --mon         Start at monitor prompt\n");
                                 printf("  --lpt file    Save line printer output to a file\n");
+                                printf("  --append file Append line printer output to a file\n");
                                 printf("\n");
                                 printf("Default disk0 is mdos.dsk/flex.dsk\n");
                                 printf("\n");
@@ -1004,7 +1010,10 @@ int main(int argc, char *argv[])
         /* Open line printer */
         if (lpt_name)
         {
-                lpt_file = fopen(lpt_name, "w");
+                if (lpt_append)
+                        lpt_file = fopen(lpt_name, "wa");
+                else
+                        lpt_file = fopen(lpt_name, "w");
                 if (!lpt_file)
                 {
                         fprintf(stderr, "Couldn't open line printer file %s\n", lpt_name);

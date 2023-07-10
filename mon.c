@@ -454,6 +454,12 @@ int t_cmd(char *p)
         return 0;
 }
 
+int bt_cmd(char *p)
+{
+        show_traces(128);
+        return 0;
+}
+
 int poll_cmd(char *p)
 {
         if (match_word(&p, "on"))
@@ -474,6 +480,7 @@ struct cmd cmds[]=
         { "q", quit_cmd,	"			Exit simulator" },
         { "quit", quit_cmd,	"			Exit simulator" },
         { "t", t_cmd,		" [on|off]		Turn tracing on / off" },
+        { "bt", bt_cmd,		"                       Show most recent 128 instructions" },
         { "poll", poll_cmd,	" [on|off]		Turn ACIA polling on / off" },
         { "c", c_cmd,		" [hhhh]		Continue simulating [jump to address]" },
         { "s", s_cmd,		" [hhhh]		Step one instruction [jump to address]" },
@@ -521,7 +528,7 @@ void monitor()
                 if (trace)
                         show_traces(1);
                 else
-                        show_traces(128);
+                        show_traces(2);
         }
 
         printf("\nType 'help'\n");
