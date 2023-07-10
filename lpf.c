@@ -39,13 +39,17 @@ int lp_topskip = 6; /* Skip first 6 lines of each page */
 int lp_botskip = 0; /* Skip last n lines of each page */
 
 /* Set-up file parameters */
-int fontsize=8;	/* Font size */
+int fontsize=8;	/* Font size (used to be 12) */
 int ncopies=1;
+char *font = "Courier"; /* Used to be Courier-Bold */
+
+/* Constants */
+int res=720;		/* Resolution (dots per inch) */
+int pres=72;		/* Post-script units */
 
 /* Current state */
 
-int res=720;		/* Resolution (dots per inch) */
-int pres=72;		/* Post-script units */
+int line_count;	/* Input line number */
 int state=0;		/* Input state */
 int num=0;		/* Input number */
 int rel=0;
@@ -55,7 +59,6 @@ int height;		/* Character height */
 int width;		/* Character width */
 int lmargin;
 int tmargin;
-char *font = "Courier";
 /* char *font = "Courier-Bold"; */
 
 void izpcl()
@@ -118,10 +121,9 @@ void flshpage()
  flshline();
  fprintf(outfile, "showpage\n");
  cursor_y=0;
+ line_count=0;
  }
 
-int line_count;
-int skip_count;
 
 void nextline()
  {
@@ -130,7 +132,7 @@ void nextline()
   flshline();
   cursor_y+=height;
   cursor_x=0;
-  if(cursor_y>=10*res) flshpage();
+  /* if(cursor_y>=10*res) flshpage(); */
   }
  else
   {
@@ -139,7 +141,10 @@ void nextline()
   }
  ++line_count;
  if (line_count == lp_lines)
+  {
   line_count = 0;
+  flshpage();
+  }
  }
 
 void pcl(int c)
@@ -242,18 +247,24 @@ int main(int argc, char *argv[])
    printf("Convert PCL or ASCII to PostScript\n");
    printf("Usage: %s [options] [infile [outfile]]\n", argv[0]);
    printf("Options:\n");
-   printf("   --copies nn     Number of copies to print\n");
-   printf("   --fontsize 8    Postscript font size\n");
-   printf(" Generally we print 60 lines per page.  If you are converting\n");
-   printf(" from line printer output, you need to delete the margin lines\n");
-   printf(" with these options so that (lpline - (lptopskip + lpbotskip)) is 60:\n");
+   printf(" Input:\n");
+   printf("  Generally we print 60 lines per page.  If you are converting\n");
+   printf("  from line printer output, you need to delete the margin lines\n");
+   printf("  with these options so that (lpline - (lptopskip + lpbotskip)) is 60:\n");
    printf("   --lplines 66    Number of lines per page of infile\n");
    printf("   --lptopskip 6   Number of lines to skip at top of each page\n");
    printf("   --lpbotskip 0   Number of lines to skip at bottom of each page\n");
-   printf("   --tmargin 480   Top margin (720 is one inch)\n");
-   printf("   --lmargin 180   Left margin (720 is one inch)\n");
-   printf("   --font Courier-Bold\n");
+   printf(" Output:\n");
+   printf("   --copies nn     Number of copies to print\n");
+   printf("   --fontsize 8    Postscript font size\n");
+   printf("                   This does not affect line spacing!\n");
+   printf("   --font Courier\n");
    printf("                   Postscript font name to use\n");
+   printf("   --tmargin 480   Top margin\n");
+   printf("   --lmargin 180   Left margin\n");
+   printf("   --height 120    Height of each line (controls line spacing)\n");
+   printf("   --width 72      Width of each character (must be accurate for PCL positioning)\n");
+   printf("      Units for above: 720 is one inch\n");
    return 0;
    }
   else if (!strcmp(argv[a], "--copies") && argv[a+1])
@@ -290,6 +301,16 @@ int main(int argc, char *argv[])
    {
    ++a;
    lmargin = atoi(argv[a]);
+   }
+  else if (!strcmp(argv[a], "--height") && argv[a+1])
+   {
+   ++a;
+   height = atoi(argv[a]);
+   }
+  else if (!strcmp(argv[a], "--width") && argv[a+1])
+   {
+   ++a;
+   width = atoi(argv[a]);
    }
   else if (!strcmp(argv[a], "--font") && argv[a+1])
    {
