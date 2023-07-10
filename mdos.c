@@ -956,6 +956,7 @@ int main(int argc, char *argv[])
                 printf("                  -a to show system files\n");
                 printf("                  -1 to show a single name per line\n");
                 printf("                  -A show only ASCII files\n");
+                printf("                  -F fix .ED (EDOS import) files as side effect\n");
                 printf("      cat mdos-name                 Type file to console\n");
                 printf("      rawcat mdos-name              Type file to console, no ASCII conversion\n");
                 printf("      acat mdos-name                Type file to console, force ASCII conv\n");
