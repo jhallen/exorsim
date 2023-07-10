@@ -413,7 +413,7 @@ int main(int argc, char *argv[])
                         }
                         else if (n != 1)
                         {
-                                printf("Multiple files same name, renamed to %s\n", local_name);
+                                printf("File already exists, renamed to %s\n", local_name);
                         }
                         if (get_file_lsn(names[x]->lsn, names[x]->size, local_name))
                         {
