@@ -330,8 +330,8 @@ and append to output file).</p>
 
 <h4>EDIT commands:</h4>
 
-<p>$ means hit ESC key.  It is possible to give several commands before
-hitting the final ESC.</p>
+<p>$ means hit ESC key.  It is possible to give several commands separated
+with ESC before hitting the final ESC.</p>
 
 <dl>
 <dt>[-]nnP$$<dd>Remove lines from the buffer and append them to the output file.
