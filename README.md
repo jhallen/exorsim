@@ -53,7 +53,7 @@ case, there were a number of available operating systems:
 * MDOS   (CP/M-like OS with 8 character file names with two character extensions, for EXORdisk-II/-III)
 * MDOS09  (same as MDOS, but for 6809-based EXORcisers)
 
-So far, EXORsim only runs MDOS: because EXORsim only simulates a 6800 and
+So far EXORsim only runs MDOS: because EXORsim only simulates a 6800 and
 I've not found any bootable EDOS disks.  Note that even though MDOS is for
 6800-based EXORcisers, you can write 6809 programs with it.
 
