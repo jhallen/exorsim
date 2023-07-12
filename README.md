@@ -111,6 +111,8 @@ Just type "make" to compile it:
 
 	unasm	This is a stand-alone 6800 disassember
 
+	imdx	Utility to extract disk images from .imd files
+
 Right now the exbug.bin and swtbug.bin files must be in the current
 directory.
 
@@ -130,6 +132,10 @@ files.
 You can get ImageDisk from here:
 
 [http://www.classiccmp.org/dunfield/img/index.htm](http://www.classiccmp.org/dunfield/img/index.htm)
+
+Or you can use "imdx" provided here:
+
+	imdx disk.imd
 
 Documentation about MDOS can be found here:
 
