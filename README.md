@@ -172,8 +172,8 @@ Hit Ctrl-C once to access the simulator's debugger prompt.
 Hit Ctrl-C again to exit EXORsim, or use the 'c' command to continue
 simulating.
 
-See the [MDOS quick start](doc/mdos-intro.md) to see how to write simple
-assembly langauge programs.
+See the [MDOS quick start](doc/mdos-intro.md) to see how to use MDOS editors
+and write simple assembly langauge programs.
 
 Also see [EXORsim usage guide](doc/usage.md) for more usage information.
 
