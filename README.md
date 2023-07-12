@@ -79,6 +79,8 @@ EXORsim Simulates 6800 CPU and the following peripherals:
 Right now the exbug.bin (or swtbug.bin for SWTPC) files must be in the
 current directory.
 
+'=' is the MDOS command prompt.
+
 <pre style="font-family: Andale Mono, Lucida Console, Monaco, fixed,
 monospace; color: #000000; background-color: #eee;font-size: 12px;border:
 1px dashed #999999;line-height: 14px;padding: 5px; overflow: auto; width:
@@ -213,7 +215,6 @@ COPYRIGHT BY MOTOROLA 1977
 =
 </code></pre>
 
-'=' is the MDOS command prompt.
 
 Hit Ctrl-C once to access the simulator's debugger prompt.
 
@@ -222,6 +223,8 @@ simulating.
 
 See the [MDOS quick start](doc/mdos-intro.md) to see how to write simple
 assembly langauge programs.
+
+Also see [EXORsim usage guide](doc/usage.md) for more usage information.
 
 ## SWTPC FLEX
 
