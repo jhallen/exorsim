@@ -94,7 +94,7 @@ Hit Ctrl-C for simulator command line.  Starting simulation...
 MDOS  3.05
 =         
 WHAT?
-=<b>DIR </bb>
+=<b>DIR </b>
 DRIVE : 0   DISK I.D. : SYSTEM
 ECUSTOM .CF                   
 MDOSMODE.CF
