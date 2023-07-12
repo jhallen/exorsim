@@ -2,7 +2,7 @@
 
 ## Introduction
 
-EXORsim Linux/Cygwin program that simulates a Motorola EXORciser, which was
+EXORsim is a Linux/Cygwin program that simulates a Motorola EXORciser, which was
 a development system that [Motorola](http://en.wikipedia.org/wiki/Motorola)
 sold in the late 1970s and early 1980s based on the 8-bit
 [6800](http://en.wikipedia.org/wiki/Motorola_6800) and
