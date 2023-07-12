@@ -30,7 +30,7 @@ files (requires MS-DOS).
 
 Or you can use "imdx" provided in this repository:
 
-	imdx disk.imd
+	./imdx disk.imd
 
 The EXORciser was designed primarily to help you write assembly language
 programs for Motorola's 8-bit microprocessors, including 6800, 6801, 6805 and
@@ -77,6 +77,9 @@ EXORsim Simulates 6800 CPU and the following peripherals:
 <h3>Here is an example session.  This is one way to write an assembly language "Hello, World!" program:</h3>
 
 <p>0. Boot MDOS</p>
+
+Right now the exbug.bin (or swtbug.bin for SWTPC) files must be in the
+current directory.
 
 <pre style="font-family: Andale Mono, Lucida Console, Monaco, fixed,
 monospace; color: #000000; background-color: #eee;font-size: 12px;border:
@@ -265,9 +268,11 @@ You can get FLEX2 disk images here:
 
 # Build instructions
 
-Just type "make" to compile it:
+Just type "make" to compile it.
 
-	exor	This is the simulator
+# Utilities
+
+A number of utilities are built in addition to "exor":
 
 	mdos	This provides file access to MDOS diskette images
 
@@ -277,8 +282,11 @@ Just type "make" to compile it:
 
 	imdx	Utility to extract disk images from .imd files
 
-Right now the exbug.bin and swtbug.bin files must be in the current
-directory.
+# Blank disks
+
+	sblank.dsk	Single sided blank disk with filesystem installed (DOSGEN ;U)
+
+	dblank.dsk	Double sided blank disk with filesystem installed (DOSGEN ;U)
 
 ### Links
 
