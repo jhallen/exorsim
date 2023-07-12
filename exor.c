@@ -1019,7 +1019,7 @@ int main(int argc, char *argv[])
         if (lpt_name)
         {
                 if (lpt_append)
-                        lpt_file = fopen(lpt_name, "wa");
+                        lpt_file = fopen(lpt_name, "a");
                 else
                         lpt_file = fopen(lpt_name, "w");
                 if (!lpt_file)
