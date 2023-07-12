@@ -12,7 +12,7 @@ website [here](http://www.exorciser.net/index_en.htm).
 
 ![http://computermuseum.informatik.uni-stuttgart.de/pics/exor/gesamt.jpg](http://computermuseum.informatik.uni-stuttgart.de/pics/exor/gesamt.jpg)
 
-Image from [Computermuseum der Stuttgarter Informatik](http://computermuseum.informatik.uni-stuttgart.de/dev/exor/)
+(Image from [Computermuseum der Stuttgarter Informatik](http://computermuseum.informatik.uni-stuttgart.de/dev/exor/))
 
 The EXORciser was influential in the M6800 world:
 
