@@ -6,13 +6,12 @@ EXORsim is a Linux/Cygwin program that simulates a Motorola EXORciser, which was
 a development system that [Motorola](http://en.wikipedia.org/wiki/Motorola)
 sold in the late 1970s and early 1980s based on the 8-bit
 [6800](http://en.wikipedia.org/wiki/Motorola_6800) and
-[6809](https://en.wikipedia.org/wiki/Motorola_6809) microprocessors.  Some
-pictures of this development system can be found at Pekka Tanskanen's
-website [here](http://www.exorciser.net/index_en.htm).
+[6809](https://en.wikipedia.org/wiki/Motorola_6809) microprocessors.
 
 ![http://computermuseum.informatik.uni-stuttgart.de/pics/exor/gesamt.jpg](http://computermuseum.informatik.uni-stuttgart.de/pics/exor/gesamt.jpg)
 
-(Image from [Computermuseum der Stuttgarter Informatik](http://computermuseum.informatik.uni-stuttgart.de/dev/exor/))
+Image from [Computermuseum der Stuttgarter Informatik](http://computermuseum.informatik.uni-stuttgart.de/dev/exor/). 
+Some more pictures of this development system can be found at Pekka Tanskanen's website [here](http://www.exorciser.net/index_en.htm).
 
 The EXORciser was influential in the M6800 world:
 
