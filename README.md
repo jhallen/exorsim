@@ -22,10 +22,19 @@ Disk images for the EXORciser can be found here:
 
 [http://www.bitsavers.org/bits/Motorola/Exorcisor/](http://www.bitsavers.org/bits/Motorola/Exorcisor/)
 
+You need to use [ImageDisk]([http://www.classiccmp.org/dunfield/img/index.htm](http://www.classiccmp.org/dunfield/img/index.htm)  to extract the binary data from from the .IMD
+files (requires MS-DOS).
+
+	imdu disk.imd disk.dsk /b
+
+Or you can use "imdx" provided in this repository:
+
+	imdx disk.imd
+
 The EXORciser was designed primarily to help you write assembly language
 programs for Motorola's 8-bit microprocessors, including 6800, 6801, 6805 and
 6809.  But it also supported some high level language compilers including
-BASIC, FORTRAN, COBOL, MPL (a PL/I clone) and PASCAL.
+BASIC, FORTRAN, COBOL, [MPL](https://github.com/jhallen/exorsim/blob/master/mpl/readme.md) and PASCAL.
 
 The EXORciser could be used without any disk drives.  In this case, you
 would use a paper tape punch and reader, usually part of an ASR33 terminal. 
@@ -78,8 +87,6 @@ Load facts file 'facts'
 'mdos.dsk' opened for drive 0 (single sided)
 
 Hit Ctrl-C for simulator command line.  Starting simulation...
-
-Floppy error: attempt to access non-existent disk 1
 
 MDOS 03.00
 =
@@ -217,6 +224,35 @@ monospace; color: #000000; background-color: #eee;font-size: 12px;border:
 100%"><code>=HELLO
 HELLO, WORLD!
 =</code></pre></p>
+
+## SWTPC FLEX
+
+To simulate SWTPC instead, run with the --swtpc option:
+
+<pre style="font-family: Andale Mono, Lucida Console, Monaco, fixed,
+monospace; color: #000000; background-color: #eee;font-size: 12px;border:
+1px dashed #999999;line-height: 14px;padding: 5px; overflow: auto; width:
+100%"><code>
+~/exor-1.0$ ./exor --swtpc
+Load facts file 'facts'
+'swtbug.bin' loaded.
+'flex.dsk' opened for drive 0 (tracks=80 sectors=72)
+
+Hit Ctrl-C for simulator command line.  Starting simulation...
+
+FLEX 2.0
+
+DATE (MM,DD,YY)? 02,07,11
+
++++
+</code></pre>
+
+
+You can get FLEX2 disk images here:
+
+[http://www.flexusergroup.com/flexusergroup/fugdflx2.htm](http://www.flexusergroup.com/flexusergroup/fugdflx2.htm)
+
+[https://deramp.com/downloads/swtpc/software/FLEX/FLEX%202.0%20and%203.0%20Disk%20Images/](https://deramp.com/downloads/swtpc/software/FLEX/FLEX%202.0%20and%203.0%20Disk%20Images/)
 
 
 # Build instructions
