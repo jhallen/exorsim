@@ -18,7 +18,7 @@ Some more pictures of this development system can be found at Pekka Tanskanen's 
 The EXORciser was influential in the M6800 world:
 
 * The [Fairlight CMI](https://en.wikipedia.org/wiki/Fairlight_CMI) sampling synthesize was developed on it
-  * See especially [Tony Furse's Qasar M8](https://120years.net/qasar-iii-m8-tony-furse-australia-1970-1976/)
+  * See especially [Tony Furse's Qasar M8](https://www.outofphase.fr/en/qasar-en/)
 * The [First Digital Camera](https://thephotographeronline.com/current-issue/meet-the-inventor-of-the-first-digital-camera) was developed on it
 
 Documentation for the EXORciser can be found here:
