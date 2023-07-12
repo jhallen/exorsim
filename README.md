@@ -95,7 +95,7 @@ Hit Ctrl-C for simulator command line.  Starting simulation...
 
 MDOS  3.05
 =         
-WHAT?
+
 =<b>DIR </b>
 DRIVE : 0   DISK I.D. : SYSTEM
 ECUSTOM .CF                   
@@ -151,10 +151,6 @@ COPYRIGHT BY MOTOROLA 1978
 
 ** 02 NAME REQUIRED
 
-=<b>ASM</b>
-
-** 02 NAME REQUIRED
-
 =<b>ASM09</b>
 
 AUSTIN,TEXAS--MICROCOMPUTER CAPITAL OF THE WORLD!
@@ -163,11 +159,6 @@ MOTOROLA-AUSTIN INTERNAL USE ONLY
 COPYRIGHT MOTOROLA 1978
 
 **UNIF. I/O ERROR-STATUS=00 AT 2971
-
-=<b>RLOAD</b>
-MDOS LINKING LOADER REV  3.02
-COPYRIGHT BY MOTOROLA 1977
-?EXIT
 
 =
 </code></pre>
@@ -223,11 +214,15 @@ A number of utilities are built in addition to "exor":
 
 	mdos	This provides file access to MDOS diskette images
 
-	edos	This provides file access to EDOS-II diskette images
+	edos	This provides read-only file access to EDOS-II diskette images
 
 	unasm	This is a stand-alone 6800 disassember
 
 	imdx	Utility to extract disk images from .imd files
+		(so that you don't have to run MS-DOS)
+
+	lpf	Convert ASCII line printer output (66 lines per page) to
+		PostScript.  Then use ps2pdf to generate a .PDF file.
 
 # Blank disks
 
