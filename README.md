@@ -9,6 +9,11 @@ and [6809](https://en.wikipedia.org/wiki/Motorola_6809) microprocessors.  Some
 pictures of this development system can be found at Pekka Tanskanen's website
 [here](http://www.exorciser.net/index_en.htm).
 
+The EXORciser was influential in the M6800 world:
+
+* The [Fairlight CMI](https://en.wikipedia.org/wiki/Fairlight_CMI) sampling synthesize was developed on it
+* The [First Digital Camera](https://thephotographeronline.com/current-issue/meet-the-inventor-of-the-first-digital-camera) was developed on it
+
 Documentation for the EXORciser can be found here:
 
 [http://www.bitsavers.org/components/motorola/6800/exorciser/](http://www.bitsavers.org/components/motorola/6800/exorciser/)
