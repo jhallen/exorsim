@@ -50,14 +50,14 @@ very rudimentary terimnal.
 Simulates 6800 CPU and the following peripherals:
 
 * ACIA-based serial port (UART)
- * EXORsim emulates an EXORterm 155 by converting its control sequences into ANSI ones
-  * This allows the [EDITORM Resident Editor](https://github.com/jhallen/exorsim/blob/master/doc/mdos-intro.md#e-editorm-resident-editor) to operate in screen mode.
+  * EXORsim emulates an EXORterm 155 by converting its control sequences into ANSI ones
+    * This allows the [EDITORM Resident Editor](https://github.com/jhallen/exorsim/blob/master/doc/mdos-intro.md#e-editorm-resident-editor) to operate in screen mode.
 * Line printer port
- * Output is appended to a file "listing.lp"
- * "listing.lp" can be converted to a .pdf file using the included "lpf" program
+  * Output is appended to a file "listing.lp"
+  * "listing.lp" can be converted to a .pdf file using the included "lpf" program
 * Floppy disk controller
- * EXORdisk-II floppy diskette controller emulated by intercepting calls to the controller ROM
- * SWTPC [MF68](https://deramp.com/swtpc.com/MF_68/MF_68_Index.htm) with DC_1 emulated by hardware emulation of the [FD1771](https://en.wikipedia.org/wiki/Western_Digital_FD1771) controller.
+  * EXORdisk-II floppy diskette controller emulated by intercepting calls to the controller ROM
+  * SWTPC [MF68](https://deramp.com/swtpc.com/MF_68/MF_68_Index.htm) with DC_1 emulated by hardware emulation of the [FD1771](https://en.wikipedia.org/wiki/Western_Digital_FD1771) controller.
 
 <h3>Here is an example session.  This is one way to write an assembly language "Hello, World!" program:</h3>
 
