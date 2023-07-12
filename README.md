@@ -54,6 +54,10 @@ So far, EXORsim only runs MDOS: because EXORsim only simulates a 6800 and
 I've not found any bootable EDOS disks.  Note that even though MDOS is for
 6800-based EXORcisers, you can write 6809 programs with it.
 
+## SWTPC
+
+![https://deramp.com/assets/images/swtpc-ac30-1280x850.jpg](https://deramp.com/assets/images/swtpc-ac30-1280x850.jpg)
+
 EXORsim also simulates a [SWTPC 6800 Computer System](https://deramp.com/swtpc.html), which allows you to run
 the [TSC FLEX](http://en.wikipedia.org/wiki/FLEX_%28operating_system%29) operating system.
 
