@@ -85,14 +85,132 @@ current directory.
 monospace; color: #000000; background-color: #eee;font-size: 12px;border:
 1px dashed #999999;line-height: 14px;padding: 5px; overflow: auto; width:
 100%"><code>
-~/exor-1.0$ ./exor
 Load facts file 'facts'
 'exbug.bin' loaded.
-'mdos.dsk' opened for drive 0 (single sided)
+'mdos.dsk' opened for drive 0 (double sided)
 
 Hit Ctrl-C for simulator command line.  Starting simulation...
 
-MDOS 03.00
+
+MDOS  3.05
+=         
+WHAT?
+=<b>DIR <b>
+DRIVE : 0   DISK I.D. : SYSTEM
+ECUSTOM .CF                   
+MDOSMODE.CF
+NEWS    .SA
+EDITINFO.SA
+TOTAL DIRECTORY ENTRIES SHOWN : 004/$04
+=                                      
+WHAT?
+=<b>DIR;S<b>                     <i>Include hidden system files</i>
+DRIVE : 0   DISK I.D. : SYSTEM
+BINEX   .CM                   
+LIST    .CM
+MDOSOV0 .SY
+DIR     .CM
+MERGE   .CM
+RLOAD   .CM
+EDITOVL6.LO
+RASM09  .CM
+MDOSOV4 .SY
+EDITOVL3.LO
+EDITOVLB.LO
+ASM09   .CM
+MDOS    .SY
+MDOSOV6 .SY
+EDITOVL7.LO
+RASM    .CM
+FREE    .CM
+ROLLOUT .CM
+EQU     .SA
+BASIC   .CM
+DUMP    .CM
+EXBIN   .CM
+NAME    .CM
+ECUSTOM .CF
+MDOSOV1 .SY
+EDITOVL0.LO
+PATCH   .CM
+EDITOVL5.LO
+BLOKEDIT.CM
+ECHO    .CM
+LOAD    .CM
+EDITOVL8.LO
+EDITOVLC.LO
+ASM     .CM
+EDITM   .CM
+EDIT    .CM
+MDOSOV3 .SY
+MDOSER  .SY
+DEL     .CM
+EDITOVL4.LO
+EDITOVL1.LO
+CHAIN   .CM
+E       .CM
+MDOSMODE.CF
+BACKUP  .CM
+REPAIR  .CM
+EDITOVL9.LO
+MDOSOV5 .SY
+DOSGEN  .CM
+EMCOPY  .CM
+COPY    .CM
+FORMAT  .CM
+EDITOVL2.LO
+EDITOVLA.LO
+MDOSOV2 .SY
+NEWS    .SA
+EXBUG   .CM
+EDITINFO.SA
+TOTAL DIRECTORY ENTRIES SHOWN : 058/$3A
+=
+WHAT?
+=<b>BASIC FRED</b>
+
+MDOS BASIC 2.01
+COPYRIGHT(C)- 1977
+
+
+
+READY
+#<b>PRINT "HELLO, WORLD!"</b>
+HELLO, WORLD!
+
+READY
+#<b>EXIT</b>
+SAVE(Y/N)
+N
+=<b>RASM</b>
+MDOS MACROASSEMBLER  3.01
+COPYRIGHT BY MOTOROLA 1977
+
+
+
+** 02 NAME REQUIRED
+=<b>RASM09</b>
+M6809 MACROASSEMBLER 02.00
+COPYRIGHT BY MOTOROLA 1978
+
+
+
+** 02 NAME REQUIRED
+=<b>ASM</b>
+
+** 02 NAME REQUIRED
+=<b>ASM09</b>
+
+AUSTIN,TEXAS--MICROCOMPUTER CAPITAL OF THE WORLD!
+M6800-M6809 CROSS-ASSEMBLER 2.2
+MOTOROLA-AUSTIN INTERNAL USE ONLY
+COPYRIGHT MOTOROLA 1978
+
+**UNIF. I/O ERROR-STATUS=00 AT 2971
+=<b>RLOAD</b>
+MDOS LINKING LOADER REV  3.02
+COPYRIGHT BY MOTOROLA 1977
+?EXIT
 =
 </code></pre>
 
@@ -103,138 +221,8 @@ Hit Ctrl-C once to access the simulator's debugger prompt.
 Hit Ctrl-C again to exit EXORsim, or use the 'c' command to continue
 simulating.
 
-<p>1. Use EDITM to create the assembly language source file:</p>
-
-<p>
-<pre style="font-family: Andale Mono, Lucida Console, Monaco, fixed,
-monospace; color: #000000; background-color: #eee;font-size: 12px;border:
-1px dashed #999999;line-height: 14px;padding: 5px; overflow: auto; width:
-100%"><code>=<b>EDITM</b>
-EDITM RELEASE 3.10
-COPYRIGHT BY MOTOROLA 1978
-READY
-?<b>BUILD HELLO</b>
-HELLO   .SA:0 CREATED
-0010 <b> NAM HELLO</b>         <i>Sets module name</i>
-0020  <b>TTL HELLO</b>         <i>Sets title on listing</i>
-0030  <b>OPT REL,G,S</b>       <i>options: rel for relocatable, g to expand fcc</i>
-0040  <b>PSCT</b>              <i>Program section</i>
-0050 <b>START LDX #PROMPT</b>  <i>Point to string</i>
-0060  <b>SCALL .DSPLY</b>      <i>Display string</i>
-0070  <b>SCALL .MDENT</b>      <i>Return to MDOS</i>
-0080 <b>PROMPT FCC &quot;HELLO, WORLD!&quot;</b>
-0090  <b>FCB 13</b>            <i>Carriage return terminates string</i>
-0100  <b>BSZ 80</b>            <i>Allocate space for stack</i>
-0110  <b>END START</b>         <i>Label after END is entry point</i>
-0120   
-?<b>RESE N</b>                 <i>Eliminate line numbers</i>
-READY
-?<b>LIST</b>
- NAM HELLO
- TTL HELLO
- OPT REL,G
- PSCT
-START LDX #PROMPT
- SCALL .DSPLY    
- SCALL .MDENT
-PROMPT FCC &quot;HELLO, WORLD!&quot;
- FCB 13   
- BSZ 80   
- END START
-?<b>Q</b>
-SAVE IN HELLO1  .SA:0 (Y/N)?<b>Y</b>
-READY
-?<b>Q</b>
-=</code></pre>
-
-<p>2. Assemble, including EQU.SA file.  Note that there is no
-<code>include</code> directive, so header files like EQU.SA have to be
-specified on the command line.</p>
-
-<pre style="font-family: Andale Mono, Lucida Console, Monaco, fixed,
-monospace; color: #000000; background-color: #eee;font-size: 12px;border:
-1px dashed #999999;line-height: 14px;padding: 5px; overflow: auto; width:
-100%"><code>=<b>RASM EQU,HELLO1;LO=HELLO1</b>
-<i>...490 lines from the EQU.SA file...</i>
-00491                         NAM    HELLO
-00492                         TTL    HELLO
-00493                         OPT    REL,G
-00494P 0000                   PSCT
-00495P 0000 CE 0007  P START  LDX    #PROMPT
-00496P 0003                   SCALL  .DSPLY
-00497P 0005                   SCALL  .MDENT
-00498P 0007    48    A PROMPT FCC    "HELLO, WORLD!"
-     P 0008    45    A
-     P 0009    4C    A
-     P 000A    4C    A
-     P 000B    4F    A
-     P 000C    2C    A
-     P 000D    20    A
-     P 000E    57    A
-     P 000F    4F    A
-     P 0010    52    A
-     P 0011    4C    A
-     P 0012    44    A
-     P 0013    21    A
-00499P 0014    0D    A        FCB    13
-00500P 0015    0050  A        BSZ    80
-00501          0000  P        END    START
-TOTAL ERRORS 00000--00000
-=</code></pre>
-
-<p>3. Link</p>
-
-<p><pre style="font-family: Andale Mono, Lucida Console, Monaco, fixed,
-monospace; color: #000000; background-color: #eee;font-size: 12px;border:
-1px dashed #999999;line-height: 14px;padding: 5px; overflow: auto; width:
-100%"><code>=<b>RLOAD</b>
-MDOS LINKING LOADER REV F3.P0
-COPYRIGHT BY MOTOROLA 1977
-?<b>IF=T</b>			<i>Gives name of temporary file for second pass</i>
-?<b>BASE</b>			<i>Set base addresses for MDOS</i>
-?<b>IDON</b>			<i>Enable display of module name information</i>
-?<b>LOAD=HELLO</b>		<i>Load object file, first pass</i>
-  HELLO   
-?<b>OBJA=HELLO</b>		<i>Give name of output file, start second pass</i>
-  HELLO   
-?<b>MAPF</b>			<i>Show map file</i>
-  NO UNDEFINED SYMBOLS
-MAP
- S SIZE  STR  END COMN
- B 0000 0020 0020 0000		<i>&lt;-- Base section, for code below $100</i>
- C 0000 2000 2000 0000		<i>&lt;-- Common section</i>
- D 0000 2000 2000 0000		<i>&lt;-- Data section</i>
- P 0065 2000 2064 0000		<i>&lt;-- The code is here, in program section</i>
-MODULE NAME BSCT DSCT PSCT
-  HELLO     0020 2000 2000
-?<b>EXIT</b>			<i>Exit RLOAD</i>
-=</code></pre>
-</p>
-
-<p>4. Load and run</p>
-
-<p><pre style="font-family: Andale Mono, Lucida Console, Monaco, fixed,
-monospace; color: #000000; background-color: #eee;font-size: 12px;border:
-1px dashed #999999;line-height: 14px;padding: 5px; overflow: auto; width:
-100%"><code>=<b>LOAD HELLO;G</b>
-HELLO, WORLD!
-</code></pre>
-</p>
-
-<p>5. Rename it to a command file</p>
-
-<p><pre style="font-family: Andale Mono, Lucida Console, Monaco, fixed,
-monospace; color: #000000; background-color: #eee;font-size: 12px;border:
-1px dashed #999999;line-height: 14px;padding: 5px; overflow: auto; width:
-100%"><code>=NAME HELLO.LO .CM</code></pre></p>
-
-<p>6. Now just type the command:</p>
-<p><pre style="font-family: Andale Mono, Lucida Console, Monaco, fixed,
-monospace; color: #000000; background-color: #eee;font-size: 12px;border:
-1px dashed #999999;line-height: 14px;padding: 5px; overflow: auto; width:
-100%"><code>=HELLO
-HELLO, WORLD!
-=</code></pre></p>
+See the [MDOS quick start](doc/mdos-intro.md) to see how to write simple
+assembly langauge programs.
 
 ## SWTPC FLEX
 
