@@ -436,7 +436,7 @@ void show_trace(int insn_no, struct trace_entry *t)
 				insn = "INX";
 				break;
 			} case 0x09: /* DEX Z */ {
-				insn = "DEC";
+				insn = "DEX";
 				break;
 			} case 0x0A: /* CLV */ {
 				insn = "CLV";

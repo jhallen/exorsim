@@ -494,7 +494,7 @@ void unasm_line(unsigned char *mem, unsigned short *at_pc, char *outbuf, int *at
 				insn = "INX";
 				break;
 			} case 0x09: /* DEX Z */ {
-				insn = "DEC";
+				insn = "DEX";
 				break;
 			} case 0x0A: /* CLV */ {
 				insn = "CLV";
