@@ -10,6 +10,8 @@ sold in the late 1970s and early 1980s based on the 8-bit
 pictures of this development system can be found at Pekka Tanskanen's
 website [here](http://www.exorciser.net/index_en.htm).
 
+![http://computermuseum.informatik.uni-stuttgart.de/pics/exor/gesamt.jpg](http://computermuseum.informatik.uni-stuttgart.de/pics/exor/gesamt.jpg)
+
 The EXORciser was influential in the M6800 world:
 
 * The [Fairlight CMI](https://en.wikipedia.org/wiki/Fairlight_CMI) sampling synthesize was developed on it
