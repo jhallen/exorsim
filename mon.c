@@ -480,7 +480,7 @@ struct cmd cmds[]=
         { "q", quit_cmd,	"			Exit simulator" },
         { "quit", quit_cmd,	"			Exit simulator" },
         { "t", t_cmd,		" [on|off]		Turn tracing on / off" },
-        { "bt", bt_cmd,		"                       Show most recent 128 instructions" },
+        { "bt", bt_cmd,		"			Show most recent 128 instructions" },
         { "poll", poll_cmd,	" [on|off]		Turn ACIA polling on / off" },
         { "c", c_cmd,		" [hhhh]		Continue simulating [jump to address]" },
         { "s", s_cmd,		" [hhhh]		Step one instruction [jump to address]" },
@@ -500,7 +500,7 @@ struct cmd cmds[]=
         { "l", l_cmd,		"			Load S19" },
         { "save", dump_cmd,	" [file [hhhh [nnnn]]]	Save memory to file in binary\n" },
         { "read", read_cmd,	" [file [hhhh]]		Read binary file into memory\n" },
-        { "lpt", lpt_cmd,       " [file]                Open line printer file\n" },
+        { "lpt", lpt_cmd,       " [file]		Open line printer file\n" },
         { 0, 0, 0 }
 };
 
@@ -531,7 +531,7 @@ void monitor()
                         show_traces(2);
         }
 
-        printf("\nType 'help'\n");
+        printf("\n6800 Monitor: Ctrl-C to exit, 'c' to continue, or type 'help'\n");
 
         for (;;) {
                 char buf[180];
