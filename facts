@@ -192,7 +192,7 @@ f024 code PDATA		Print CR-LF then string
 f027 code PDATA1	Print string
 f02a code PSPC		Print space
 
- Code
+ exbug-1.1 Code
 
 f9cf subr OUTCH		Output a character
 f9dc subr OUTCH		Output a character

@@ -1,0 +1,5 @@
+exbug-1.2.bin can be used, but the lowest level function to read a character
+from the UART (ACIA) is at a different address than it is for exbug.bin
+(which is exbug-1.1).
+
+So you must recompile exorsim to intercept this address instead.

@@ -31,6 +31,9 @@
 #include "exorterm.h"
 #include "utils.h"
 
+/* Define if we are using EXBUG-1.2 instead of EXBUG-1.1 */
+/* #define EXBUG12 */
+
 FILE *lpt_file; /* Line printer file */
 
 /* Options */
@@ -612,7 +615,12 @@ void jump(unsigned short addr)
                                 break;
                         }
 #endif
-                        case 0xFA8B: /* Input a character */ {
+
+#ifdef EXBUG12
+                        case 0xFA6B: /* Input a character */ { /* Lowest level function in EXBUG 1.2 */
+#else
+                        case 0xFA8B: /* Input a character */ { /* Lowest level function in EXBUG 1.1 */
+#endif
                                 acca = term_in();
                                 if (!mem[0xFF53]) { /* Echo */
                                         term_out(acca);
