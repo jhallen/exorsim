@@ -62,7 +62,7 @@ terminal emulator features such as scroll-back.  I find this to be more
 useful than some emulators which run under MS-Windows, but provide only a
 very rudimentary terimnal.
 
-Simulates 6800 CPU and the following peripherals:
+EXORsim Simulates 6800 CPU and the following peripherals:
 
 * ACIA-based serial port (UART)
   * EXORsim emulates an EXORterm 155 by converting its control sequences into ANSI ones
@@ -92,6 +92,13 @@ Hit Ctrl-C for simulator command line.  Starting simulation...
 MDOS 03.00
 =
 </code></pre>
+
+'=' is the MDOS command prompt.
+
+Hit Ctrl-C once to access the simulator's debugger prompt.
+
+Hit Ctrl-C again to exit EXORsim, or use the 'c' command to continue
+simulating.
 
 <p>1. Use EDITM to create the assembly language source file:</p>
 
