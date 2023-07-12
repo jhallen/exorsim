@@ -21,6 +21,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <termios.h>
+#include <signal.h>
 #include "utils.h"
 
 /* Skip over whitespace */
@@ -250,6 +251,12 @@ int jgetline(FILE *f, char *buf)
                         return 0;
                 } else if (c == 3) {
                         return -1;
+                } else if (c == 'Z' - '@') {
+                        restore_termios();
+        		fprintf(stderr, "You have suspended the program.  Type 'fg' to return\n");
+        		kill(0, SIGTSTP);
+        		sim_termios();
+        		nosig_termios();
                 } else {
                         putchar(c); fflush(stdout);
                         buf[x++] = c;
@@ -387,9 +394,7 @@ void sim_termios()
                 attr.c_iflag&=~ICRNL; /* Yes */
                 attr.c_lflag&=~ICANON;
                 attr.c_lflag&=~ECHO; /* Yes */
-                /* attr.c_lflag&=~ISIG; */
-                /* attr.c_iflag&=~IGNBRK; */
-                /* attr.c_iflag|=BRKINT; */
+                attr.c_cc[VSUSP] = -1; /* Prevent Ctrl-Z */
                 tcsetattr(fileno(stdin),TCSADRAIN,&attr);
         }
 }

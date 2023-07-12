@@ -22,6 +22,8 @@
 #include <fcntl.h>
 #include <sys/poll.h>
 #include <unistd.h>
+#include <signal.h>
+#include "utils.h"
 #include "exorterm.h"
 
 /* State of real terminal */
@@ -1301,6 +1303,8 @@ int term_in()
 {
 	int c;
 
+	again:
+
 	/* Wait for a character */
 	while (!stop && !term_poll());
 
@@ -1308,5 +1312,17 @@ int term_in()
 	c = fifo[fifo_old++];
 	if (fifo_old == FIFOSIZE)
 		fifo_old = 0;
+
+	if (c == 'Z' - '@')
+	{
+		restore_termios();
+		fprintf(stderr, "You have suspended the program.  Type 'fg' to return\n");
+		kill(0, SIGTSTP);
+		sim_termios();
+		izexorterm();
+
+		goto again;
+	}
+
 	return c;
 }
