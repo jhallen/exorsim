@@ -74,7 +74,7 @@ EXORsim Simulates 6800 CPU and the following peripherals:
   * EXORdisk-II floppy diskette controller emulated by intercepting calls to the controller ROM
   * SWTPC [MF68](https://deramp.com/swtpc.com/MF_68/MF_68_Index.htm) with DC_1 emulated by hardware emulation of the [FD1771](https://en.wikipedia.org/wiki/Western_Digital_FD1771) controller.
 
-<h3>Here is an example session.  This is one way to write an assembly language "Hello, World!" program:</h3>
+<h3>Example session</h3>
 
 Right now the exbug.bin (or swtbug.bin for SWTPC) files must be in the
 current directory.
