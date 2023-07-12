@@ -76,8 +76,6 @@ EXORsim Simulates 6800 CPU and the following peripherals:
 
 <h3>Here is an example session.  This is one way to write an assembly language "Hello, World!" program:</h3>
 
-<p>0. Boot MDOS</p>
-
 Right now the exbug.bin (or swtbug.bin for SWTPC) files must be in the
 current directory.
 
@@ -85,6 +83,7 @@ current directory.
 monospace; color: #000000; background-color: #eee;font-size: 12px;border:
 1px dashed #999999;line-height: 14px;padding: 5px; overflow: auto; width:
 100%"><code>
+~/exor-1.0$ ./exor
 Load facts file 'facts'
 'exbug.bin' loaded.
 'mdos.dsk' opened for drive 0 (double sided)
@@ -95,7 +94,7 @@ Hit Ctrl-C for simulator command line.  Starting simulation...
 MDOS  3.05
 =         
 WHAT?
-=<b>DIR <b>
+=<b>DIR </bb>
 DRIVE : 0   DISK I.D. : SYSTEM
 ECUSTOM .CF                   
 MDOSMODE.CF
@@ -104,7 +103,7 @@ EDITINFO.SA
 TOTAL DIRECTORY ENTRIES SHOWN : 004/$04
 =                                      
 WHAT?
-=<b>DIR;S<b>                     <i>Include hidden system files</i>
+=<b>DIR;S</b>                     <i>Include hidden system files</i>
 DRIVE : 0   DISK I.D. : SYSTEM
 BINEX   .CM                   
 LIST    .CM
