@@ -22,7 +22,7 @@ Disk images for the EXORciser can be found here:
 
 [http://www.bitsavers.org/bits/Motorola/Exorcisor/](http://www.bitsavers.org/bits/Motorola/Exorcisor/)
 
-You need to use [ImageDisk]([http://www.classiccmp.org/dunfield/img/index.htm](http://www.classiccmp.org/dunfield/img/index.htm)  to extract the binary data from from the .IMD
+You need to use [ImageDisk](http://www.classiccmp.org/dunfield/img/index.htm) to extract the binary data from from the .IMD
 files (requires MS-DOS).
 
 	imdu disk.imd disk.dsk /b
