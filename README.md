@@ -55,6 +55,11 @@ EXORdisk-I,-II, or -III.  In this case, there were a number of available operati
 * MDOS   (CP/M-like OS with 8 character file names with two character extensions, for EXORdisk-II/-III)
 * MDOS09  (same as MDOS, but for 6809-based EXORcisers)
 
+There was an all-in-one follow-on system called [EXORset](https://www.retrotechnology.com/restore/exorset.html)
+available in the early 1980s.  This system had a built-in terminal, used 5 1/4" mini-floppies and 
+ran "XDOS".  XDOS is rebranding of MDOS for the 6809, but with mini-floppy
+support.
+
 So far EXORsim only runs MDOS: because EXORsim only simulates a 6800 and
 I've not found any bootable EDOS disks.  Note that even though MDOS is for
 6800-based EXORcisers, you can write 6809 programs with it.
@@ -76,7 +81,7 @@ very rudimentary terimnal.
 
 EXORsim Simulates 6800 CPU and the following peripherals:
 
-* ACIA-based serial port (UART)
+* MC6850 "ACIA"-based serial port (UART)
   * EXORsim emulates an EXORterm 155 by converting its control sequences into ANSI ones
     * This allows the [EDITORM Resident Editor](https://github.com/jhallen/exorsim/blob/master/doc/mdos-intro.md#e-editorm-resident-editor) to operate in screen mode.
 * Line printer port
