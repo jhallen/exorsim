@@ -57,7 +57,7 @@ EXORdisk-I,-II, or -III.  In this case, there were a number of available operati
 
 There was an all-in-one follow-on system called [EXORset](https://www.retrotechnology.com/restore/exorset.html)
 available in the early 1980s.  This system had a built-in terminal, used 5 1/4" mini-floppies and 
-ran "XDOS".  XDOS is rebranding of MDOS for the 6809, but with mini-floppy
+ran "XDOS".  XDOS is nearly identical to the 6809 version of MDOS, but with mini-floppy
 support.
 
 So far EXORsim only runs MDOS: because EXORsim only simulates a 6800 and
@@ -223,7 +223,7 @@ You can get FLEX2 disk images here:
 
 # Build instructions
 
-Just type "make" to compile it.
+Clone this repository on a recent Linux or Cygwin system and type "make" to compile it.
 
 # Utilities
 
