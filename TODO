@@ -2,34 +2,46 @@ Exor:
 
   "make install" (needs paths to binaries).
 
+  Default options and file locations in environment variables, so you don't beed
+  exbug.bin in current directory.
+
   Step over function (we only have step into now)
   Break key
   More breakpoints
   Switch disks
+
   Ctrl-C twice sends Ctrl-C to program?
 
-  6801, 6811, 6816 support
+  6800 simulator: 6801, 6811, 6816 support
 
-  6809 version
+  6809 simulator: there are some exorset disks and
+  an exorset emulator (from which we could get the
+  exbug-09)
+
+    6309 support
 
   Share symbols from assembler for facts
   Show top of stack command?
 
   User GNU readline or add history for monitor jgetline?
 
-  Exorterm emulation (if we can find docs for it..)
-
   Televideo emulation for Flex2?  Maybe not necessary.
+
+  Direct support of .imd files so that binary extract
+  is not necessary?
 
 Mdos:
 
   Support writing binary files
   Add rename function
-  Add extract all?
   Add format function to create a blank disk.
   Check for read/write errors to disk.
   Check disk size for reads/writes.
   Check MDOS file name is 8.2
+
+  Add support for EXORset mini-floppies
+
+  Direct support of .imd files?
 
 Unasm:
 
@@ -47,6 +59,11 @@ HTDOCs:
 
   Document monitor ROMs.
 
-Other:
 
+- - -
+Done:
   Create Linux version of ImageDisk imdu command.
+
+  Exorterm emulation (if we can find docs for it..)
+
+  MDOS extract all files

@@ -44,9 +44,11 @@ programs for Motorola's 8-bit microprocessors, including 6800, 6801, 6805 and
 BASIC, FORTRAN, COBOL, [MPL](https://github.com/jhallen/exorsim/blob/master/mpl/readme.md) and PASCAL.
 
 The EXORciser could be used without any disk drives.  In this case, you
-would use a paper tape punch and reader, usually part of an [ASR33](https://en.wikipedia.org/wiki/Teletype_Model_33) terminal. 
-But it also could be used much more pleasantly with disk drives.  In this
-case, there were a number of available operating systems:
+would use either a paper tape punch and reader, usually part of an [ASR33
+Teletype](https://en.wikipedia.org/wiki/Teletype_Model_33), or cassette tape
+storage, for example as included with a [TI ASR 733](https://terminals-wiki.org/wiki/index.php/TI_Silent_700_Model_733). 
+But it was much pleasant if you had floppy drives, such as the
+EXORdisk-I,-II, or -III.  In this case, there were a number of available operating systems:
 
 * EDOS-I  (primitive OS with no file names- files are refered to by number, for EXORdisk-I)
 * EDOS-II   (primitive OS with 5 character file names, for EXORdisk-I)
