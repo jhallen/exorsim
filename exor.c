@@ -31,9 +31,6 @@
 #include "exorterm.h"
 #include "utils.h"
 
-/* Define if we are using EXBUG-1.2 instead of EXBUG-1.1 */
-/* #define EXBUG12 */
-
 FILE *lpt_file; /* Line printer file */
 
 /* Options */
@@ -42,6 +39,8 @@ int swtpc = 0;
 char *exbug_name; /*  = "exbug.bin"; */
 int trace_disk = 0; /* Enable disk trace */
 int lower = 0; /* Allow lower case */
+
+int protect_roms = 1; /* Protect "ROM"s from writing if set */
 
 /* Diskettes */
 
@@ -273,100 +272,16 @@ unsigned char mread(unsigned short addr)
                                 return 0x80;
                         } case 0xFCF8: {
                                 return 0xF;
-#if 0
-                        } case 0xFCF4: {
-                                if (count--)
-                                        return 0x00;
-                                else {
-                                        count = 10;
-                                        return 0x03;
-                                }
-#endif
-#if 1
                         } case 0xFCF4: { /* Check serial port status */
                                 if (quick_term_poll())
                                         return 0x03;
                                 else
                                         return 0x02;
-#if 0
-                                if (polling) {
-
-                                        int flags;
-
-                                        if (pending_read_ahead)
-                                                return 0x03;
-
-                                        flags = fcntl(fileno(stdin), F_GETFL);
-                                        if (flags == -1) {
-                                                printf("fcntl error\n");
-                                                exit(-1);
-                                        }
-                                        fcntl(fileno(stdin), F_SETFL, flags | O_NONBLOCK);
-
-                                        rtn = read(fileno(stdin), &read_ahead_c, 1);
-
-                                        fcntl(fileno(stdin), F_SETFL, flags);
-
-                                        if (rtn == 1) {
-                                                count = 0;
-                                                pending_read_ahead = 1;
-                                                return 0x03;
-                                        } else {
-                                                skip:
-                                                if (count == 1000)
-                                                        poll(NULL, 0, 1); /* Don't hog CPU time */
-                                                else
-                                                        ++count;
-                                                return 0x02;
-                                        }
-                                } else {
-                                        /* No polling: return false then true */
-                                        if (count--)
-                                                return 0x00;
-                                        else {
-                                                count = 10;
-                                                return 0x03;
-                                        }
-                                }
-#endif
                         } case 0xFCF5: { /* Read from serial port */
                                 if (quick_term_poll())
                                         return term_in();
                                 else
                                         return 0;
-#if 0
-                                if (polling) {
-                                        c = read_ahead_c;
-                                        pending_read_ahead = 0;
-                                } else {
-                                        int rtn = 0;
-                                        int flags = fcntl(fileno(stdin), F_GETFL);
-                                        c = '?';
-                                        if (flags == -1) {
-                                                printf("fcntl error\n");
-                                                exit(-1);
-                                        }
-                                        while (rtn < 1 && !stop) {
-                                                fcntl(fileno(stdin), F_SETFL, flags | O_NONBLOCK);
-                                                rtn = read(fileno(stdin), &c, 1);
-                                                fcntl(fileno(stdin), F_SETFL, flags);
-                                                if (rtn < 1 && !stop) {
-                                                        poll(NULL, 0, 8); /* Don't hog CPU time */
-                                                }
-                                        }
-                                }
-                                if (!lower && c >= 'a' && c <= 'z')
-                                        c += 'A' - 'a';
-                                if (swtpc) {
-                                        if (c == 127)
-                                                c = 8;
-                                } else {
-                                        if (c == 8)
-                                                c = 127;
-                                }
-                                return c;
-#endif
-#endif
                         } default: {
                                 return mem[addr];
                         }
@@ -379,9 +294,12 @@ unsigned char mread(unsigned short addr)
 void mwrite(unsigned short addr, unsigned char data)
 {
         if (swtpc) {
-                /* Do not write to ROM */
-                if (addr >= 0xe000 && addr < 0xe400)
-                        return;
+                if (protect_roms)
+                {
+                        /* Do not write to ROM */
+                        if (addr >= 0xe000 && addr < 0xe400)
+                                return;
+                }
                 mem[addr] = data;
                 switch (addr) {
                         case 0x8018: { /* Command */
@@ -517,10 +435,13 @@ void mwrite(unsigned short addr, unsigned char data)
                 }
         } else {
                 /* Do not write to ROM */
-                if ((addr >= 0xE800 && addr < 0xEC00) ||
-                    (addr >= 0xF000 && addr < 0xFC00) ||
-                    (addr >= 0xFCFC && addr < 0xFD00))
-                        return;
+                if (protect_roms)
+                {
+                        if ((addr >= 0xE800 && addr < 0xEC00) ||
+                            (addr >= 0xF000 && addr < 0xFC00) ||
+                            (addr >= 0xFCFC && addr < 0xFD00))
+                                return;
+                }
                 mem[addr] = data;
                 switch (addr) {
                         case 0xFCF5: { /* Write to serial port */
@@ -613,234 +534,232 @@ void lpt_out(unsigned char c)
 
 /* All jumps go through this function */
 
+int intercept_inch = -1;
+int exbug_detected = 0;
+
 void jump(unsigned short addr)
 {
         if (swtpc) {
                 pc = addr;
                 return;
         } else {
-                switch (addr) {
-/* Too many programs access ACIA directly */
-#if 0
-                        case 0xF9CF: case 0xF9DC: /* Output a character */ {
+                if (addr == intercept_inch) {
+                        /* Intercept INCH function */
+                        /* Note that we don't intercept output functions, we just emulate the ACIA hardware, see mwrite() */
+                        acca = term_in();
+                        if (!mem[0xFF53]) { /* Echo flag */
                                 term_out(acca);
-                                /* putchar(acca); fflush(stdout); */
-                                c_flag = 0; /* Carry is error status */
-                                break;
+                                /* putchar(c);
+                                fflush(stdout); */
+                        } else {
+                                mem[0xFF53] = 0;
                         }
-#endif
-
-#ifdef EXBUG12
-                        case 0xFA6B: /* Input a character */ { /* Lowest level function in EXBUG 1.2 */
-#else
-                        case 0xFA8B: /* Input a character */ { /* Lowest level function in EXBUG 1.1 */
-#endif
-                                acca = term_in();
-                                if (!mem[0xFF53]) { /* Echo */
-                                        term_out(acca);
-                                        /* putchar(c);
-                                        fflush(stdout); */
-                                } else {
-                                        mem[0xFF53] = 0;
-                                }
-                                c_flag = 0; /* No error */
-                                break;
-                        }
-                        case 0xE800: /* OSLOAD (no modified parms) */ {
-                                printf("\nOSLOAD...\n");
-                                getsect(0, 0x0020, 23, 128);
-                                getsect(0, 0x0020 + 0x0080, 24, 128);
-                                pc = 0x0020;
-                                sp = 0x00FF;
-                                return;
-                        } case 0xE822: /* FDINIT (no modified parms) */ {
-                                c_flag = 0;
-                                break;
-                        } 
+                        c_flag = 0; /* No error */
+                }
+                else
+                {
+                        /* Intercept EXORdisk-II calls */
+                        /* EXORdisk-II PROM is 0xE800 - 0xEBFF */
+                        /* Note that Line Printer driver is included in the EXORdisk-II PROM */
+                        switch (addr) {
+                                case 0xE800: /* OSLOAD (no modified parms) */ {
+                                        printf("\nOSLOAD...\n");
+                                        getsect(0, 0x0020, 23, 128);
+                                        getsect(0, 0x0020 + 0x0080, 24, 128);
+                                        pc = 0x0020;
+                                        sp = 0x00FF;
+                                        return;
+                                } case 0xE822: /* FDINIT (no modified parms) */ {
+                                        c_flag = 0;
+                                        break;
+                                } 
 #if 0
-                          case 0xF853: /* CHKERR */ {
-                                break;
-                        } case 0xE85A: /* PRNTER */ {
-                                break;
-                        } 
+                                  case 0xF853: /* CHKERR */ {
+                                        break;
+                                } case 0xE85A: /* PRNTER */ {
+                                        break;
+                                } 
 #endif
-                          case 0xE869: /* READSC (read full sectors) */ {
-                                mem[LSCTLN] = 128;
-                        } case 0xE86D: /* READPS (read partial sectors) (FDSTAT, carry, sides) */ {
-                                int x;
-                                int n = mem[CURDRV];
-                                int first = (mem[STRSCT] << 8) + mem[STRSCT + 1];
-                                int num = (mem[NUMSCT] << 8) + mem[NUMSCT + 1];
-                                int addr = (mem[CURADR] << 8) + mem[CURADR + 1];
-                                int last = mem[LSCTLN];
-                                if (trace_disk) printf("Read sectors: drive=%d, first=%d, number=%d, addr=%x, size of last=%d\n", n, first, num,
-                                       addr, last);
-                                if (check_drive(n))
+                                  case 0xE869: /* READSC (read full sectors) */ {
+                                        mem[LSCTLN] = 128;
+                                } case 0xE86D: /* READPS (read partial sectors) (FDSTAT, carry, sides) */ {
+                                        int x;
+                                        int n = mem[CURDRV];
+                                        int first = (mem[STRSCT] << 8) + mem[STRSCT + 1];
+                                        int num = (mem[NUMSCT] << 8) + mem[NUMSCT + 1];
+                                        int addr = (mem[CURADR] << 8) + mem[CURADR + 1];
+                                        int last = mem[LSCTLN];
+                                        if (trace_disk) printf("Read sectors: drive=%d, first=%d, number=%d, addr=%x, size of last=%d\n", n, first, num,
+                                               addr, last);
+                                        if (check_drive(n))
+                                                break;
+                                        for (x = 0; x != num; ++x) {
+                                                if (check_sect(n, first + x))
+                                                        goto oops;
+                                                getsect(n, addr + 128 * x, first + x, ((x + 1 == num) ? mem[LSCTLN] : 128));
+                                        }
+                                        mem[FDSTAT] = ER_NON;
+                                        if (drive[n].tracks == 77)
+                                                mem[SIDES] = 0x80;
+                                        else
+                                                mem[SIDES] = 0;
+                                        c_flag = 0;
+                                        oops: break;
+                                } case 0xE86F: /* RDCRC */ {
+                                        if (trace_disk) printf("RDCRC\n");
+                                        int x;
+                                        int n = mem[CURDRV];
+                                        int first = (mem[STRSCT] << 8) + mem[STRSCT + 1];
+                                        int num = (mem[NUMSCT] << 8) + mem[NUMSCT + 1];
+                                        int addr = (mem[CURADR] << 8) + mem[CURADR + 1];
+                                        int last = mem[LSCTLN];
+                                        if (trace_disk) printf("RDCRC: drive=%d, first=%d, number=%d, addr=%x, size of last=%d\n", n, first, num,
+                                               addr, last);
+                                        if (check_drive(n))
+                                                break;
+                                        for (x = 0; x != num; ++x) {
+                                                if (check_sect(n, first + x))
+                                                        goto oops;
+                                        }
+                                        mem[FDSTAT] = ER_NON;
+                                        if (drive[n].tracks == 77)
+                                                mem[SIDES] = 0x80;
+                                        else
+                                                mem[SIDES] = 0;
+                                        c_flag = 0;
                                         break;
-                                for (x = 0; x != num; ++x) {
-                                        if (check_sect(n, first + x))
-                                                goto oops;
-                                        getsect(n, addr + 128 * x, first + x, ((x + 1 == num) ? mem[LSCTLN] : 128));
-                                }
-                                mem[FDSTAT] = ER_NON;
-                                if (drive[n].tracks == 77)
-                                        mem[SIDES] = 0x80;
-                                else
-                                        mem[SIDES] = 0;
-                                c_flag = 0;
-                                oops: break;
-                        } case 0xE86F: /* RDCRC */ {
-                                if (trace_disk) printf("RDCRC\n");
-                                int x;
-                                int n = mem[CURDRV];
-                                int first = (mem[STRSCT] << 8) + mem[STRSCT + 1];
-                                int num = (mem[NUMSCT] << 8) + mem[NUMSCT + 1];
-                                int addr = (mem[CURADR] << 8) + mem[CURADR + 1];
-                                int last = mem[LSCTLN];
-                                if (trace_disk) printf("RDCRC: drive=%d, first=%d, number=%d, addr=%x, size of last=%d\n", n, first, num,
-                                       addr, last);
-                                if (check_drive(n))
+                                } case 0xE875: /* RESTOR */ {
+                                        int n = mem[CURDRV];
+                                        if (trace_disk) printf("RESTOR\n");
+                                        if (check_drive(n))
+                                                break;
+                                        mem[FDSTAT] = ER_NON;
+                                        if (drive[n].tracks == 77)
+                                                mem[SIDES] = 0x80;
+                                        else
+                                                mem[SIDES] = 0;
+                                        c_flag = 0;
                                         break;
-                                for (x = 0; x != num; ++x) {
-                                        if (check_sect(n, first + x))
-                                                goto oops;
-                                }
-                                mem[FDSTAT] = ER_NON;
-                                if (drive[n].tracks == 77)
-                                        mem[SIDES] = 0x80;
-                                else
-                                        mem[SIDES] = 0;
-                                c_flag = 0;
-                                break;
-                        } case 0xE875: /* RESTOR */ {
-                                int n = mem[CURDRV];
-                                if (trace_disk) printf("RESTOR\n");
-                                if (check_drive(n))
+                                } case 0xE878: /* SEEK */ {
+                                        int n = mem[CURDRV];
+                                        int first = (mem[STRSCT] << 8) + mem[STRSCT + 1];
+                                        if (trace_disk) printf("SEEK\n");
+                                        if (check_drive(n))
+                                                break;
+                                        if (check_sect(n, first))
+                                                break;
+                                        if (drive[n].tracks == 77)
+                                                mem[SIDES] = 0x80;
+                                        else
+                                                mem[SIDES] = 0;
+                                        c_flag = 0;
                                         break;
-                                mem[FDSTAT] = ER_NON;
-                                if (drive[n].tracks == 77)
-                                        mem[SIDES] = 0x80;
-                                else
-                                        mem[SIDES] = 0;
-                                c_flag = 0;
-                                break;
-                        } case 0xE878: /* SEEK */ {
-                                int n = mem[CURDRV];
-                                int first = (mem[STRSCT] << 8) + mem[STRSCT + 1];
-                                if (trace_disk) printf("SEEK\n");
-                                if (check_drive(n))
+                                } case 0xE872: /* RWTEST */ {
+                                        if (trace_disk) printf("RWTEST\n");
+                                } case 0xE87B: /* WRTEST */ {
+                                        unsigned char buf[128];
+                                        int x;
+                                        int n = mem[CURDRV];
+                                        int first = (mem[STRSCT] << 8) + mem[STRSCT + 1];
+                                        int num = (mem[NUMSCT] << 8) + mem[NUMSCT + 1];
+                                        int addr = (mem[CURADR] << 8) + mem[CURADR + 1];
+                                        if (trace_disk) printf("WRTEST\n");
+                                        if (check_drive(n))
+                                                break;
+                                        for (x = 0; x != 128; x += 2) {
+                                                buf[x] = mem[addr];
+                                                buf[x + 1] = mem[addr + 1];
+                                        }
+                                        for(x=0; x != num; ++x) {
+                                                if (check_sect(n, first + x))
+                                                        goto oops;
+                                                if (trace_disk) printf("Wrtest sector %d drive %d\n", first + x, n);
+                                                fseek(drive[n].f, (first + x) * 128, SEEK_SET);
+                                                fwrite(buf, 128, 1, drive[n].f);
+                                                fflush(drive[n].f);
+                                        }
+                                        c_flag = 0;
+                                        if (drive[n].tracks == 77)
+                                                mem[SIDES] = 0x80;
+                                        else
+                                                mem[SIDES] = 0;
+                                        mem[FDSTAT] = ER_NON;
                                         break;
-                                if (check_sect(n, first))
+                                } case 0xE87E: /* WRDDAM */ {
+                                        int n = mem[CURDRV];
+                                        printf("\r\nFloppy error: we do not support WRDDAM\n");
+                                        c_flag = 1;
+                                        if (drive[n].tracks == 77)
+                                                mem[SIDES] = 0x80;
+                                        else
+                                                mem[SIDES] = 0;
+                                        mem[FDSTAT] = ER_WRT;
                                         break;
-                                if (drive[n].tracks == 77)
-                                        mem[SIDES] = 0x80;
-                                else
-                                        mem[SIDES] = 0;
-                                c_flag = 0;
-                                break;
-                        } case 0xE872: /* RWTEST */ {
-                                if (trace_disk) printf("RWTEST\n");
-                        } case 0xE87B: /* WRTEST */ {
-                                unsigned char buf[128];
-                                int x;
-                                int n = mem[CURDRV];
-                                int first = (mem[STRSCT] << 8) + mem[STRSCT + 1];
-                                int num = (mem[NUMSCT] << 8) + mem[NUMSCT + 1];
-                                int addr = (mem[CURADR] << 8) + mem[CURADR + 1];
-                                if (trace_disk) printf("WRTEST\n");
-                                if (check_drive(n))
+                                } case 0xE884: /* WRITSC */ {
+                                        if (trace_disk) printf("WRITSC\n");
+                                } case 0xE881: /* WRVERF */ {
+                                        int x;
+                                        int n = mem[CURDRV];
+                                        int first = (mem[STRSCT] << 8) + mem[STRSCT + 1];
+                                        int num = (mem[NUMSCT] << 8) + mem[NUMSCT + 1];
+                                        int addr = (mem[CURADR] << 8) + mem[CURADR + 1];
+                                        int last = mem[LSCTLN];
+                                        if (trace_disk) printf("WRVERF: drive=%d, first=%d, number=%d, addr=%x, size of last=%d\n", n, first, num,
+                                               addr, last);
+                                        if (check_drive(n))
+                                                break;
+                                        for(x=0; x != num; ++x) {
+                                                if (check_sect(n, first + x))
+                                                        goto oops;
+                                                putsect(n, addr + 128 * x, first + x, 128);
+                                        }
+                                        if (drive[n].tracks == 77)
+                                                mem[SIDES] = 0x80;
+                                        else
+                                                mem[SIDES] = 0;
+                                        mem[FDSTAT] = ER_NON;
+                                        c_flag = 0;
                                         break;
-                                for (x = 0; x != 128; x += 2) {
-                                        buf[x] = mem[addr];
-                                        buf[x + 1] = mem[addr + 1];
-                                }
-                                for(x=0; x != num; ++x) {
-                                        if (check_sect(n, first + x))
-                                                goto oops;
-                                        if (trace_disk) printf("Wrtest sector %d drive %d\n", first + x, n);
-                                        fseek(drive[n].f, (first + x) * 128, SEEK_SET);
-                                        fwrite(buf, 128, 1, drive[n].f);
-                                        fflush(drive[n].f);
-                                }
-                                c_flag = 0;
-                                if (drive[n].tracks == 77)
-                                        mem[SIDES] = 0x80;
-                                else
-                                        mem[SIDES] = 0;
-                                mem[FDSTAT] = ER_NON;
-                                break;
-                        } case 0xE87E: /* WRDDAM */ {
-                                int n = mem[CURDRV];
-                                printf("\r\nFloppy error: we do not support WRDDAM\n");
-                                c_flag = 1;
-                                if (drive[n].tracks == 77)
-                                        mem[SIDES] = 0x80;
-                                else
-                                        mem[SIDES] = 0;
-                                mem[FDSTAT] = ER_WRT;
-                                break;
-                        } case 0xE884: /* WRITSC */ {
-                                if (trace_disk) printf("WRITSC\n");
-                        } case 0xE881: /* WRVERF */ {
-                                int x;
-                                int n = mem[CURDRV];
-                                int first = (mem[STRSCT] << 8) + mem[STRSCT + 1];
-                                int num = (mem[NUMSCT] << 8) + mem[NUMSCT + 1];
-                                int addr = (mem[CURADR] << 8) + mem[CURADR + 1];
-                                int last = mem[LSCTLN];
-                                if (trace_disk) printf("WRVERF: drive=%d, first=%d, number=%d, addr=%x, size of last=%d\n", n, first, num,
-                                       addr, last);
-                                if (check_drive(n))
+                                } case 0xE887: /* CLOCK */ {
+                                        printf("Floppy: Someone called CLOCK?\n");
+                                        c_flag = 0;
                                         break;
-                                for(x=0; x != num; ++x) {
-                                        if (check_sect(n, first + x))
-                                                goto oops;
-                                        putsect(n, addr + 128 * x, first + x, 128);
+                                } case 0xEBC0: /* LPINIT */ {
+                                        if (trace_disk) printf("LPINIT\n");
+                                        c_flag = 0;
+                                        break;
+                                } case 0xEBCC: /* LIST */ {
+                                        if (trace_disk) printf("LIST\n");
+                                        lpt_out(acca);
+                                        c_flag = 0;
+                                        break;
+                                } case 0xEBE4: /* LDATA */ {
+                                        if (trace_disk)printf("LDATA\n");
+                                        while (mem[ix] != 4) {
+                                                lpt_out(mem[ix]);
+                                                ++ix;
+                                        }
+                                        lpt_out('\r');
+                                        lpt_out('\n');
+                                        c_flag = 0;
+                                        break;
+                                } case 0xEBF2: /* LDATA1 */ {
+                                        if (trace_disk) printf("LDATA1\n");
+                                        while (mem[ix] != 4) {
+                                                lpt_out(mem[ix]);
+                                                ++ix;
+                                        }
+                                        c_flag = 0;
+                                        break;
+                                } default: {
+                                        pc = addr;
+                                        return;
                                 }
-                                if (drive[n].tracks == 77)
-                                        mem[SIDES] = 0x80;
-                                else
-                                        mem[SIDES] = 0;
-                                mem[FDSTAT] = ER_NON;
-                                c_flag = 0;
-                                break;
-                        } case 0xE887: /* CLOCK */ {
-                                printf("Floppy: Someone called CLOCK?\n");
-                                c_flag = 0;
-                                break;
-                        } case 0xEBC0: /* LPINIT */ {
-                                if (trace_disk) printf("LPINIT\n");
-                                c_flag = 0;
-                                break;
-                        } case 0xEBCC: /* LIST */ {
-                                if (trace_disk) printf("LIST\n");
-                                lpt_out(acca);
-                                c_flag = 0;
-                                break;
-                        } case 0xEBE4: /* LDATA */ {
-                                if (trace_disk)printf("LDATA\n");
-                                while (mem[ix] != 4) {
-                                        lpt_out(mem[ix]);
-                                        ++ix;
-                                }
-                                lpt_out('\r');
-                                lpt_out('\n');
-                                c_flag = 0;
-                                break;
-                        } case 0xEBF2: /* LDATA1 */ {
-                                if (trace_disk) printf("LDATA1\n");
-                                while (mem[ix] != 4) {
-                                        lpt_out(mem[ix]);
-                                        ++ix;
-                                }
-                                c_flag = 0;
-                                break;
-                        } default: {
-                                pc = addr;
-                                return;
                         }
                 }
+                /* Notice that call was intercepted */
                 simulated(addr);
+                /* Return from subroutine now */
                 addr = pull2();
                 jump(addr);
         }
@@ -859,6 +778,18 @@ int load_exbug()
         }
         printf("'%s' loaded.\n", exbug_name);
         fclose(f);
+        if (!memcmp(&mem[0xFA8B], "\xb6\xfc\xf4\x47", 4))
+        {
+                printf("  EXBUG-1.1 detected\n");
+                intercept_inch = 0xFA8B;
+                exbug_detected = 1;
+        }
+        else if (!memcmp(&mem[0xFA6B], "\xb6\xfc\xf4\x47", 4))
+        {
+                printf("  EXBUG-1.2 detected\n");
+                intercept_inch = 0xFA6B;
+                exbug_detected = 1;
+        }
         return 0;
 }
 
@@ -994,6 +925,8 @@ int main(int argc, char *argv[])
                                 lpt_name = argv[++x];
                         } else if (!strcmp(argv[x], "--lower")) {
                                 lower = 1;
+                        } else if (!strcmp(argv[x], "--no_protect")) {
+                                protect_roms = 0;
                         } else {
                                 printf("EXORciser emulator\n");
                                 printf("\n");
@@ -1010,6 +943,7 @@ int main(int argc, char *argv[])
                                 printf("  --mon         Start at monitor prompt\n");
                                 printf("  --lpt file    Save line printer output to a file\n");
                                 printf("  --append file Append line printer output to a file\n");
+                                printf("  --no_protect  Allow writing to ROMs\n");
                                 printf("\n");
                                 printf("Default disk0 is mdos.dsk/flex.dsk\n");
                                 printf("\n");
@@ -1103,8 +1037,12 @@ int main(int argc, char *argv[])
                         pc = 0xE28F;
                 } else {
                         /* Jump right into MDOS */
-                        sp = 0xFF8A;
-                        pc = 0xE800;
+                        if (exbug_detected)
+                        {
+                                /* But only if EXBUG was recogized */
+                                sp = 0xFF8A;
+                                pc = 0xE800;
+                        }
                 }
         }
 

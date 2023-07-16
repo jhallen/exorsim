@@ -12,6 +12,9 @@
 <dt>--facts file<dd>Process facts files for commented disassembly
 <dt>--lower<dd>Allow lowercase
 <dt>--mon<dd>Start at monitor prompt
+<dt>--lpt file<dd>Save line printer output to a file
+<dt>--append file<dd>Append line printer output to a file (default is listing.lp)
+<dt>--no_protect<dd>Allow writing to ROMs
 </dl></dl>
 
 <p>Default disk0 is mdos.dsk / flex.dsk</p>
@@ -62,9 +65,7 @@ DATE (MM,DD,YY)? 02,07,11
 <h3>About exbug.bin and swtbug.bin</h3>
 
 <p>These memory images must each be exactly 64K bytes.  They contain the
-initial memory image to be used by the simulator.  I saved the images right
-at the point where the disk boot function is called so that EXORsim can
-immediately boot the DOS instead of going into the monitor.</p>
+initial memory image to be used by the simulator.</p>
 
 <p>swtbug.bin contains <a
 href="http://www.swtpc.com/mholley/swtbug/SWTBUG_Index.htm">SWTBUG</a> at
@@ -73,6 +74,16 @@ $2400 for miniFlex.</p>
 
 <p>exbug.bin contains EXBUG at $F000 - $FBFF and the diskette controller at
 $E800 - $EBFF.</p>
+
+<p>EXORsim inspects the image and detects either EXBUG-1.1 and EXBUG-1.2. 
+If either of these is detected, the EXBUG INCH (input character) function is
+intercepted and emulated.  If they are not detected, ACIA polling is used
+for input</p>
+
+<p>I saved the images right at the point where the disk boot function is
+called so that EXORsim immediately boots the DOS instead of going into
+the monitor.  This automatic booting is suppressed if EXBUG is not detected
+(for MDOS), or if the "-x" option is specified on the command line.</p>
 
 <h3>About diskette images</h3>
 
