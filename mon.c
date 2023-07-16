@@ -129,6 +129,7 @@ int call_cmd(char *p)
         if (parse_hex(&p, &val)) {
                 pc = val;
                 sp_stop = sp;
+                printf("Continuing until return when SP=%4.4x\n", sp);
                 stop = 0;
         } else
                 huh();
