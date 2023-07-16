@@ -1,4 +1,4 @@
-AS9=./as9
+AS9=as9src/as9
 
 all: assist09-6850.s19 cputest.s19
 

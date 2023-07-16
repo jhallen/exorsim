@@ -1943,7 +1943,7 @@ void sim(void)
                 			if (cb & 0x10) ix = pull2();
                 			if (cb & 0x20) iy = pull2();
                 			if (cb & 0x40) up = pull2();
-                			if (cb & 0x80) jump(pull2());
+                			if (cb & 0x80) goto do_rts; /* Check for monitor call stop */
                 			break;
                 		} case 0x36: { /* PSHU */
                 			unsigned char cb = fetch();
@@ -1968,7 +1968,9 @@ void sim(void)
                 			if (cb & 0x80) jump(pullu2());
                 			break;
                 		} case 0x39: { /* RTS */
+                			do_rts:
 				        if (sp == sp_stop) {
+				        	/* Monitor call stop: in this case, the RTS is skipped */
 				                stop = 1;
 				                sp_stop = -1;
 				        } else

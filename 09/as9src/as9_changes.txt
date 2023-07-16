@@ -1,3 +1,21 @@
+
+2023 jul 16 Joe Allen, Boston USA:
+
+  It was not allowing "Extended Indirect" mode, I've added support for this,
+  but the syntax is non-standard as follows:
+
+		leay	[address,]
+
+     Generates 0x9F for the indexing byte.
+
+  It will also allow this:
+
+                leay    address,
+
+     Generates 0x8F for the indexing byte.  Not sure if this works
+     on the 6809, maybe better to use ldy #address.
+
+
 2004 dec 29 Albert van der Horst HCC Forth gg The Netherlands.  
 Changes to as9 in behalf of porting to Linux.
 

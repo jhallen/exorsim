@@ -481,6 +481,13 @@ int op;
                 Cycles += 1 + predec + pstinc;
                 return;
                 }
+        if (j == ERR) {
+                /* No register: this is allowed for extended indirect mode */
+                emit(pbyte+0x0F);
+                eword(Result);
+                Cycles += 2;
+                return;
+        }
         pbyte += rtype(j);
         if(Force_word){
                 emit(pbyte+0x09);
@@ -538,6 +545,19 @@ int pbyte;
  *      rtype --- return register type in post-byte format
  */
 rtype(r)
+int r;
+{
+        switch(r){
+        case RX:        return(0x00);
+        case RY:        return(0x20);
+        case RU:        return(0x40);
+        case RS:        return(0x60);
+                }
+        error("Illegal Register for Indexed");
+        return(0);
+}
+
+rtype1(r)
 int r;
 {
         switch(r){

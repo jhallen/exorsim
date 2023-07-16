@@ -54,7 +54,7 @@ START  CLR   ERRFLG ; Clear Error flag
        JSR  TADI9
        JSR  TADIA
        JSR  TADIB
-*       JSR  TADIC
+       JSR  TADIC
 * Test Instructions
        JSR   TNEG
        JSR   TCOM
@@ -1743,20 +1743,20 @@ TADIB  LDU   #LADIB
        RTS
 
 * LEAY [addr]
-*TADIC  LDU   #LADIC
-*       LBSR  CLRMEM
-*       LDD   #$9876
-*       STD   REG161
-*       LEAY  [REG161]
-*       CMPY  #$9876
-*       LBNE  OUTERR
-*       LBSR  CLRMEM
-*       LDD   #$5432
-*       STD   REG162
-*       LEAY  [REG162]
-*       CMPY  #$5432
-*       LBNE  OUTERR
-*       RTS
+TADIC  LDU   #LADIC
+       LBSR  CLRMEM
+       LDD   #$9876
+       STD   REG161
+       LEAY  [REG161,]
+       CMPY  #$9876
+       LBNE  OUTERR
+       LBSR  CLRMEM
+       LDD   #$5432
+       STD   REG162
+       LEAY  [REG162,]
+       CMPY  #$5432
+       LBNE  OUTERR
+       RTS
 
 LAD1   FCC   'LDA n8,X'
 	FCB	13,10,EOT
