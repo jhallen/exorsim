@@ -72,6 +72,9 @@ unasm : unasm.o utils.o unasm6800.o
 exor : exor.o utils.o sim6800.o asm6800.o unasm6800.o mon.o exorterm.o
 	$(CC) -o exor exor.o utils.o sim6800.o asm6800.o unasm6800.o mon.o exorterm.o
 
+exor09 : exor.o utils.o sim6809.o asm6800.o unasm6800.o mon.o exorterm.o
+	$(CC) -o exor09 exor.o utils.o sim6809.o asm6800.o unasm6800.o mon.o exorterm.o
+
 mdos : mdos.o
 	$(CC) -o mdos mdos.o
 

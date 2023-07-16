@@ -1106,6 +1106,21 @@ enum {
 int instate;
 int innum;
 
+int poll_count;
+
+int quick_term_poll()
+{
+	if (fifo_old != fifo_new)
+		return 1;
+	else {
+		if (++poll_count == 100) {
+			poll_count = 0;
+			return term_poll();
+		} else
+			return 0;
+	}
+}
+
 int term_poll()
 {
 	int flags;

@@ -273,6 +273,7 @@ unsigned char mread(unsigned short addr)
                                 return 0x80;
                         } case 0xFCF8: {
                                 return 0xF;
+#if 0
                         } case 0xFCF4: {
                                 if (count--)
                                         return 0x00;
@@ -280,8 +281,14 @@ unsigned char mread(unsigned short addr)
                                         count = 10;
                                         return 0x03;
                                 }
-#if 0
+#endif
+#if 1
                         } case 0xFCF4: { /* Check serial port status */
+                                if (quick_term_poll())
+                                        return 0x03;
+                                else
+                                        return 0x02;
+#if 0
                                 if (polling) {
 
                                         int flags;
@@ -321,7 +328,13 @@ unsigned char mread(unsigned short addr)
                                                 return 0x03;
                                         }
                                 }
+#endif
                         } case 0xFCF5: { /* Read from serial port */
+                                if (quick_term_poll())
+                                        return term_in();
+                                else
+                                        return 0;
+#if 0
                                 if (polling) {
                                         c = read_ahead_c;
                                         pending_read_ahead = 0;
@@ -352,6 +365,7 @@ unsigned char mread(unsigned short addr)
                                                 c = 127;
                                 }
                                 return c;
+#endif
 #endif
                         } default: {
                                 return mem[addr];

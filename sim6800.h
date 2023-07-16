@@ -14,9 +14,15 @@ extern unsigned short brk_addr;
 
 extern unsigned char acca;
 extern unsigned char accb;
-extern unsigned short ix;
+#define accd ((acca << 8) + accb)
+//extern unsigned short ix;
 extern unsigned short pc;
-extern unsigned short sp;
+//extern unsigned short sp;
+unsigned short ireg[4]; /* Index registers */
+#define ix (ireg[0])
+#define iy (ireg[1])
+#define up (ireg[2])
+#define sp (ireg[3])
 extern unsigned char c_flag;
 extern unsigned char v_flag;
 extern unsigned char z_flag;
