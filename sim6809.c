@@ -1715,7 +1715,7 @@ void sim(void)
 					v_flag = ((b & f) >> 7);
 					n_flag = N(f);
 					z_flag = Z(f);
-					c_flag = !z_flag; /* CPUTEST */
+					c_flag = !z_flag; /* CPUTEST (take to 6800) */
 					break;
 				} case 0x01: /* ??? */ {
 				        goto invalid;
@@ -1735,7 +1735,7 @@ void sim(void)
 					c_flag = (b & 1);
 					n_flag = 0;
 					z_flag = Z(f);
-					// v_flag = c_flag; /* CPUTEST */
+					// v_flag = c_flag; /* CPUTEST (this changed from 6800) */
 					break;
 				} case 0x05: /* ??? */ {
 				        goto invalid;
@@ -1854,7 +1854,7 @@ void sim(void)
 				        if (h_flag || (acca & 0x0F) >= 0x0A) {
 				                acca += 0x06;
 				        }
-				        if (c_flag || (orga & 0xF0) >= 0xA0) { /* CPUTEST */
+				        if (c_flag || (orga & 0xF0) >= 0xA0) { /* CPUTEST (take to 6800) */
 				                acca += 0x60;
 				                c_flag = 1;
 				        }
