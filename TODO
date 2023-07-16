@@ -1,8 +1,29 @@
+Now:
+  6809 version of assembler
+  6809 version of disassembler
+  Re-enable exorterm mode: I think it just needed flushes or update calls.
+
+  l command:
+    Return to prompt when S9 received
+    Read S19 from file if filename given
+
+  Clean up DATA= and EA= output.  Print EA only for when instruction accesses memory?
+
+  Some way to read assembly listing for symbols (improved facts file).
+
+  6809 version of flex, should be possible.  There is already a flex09 emulator.
+
+  Backport instruction set fixes to 6800
+     DAA
+     NEG
+      Detect intercepted jumps for exbug-1.1 and exbug-1.2 by looking at code, otherwise fall back
+      to ACIA polling.
+
 Exor:
 
   "make install" (needs paths to binaries).
 
-  Default options and file locations in environment variables, so you don't beed
+  Default options and file locations in environment variables, so you don't need
   exbug.bin in current directory.
 
   Step over function (we only have step into now)
