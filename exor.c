@@ -524,8 +524,8 @@ void mwrite(unsigned short addr, unsigned char data)
                 mem[addr] = data;
                 switch (addr) {
                         case 0xFCF5: { /* Write to serial port */
-                                term_out(data);
-                                /* putchar(data); fflush(stdout); */
+                                /* term_out(data); */
+                                putchar(data); fflush(stdout);
                         }
                 }
         }
