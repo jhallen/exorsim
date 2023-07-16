@@ -14,6 +14,7 @@
 <dt>--mon<dd>Start at monitor prompt
 <dt>--lpt file<dd>Save line printer output to a file
 <dt>--append file<dd>Append line printer output to a file (default is listing.lp)
+<dt>--no_protect<dd>Allow writing to ROMs
 </dl></dl>
 
 <p>Default disk0 is mdos.dsk / flex.dsk</p>

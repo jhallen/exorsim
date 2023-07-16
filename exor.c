@@ -40,6 +40,8 @@ char *exbug_name; /*  = "exbug.bin"; */
 int trace_disk = 0; /* Enable disk trace */
 int lower = 0; /* Allow lower case */
 
+int protect_roms = 1; /* Protect "ROM"s from writing if set */
+
 /* Diskettes */
 
 struct drive_info {
@@ -270,86 +272,16 @@ unsigned char mread(unsigned short addr)
                                 return 0x80;
                         } case 0xFCF8: {
                                 return 0xF;
-                        } case 0xFCF4: {
-                                if (count--)
-                                        return 0x00;
-                                else {
-                                        count = 10;
-                                        return 0x03;
-                                }
-#if 0
                         } case 0xFCF4: { /* Check serial port status */
-                                if (polling) {
-
-                                        int flags;
-
-                                        if (pending_read_ahead)
-                                                return 0x03;
-
-                                        flags = fcntl(fileno(stdin), F_GETFL);
-                                        if (flags == -1) {
-                                                printf("fcntl error\n");
-                                                exit(-1);
-                                        }
-                                        fcntl(fileno(stdin), F_SETFL, flags | O_NONBLOCK);
-
-                                        rtn = read(fileno(stdin), &read_ahead_c, 1);
-
-                                        fcntl(fileno(stdin), F_SETFL, flags);
-
-                                        if (rtn == 1) {
-                                                count = 0;
-                                                pending_read_ahead = 1;
-                                                return 0x03;
-                                        } else {
-                                                skip:
-                                                if (count == 1000)
-                                                        poll(NULL, 0, 1); /* Don't hog CPU time */
-                                                else
-                                                        ++count;
-                                                return 0x02;
-                                        }
-                                } else {
-                                        /* No polling: return false then true */
-                                        if (count--)
-                                                return 0x00;
-                                        else {
-                                                count = 10;
-                                                return 0x03;
-                                        }
-                                }
+                                if (quick_term_poll())
+                                        return 0x03;
+                                else
+                                        return 0x02;
                         } case 0xFCF5: { /* Read from serial port */
-                                if (polling) {
-                                        c = read_ahead_c;
-                                        pending_read_ahead = 0;
-                                } else {
-                                        int rtn = 0;
-                                        int flags = fcntl(fileno(stdin), F_GETFL);
-                                        c = '?';
-                                        if (flags == -1) {
-                                                printf("fcntl error\n");
-                                                exit(-1);
-                                        }
-                                        while (rtn < 1 && !stop) {
-                                                fcntl(fileno(stdin), F_SETFL, flags | O_NONBLOCK);
-                                                rtn = read(fileno(stdin), &c, 1);
-                                                fcntl(fileno(stdin), F_SETFL, flags);
-                                                if (rtn < 1 && !stop) {
-                                                        poll(NULL, 0, 8); /* Don't hog CPU time */
-                                                }
-                                        }
-                                }
-                                if (!lower && c >= 'a' && c <= 'z')
-                                        c += 'A' - 'a';
-                                if (swtpc) {
-                                        if (c == 127)
-                                                c = 8;
-                                } else {
-                                        if (c == 8)
-                                                c = 127;
-                                }
-                                return c;
-#endif
+                                if (quick_term_poll())
+                                        return term_in();
+                                else
+                                        return 0;
                         } default: {
                                 return mem[addr];
                         }
@@ -362,9 +294,12 @@ unsigned char mread(unsigned short addr)
 void mwrite(unsigned short addr, unsigned char data)
 {
         if (swtpc) {
-                /* Do not write to ROM */
-                if (addr >= 0xe000 && addr < 0xe400)
-                        return;
+                if (protect_roms)
+                {
+                        /* Do not write to ROM */
+                        if (addr >= 0xe000 && addr < 0xe400)
+                                return;
+                }
                 mem[addr] = data;
                 switch (addr) {
                         case 0x8018: { /* Command */
@@ -500,10 +435,13 @@ void mwrite(unsigned short addr, unsigned char data)
                 }
         } else {
                 /* Do not write to ROM */
-                if ((addr >= 0xE800 && addr < 0xEC00) ||
-                    (addr >= 0xF000 && addr < 0xFC00) ||
-                    (addr >= 0xFCFC && addr < 0xFD00))
-                        return;
+                if (protect_roms)
+                {
+                        if ((addr >= 0xE800 && addr < 0xEC00) ||
+                            (addr >= 0xF000 && addr < 0xFC00) ||
+                            (addr >= 0xFCFC && addr < 0xFD00))
+                                return;
+                }
                 mem[addr] = data;
                 switch (addr) {
                         case 0xFCF5: { /* Write to serial port */
@@ -986,6 +924,8 @@ int main(int argc, char *argv[])
                                 lpt_name = argv[++x];
                         } else if (!strcmp(argv[x], "--lower")) {
                                 lower = 1;
+                        } else if (!strcmp(argv[x], "--no_protect")) {
+                                protect_roms = 0;
                         } else {
                                 printf("EXORciser emulator\n");
                                 printf("\n");
@@ -1002,6 +942,7 @@ int main(int argc, char *argv[])
                                 printf("  --mon         Start at monitor prompt\n");
                                 printf("  --lpt file    Save line printer output to a file\n");
                                 printf("  --append file Append line printer output to a file\n");
+                                printf("  --no_protect  Allow writing to ROMs\n");
                                 printf("\n");
                                 printf("Default disk0 is mdos.dsk/flex.dsk\n");
                                 printf("\n");
