@@ -959,12 +959,13 @@ int main(int argc, char *argv[])
 {
         int x;
         int diskn = 0;
-        int gotox = 0;
+        int gotox = 1; /* For 6809: using assist until I get 6809 ROMs */
         mon_out = stdout;
         mon_in = stdin;
         char *facts_name = "facts";
         char *lpt_name = "listing.lp";
         int lpt_append = 1;
+
         for (x = 1; x != argc; ++x) {
                 if (argv[x][0] == '-') {
                         if (!strcmp(argv[x], "--facts") && x + 1 != argc) {
@@ -1057,7 +1058,7 @@ int main(int argc, char *argv[])
                 if (swtpc) {
                         exbug_name = "swtbug.bin";
                 } else {
-                        exbug_name = "exbug.bin";
+                        exbug_name = "assist.bin"; /* For 6809: using assist until I get 6809 ROMs */
                 }
         }
 

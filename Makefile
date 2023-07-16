@@ -64,7 +64,7 @@ CFLAGS = -g -Wall
 
 CC = gcc
 
-all : mdos exor unasm edos lpf imdx
+all : mdos exor09 unasm edos lpf imdx
 
 unasm : unasm.o utils.o unasm6800.o
 	$(CC) -o unasm unasm.o utils.o unasm6800.o
