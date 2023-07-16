@@ -20,6 +20,7 @@ The EXORciser was influential in the M6800 world:
 * The [Fairlight CMI](https://en.wikipedia.org/wiki/Fairlight_CMI) sampling synthesize was developed on it
   * See especially [Tony Furse's Qasar M8](https://www.outofphase.fr/en/qasar-en/)
 * The [First Digital Camera](https://thephotographeronline.com/current-issue/meet-the-inventor-of-the-first-digital-camera) was developed on it
+* The EXORciser was also used by Williams Electronics to develop software for pinball machines in the 1980s, as well as the Defender video game. Here's [Steve Ritchie and Larry DeMar working on Black Knight](doc/williams.jpg)
 
 Documentation for the EXORciser can be found here:
 
