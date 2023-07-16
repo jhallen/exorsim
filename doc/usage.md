@@ -74,14 +74,15 @@ $2400 for miniFlex.</p>
 <p>exbug.bin contains EXBUG at $F000 - $FBFF and the diskette controller at
 $E800 - $EBFF.</p>
 
-<p>exorsim inspects the image and detects either EXBUG-1.1 and EXBUG-1.2. 
-If either of these is detected, the INCH (input character) function is
-intercepted and emulated.  This tends to work better than ACIA polling</p>
+<p>EXORsim inspects the image and detects either EXBUG-1.1 and EXBUG-1.2. 
+If either of these is detected, the EXBUG INCH (input character) function is
+intercepted and emulated.  If they are not detected, ACIA polling is used
+for input</p>
 
 <p>I saved the images right at the point where the disk boot function is
 called so that EXORsim immediately boots the DOS instead of going into
 the monitor.  This automatic booting is suppressed if EXBUG is not detected
-(for MDOS), or if the "-x" option is specificied on the command line.</p>
+(for MDOS), or if the "-x" option is specified on the command line.</p>
 
 <h3>About diskette images</h3>
 
