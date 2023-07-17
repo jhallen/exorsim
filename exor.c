@@ -871,6 +871,12 @@ int load_drive(int n)
                         drive[n].bytes = 128;
                         drive[n].tracks = 77 * 2;
                         drive[n].sects = 26;
+                } else if (t == 128 * 40 * 16) {
+                        printf("'%s' opened for drive %d (single sided minifloppy)\n", drive[n].name, n);
+                        drive[n].f = f;
+                        drive[n].bytes = 128;
+                        drive[n].tracks = 40;
+                        drive[n].sects = 16;
                 } else {
                         fclose(f);
                         printf("'%s' is not a valid disk: it's size must be %d or %d\n", drive[n].name, 128*26*77*2, 128*26*77);

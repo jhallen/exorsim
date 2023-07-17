@@ -1788,7 +1788,7 @@ void sim(void)
 					z_flag = Z(f);
 					n_flag = N(f);
 					v_flag = 0;
-					c_flag = 0;
+					/* c_flag = 0; Changed from 6800, now C not affected */
 					wb = 0;
 					break;
 				} case 0x0E: /* JMP */ {
