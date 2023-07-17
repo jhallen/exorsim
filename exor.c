@@ -890,10 +890,10 @@ int main(int argc, char *argv[])
 {
         int x;
         int diskn = 0;
-        int gotox = 1; /* For 6809: using assist until I get 6809 ROMs */
+        int gotox = 0;
         mon_out = stdout;
         mon_in = stdin;
-        char *facts_name = "facts";
+        char *facts_name = "facts09";
         char *lpt_name = "listing.lp";
         int lpt_append = 1;
 
@@ -945,7 +945,7 @@ int main(int argc, char *argv[])
                                 printf("  --append file Append line printer output to a file\n");
                                 printf("  --no_protect  Allow writing to ROMs\n");
                                 printf("\n");
-                                printf("Default disk0 is mdos.dsk/flex.dsk\n");
+                                printf("Default disk0 is mdos09.dsk/flex.dsk\n");
                                 printf("\n");
                                 printf("Hints:\n");
                                 printf("  To load MDOS from EXBUG, type MAID followed by E800;G\n");
@@ -984,7 +984,7 @@ int main(int argc, char *argv[])
                 if (swtpc)
                         drive[0].name = "flex.dsk";
                 else
-                        drive[0].name = "mdos.dsk";
+                        drive[0].name = "mdos09.dsk";
         }
 
         /* Default memory image name */
@@ -992,7 +992,7 @@ int main(int argc, char *argv[])
                 if (swtpc) {
                         exbug_name = "swtbug.bin";
                 } else {
-                        exbug_name = "assist.bin"; /* For 6809: using assist until I get 6809 ROMs */
+                        exbug_name = "exbug09.bin";
                 }
         }
 
