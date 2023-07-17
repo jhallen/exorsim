@@ -535,6 +535,7 @@ void lpt_out(unsigned char c)
 /* All jumps go through this function */
 
 int intercept_inch = -1;
+int echo_flag_addr;
 int exbug_detected = 0;
 
 void jump(unsigned short addr)
@@ -547,12 +548,12 @@ void jump(unsigned short addr)
                         /* Intercept INCH function */
                         /* Note that we don't intercept output functions, we just emulate the ACIA hardware, see mwrite() */
                         acca = term_in();
-                        if (!mem[0xFF53]) { /* Echo flag */
+                        if (!mem[echo_flag_addr]) { /* Echo flag */
                                 term_out(acca);
                                 /* putchar(c);
                                 fflush(stdout); */
                         } else {
-                                mem[0xFF53] = 0;
+                                mem[echo_flag_addr] = 0;
                         }
                         c_flag = 0; /* No error */
                 }
@@ -564,6 +565,7 @@ void jump(unsigned short addr)
                         switch (addr) {
                                 case 0xE800: /* OSLOAD (no modified parms) */ {
                                         printf("\nOSLOAD...\n");
+                                        stop=1;
                                         getsect(0, 0x0020, 23, 128);
                                         getsect(0, 0x0020 + 0x0080, 24, 128);
                                         pc = 0x0020;
@@ -782,12 +784,21 @@ int load_exbug()
         {
                 printf("  EXBUG-1.1 detected\n");
                 intercept_inch = 0xFA8B;
+                echo_flag_addr = 0xFF53;
                 exbug_detected = 1;
         }
         else if (!memcmp(&mem[0xFA6B], "\xb6\xfc\xf4\x47", 4))
         {
                 printf("  EXBUG-1.2 detected\n");
                 intercept_inch = 0xFA6B;
+                echo_flag_addr = 0xFF53;
+                exbug_detected = 1;
+        }
+        else if (!memcmp(&mem[0xF0D2], "\xb6\xfc\xf4\x47", 4))
+        {
+                printf("  EXBUG09-2.1 detected\n");
+                intercept_inch = 0xF0D2;
+                echo_flag_addr = 0xFF58;
                 exbug_detected = 1;
         }
         return 0;
