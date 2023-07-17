@@ -969,7 +969,7 @@ void sim(void)
 					v_flag = ((b & f) >> 7);
 					n_flag = N(f);
 					z_flag = Z(f);
-					c_flag = z_flag;
+					c_flag = !z_flag; /* CPUTEST (take to 6800) */
 					break;
 				} case 0x01: /* ??? */ {
 				        goto invalid;
@@ -1139,10 +1139,11 @@ void sim(void)
 				} case 0x19: /* DAA N,Z,V,C */ {
 				        /* Only set C, don't clear it */
 				        /* Do not change H */
+				        unsigned char orga = acca;
 				        if (h_flag || (acca & 0x0F) >= 0x0A) {
 				                acca += 0x06;
 				        }
-				        if (c_flag || (acca & 0xF0) >= 0xA0) {
+				        if (c_flag || (orga & 0xF0) >= 0xA0) { /* CPUTEST (take to 6800) */
 				                acca += 0x60;
 				                c_flag = 1;
 				        }
