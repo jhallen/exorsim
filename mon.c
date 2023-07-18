@@ -332,12 +332,11 @@ int a_cmd(char *p)
 int u_cmd(char *p)
 {
         char buf[180];
-        int iaddr;
-        unsigned short addr = last_u;
+        int iaddr = last_u;
         if (parse_hex(&p, &iaddr) || !*p) {
                 int target;
                 int x;
-                addr = (unsigned short)iaddr;
+                unsigned short addr = (unsigned short)iaddr;
                 for (x = 0; x != 22; ++x) {
                         unasm_line(mem, &addr, buf, &target, 1);
                         fprintf(mon_out, "%s\n", buf);

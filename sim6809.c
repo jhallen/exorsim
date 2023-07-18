@@ -39,7 +39,10 @@ unsigned short brk_addr;
 /* CPU registers */
 unsigned char acca;
 unsigned char accb;
-unsigned short ireg[4]; /* Index registers */
+unsigned short ix;
+unsigned short iy;
+unsigned short up;
+unsigned short sp;
 unsigned short pc;
 unsigned char dp;
 unsigned char c_flag;
@@ -54,6 +57,27 @@ unsigned char e_flag; /* All registers saved if set */
 unsigned char read_flags()
 {
 	return (c_flag + (v_flag << 1) + (z_flag << 2) + (n_flag << 3) + (i_flag << 4) + (h_flag << 5) + (f_flag << 6) + (e_flag << 7));
+}
+
+void write_ireg(int r, unsigned short data)
+{
+	switch (r)
+	{
+		case 0: ix = data; break;
+		case 1: iy = data; break;
+		case 2: up = data; break;
+		case 3: sp = data; break;
+	}
+}
+
+unsigned short ireg(int r)
+{
+	unsigned short regs[4];
+	regs[0] = ix;
+	regs[1] = iy;
+	regs[2] = up;
+	regs[3] = sp;
+	return regs[r];
 }
 
 void write_flags(unsigned char f)
@@ -80,7 +104,10 @@ struct trace_entry
 {
 	unsigned char acca;
 	unsigned char accb;
-	unsigned short ireg[4];
+	unsigned short ix;
+	unsigned short iy;
+	unsigned short up;
+	unsigned short sp;
 	unsigned short pc; /* Address of instruction */
 	unsigned char dp;
 	unsigned char cc;
@@ -94,10 +121,10 @@ void record_trace(struct trace_entry *t)
 {
 	t->acca = acca;
 	t->accb = accb;
-	t->ireg[0] = ireg[0];
-	t->ireg[1] = ireg[1];
-	t->ireg[2] = ireg[2];
-	t->ireg[3] = ireg[3];
+	t->ix = ix;
+	t->iy = iy;
+	t->up = up;
+	t->sp = sp;
 	t->pc = pc;
 	t->dp = dp;
 	t->cc = read_flags();
@@ -265,7 +292,7 @@ int ind(unsigned short *rtn)
 
 	if (!(i & 0x80))
 	{ /* 5-bit signed offset */
-		ea = ireg[r];
+		ea = ireg(r);
 		if (ind) {
 			*rtn = ea + o + 0xFFF0;
 			return 0;
@@ -280,8 +307,8 @@ int ind(unsigned short *rtn)
 		{
 			case 0x00: /* ,R+ */
 			{
-				ea = ireg[r];
-				++ireg[r];
+				ea = ireg(r);
+				write_ireg(r, ea + 1);
 				if (ind) /* Not valid!? */
 					ea = mread2(ea);
 				*rtn = ea;
@@ -289,8 +316,8 @@ int ind(unsigned short *rtn)
 			}
 			case 0x01: /* ,R++ */
 			{
-				ea = ireg[r];
-				ireg[r] += 2;
+				ea = ireg(r);
+				write_ireg(r, ea + 2);
 				if (ind)
 					ea = mread2(ea);
 				*rtn = ea;
@@ -298,8 +325,8 @@ int ind(unsigned short *rtn)
 			}
 			case 0x02: /* ,-R */
 			{
-				--ireg[r];
-				ea = ireg[r];
+				ea = ireg(r) - 1;
+				write_ireg(r, ea);
 				if (ind) /* Not valid!? */
 					ea = mread2(ea);
 				*rtn = ea;
@@ -307,8 +334,8 @@ int ind(unsigned short *rtn)
 			}
 			case 0x03: /* ,--R */
 			{
-				ireg[r] -= 2;
-				ea = ireg[r];
+				ea = ireg(r) - 2;
+				write_ireg(r, ea);
 				if (ind)
 					ea = mread2(ea);
 				*rtn = ea;
@@ -316,7 +343,7 @@ int ind(unsigned short *rtn)
 			}
 			case 0x04: /* ,R */
 			{
-				ea = ireg[r];
+				ea = ireg(r);
 				if (ind)
 					ea = mread2(ea);
 				*rtn = ea;
@@ -324,7 +351,7 @@ int ind(unsigned short *rtn)
 			}
 			case 0x05: /* B,R */
 			{
-				ea = ireg[r];
+				ea = ireg(r);
 				ea += (signed char)accb;
 				if (ind)
 					ea = mread2(ea);
@@ -333,7 +360,7 @@ int ind(unsigned short *rtn)
 			}
 			case 0x06: /* A,R */
 			{
-				ea = ireg[r];
+				ea = ireg(r);
 				ea += (signed char)acca;
 				if (ind)
 					ea = mread2(ea);
@@ -342,7 +369,7 @@ int ind(unsigned short *rtn)
 			}
 			case 0x08: /* Offset8,R */
 			{
-				ea = ireg[r];
+				ea = ireg(r);
 				ea += (signed char)fetch();
 				if (ind)
 					ea = mread2(ea);
@@ -351,7 +378,7 @@ int ind(unsigned short *rtn)
 			}
 			case 0x09: /* Offset16,R */
 			{
-				ea = ireg[r];
+				ea = ireg(r);
 				ea += fetch2();
 				if (ind)
 					ea = mread2(ea);
@@ -360,7 +387,7 @@ int ind(unsigned short *rtn)
 			}
 			case 0x0B: /* D,R */
 			{
-				ea = ireg[r] + accd;
+				ea = ireg(r) + accd;
 				if (ind)
 					ea = mread2(ea);
 				*rtn = ea;
@@ -690,6 +717,7 @@ void show_trace(int insn_no, struct trace_entry *t)
 	if (opcode & 0x80) { /* R,M operations */
 		unsigned char lowop = (opcode & 0x0F);
 		int sixteen = 0; /* Assume 8-bit */
+		int memop = 0;
 
 		/* Get operand A */
 
@@ -754,15 +782,18 @@ void show_trace(int insn_no, struct trace_entry *t)
 			} case 0x10: {
 				sprintf(buf + strlen(buf), " %2.2X", t->insn[x]);
 				sprintf(right, "$%2.2x", t->insn[x++]);
+				memop = 1;
 				break;
 			} case 0x20: {
 				if (show_ind(t, &x, buf, right))
 					goto invalid;
+				memop = 1;
 				break;
 			} case 0x30: {
 				sprintf(buf + strlen(buf), " %2.2X%2.2X", t->insn[x], t->insn[x + 1]);
 				sprintf(right, "$%4.4x", (t->insn[x] << 8) + t->insn[x + 1]);
 				x += 2;
+				memop = 1;
 				break;
 			}
 		}
@@ -773,12 +804,18 @@ void show_trace(int insn_no, struct trace_entry *t)
 		switch (opcode & 0x0F) {
 			case 0x00: /* SUB N,Z,V,C,H) */ {
 				insn = "SUB";
+				if ((t->status & 1) && memop)
+                                        sprintf(buf3, "EA=%4.4X%s D=%2.2X", t->ea, buf_ea, t->data);
 				break;
 			} case 0x01: /* CMP N,Z,V,C,H */ {
 				insn = "CMP";
+				if ((t->status & 1) && memop)
+                                        sprintf(buf3, "EA=%4.4X%s D=%2.2X", t->ea, buf_ea, t->data);
 				break;
 			} case 0x02: /* SBC N,Z,V,C,H */ {
 				insn = "SBC";
+				if ((t->status & 1) && memop)
+                                        sprintf(buf3, "EA=%4.4X%s D=%2.2X", t->ea, buf_ea, t->data);
 				break;
 			} case 0x03: /* SUBD/CMPD/CMPU or ADDD */ {
 				if (opcode & 0x40) {
@@ -789,30 +826,48 @@ void show_trace(int insn_no, struct trace_entry *t)
 					else
 						insn = "SUB";
 				}
+				if ((t->status & 1) && memop)
+					sprintf(buf3, "EA=%4.4X%s D=%4.4X", t->ea, buf_ea, t->data);
 				break;
 			} case 0x04: /* AND N,Z,V=0 */ {
 				insn = "AND";
+				if ((t->status & 1) && memop)
+                                        sprintf(buf3, "EA=%4.4X%s D=%2.2X", t->ea, buf_ea, t->data);
 				break;
 			} case 0x05: /* BIT N,Z,V=0 */ {
 				insn = "BIT";
+				if ((t->status & 1) && memop)
+                                        sprintf(buf3, "EA=%4.4X%s D=%2.2X", t->ea, buf_ea, t->data);
 				break;
 			} case 0x06: /* LDA N,Z,V=0 */ {
 				insn = "LD";
+				if ((t->status & 1) && memop)
+                                        sprintf(buf3, "EA=%4.4X%s D=%2.2X", t->ea, buf_ea, t->data);
 				break;
 			} case 0x07: /* STA N,Z,V=0 */ {
 				insn = "ST";
+				if ((t->status & 1) && memop)
+                                        sprintf(buf3, "EA=%4.4X%s D=%2.2X", t->ea, buf_ea, t->data);
 				break;
 			} case 0x08: /* EOR N,Z,V=0*/ {
 				insn = "EOR";
+				if ((t->status & 1) && memop)
+                                        sprintf(buf3, "EA=%4.4X%s D=%2.2X", t->ea, buf_ea, t->data);
 				break;
 			} case 0x09: /* ADC H,N,Z,V,C */ {
 				insn = "ADC";
+				if ((t->status & 1) && memop)
+                                        sprintf(buf3, "EA=%4.4X%s D=%2.2X", t->ea, buf_ea, t->data);
 				break;
 			} case 0x0A: /* ORA N,Z,V=0 */ {
 				insn = "ORA";
+				if ((t->status & 1) && memop)
+                                        sprintf(buf3, "EA=%4.4X%s D=%2.2X", t->ea, buf_ea, t->data);
 				break;
 			} case 0x0B: /* ADD H,N,Z,V,C */ {
 				insn = "ADD";
+				if ((t->status & 1) && memop)
+                                        sprintf(buf3, "EA=%4.4X%s D=%2.2X", t->ea, buf_ea, t->data);
 				break;
 			} case 0x0C: {
 				if (opcode & 0x40) { /* LDD */
@@ -820,10 +875,14 @@ void show_trace(int insn_no, struct trace_entry *t)
 				} else { /* CMPX/CMPY/CMPS */
 					insn = "CMP";
 				}
+				if ((t->status & 1) && memop)
+					sprintf(buf3, "EA=%4.4X%s D=%4.4X", t->ea, buf_ea, t->data);
 				break;
 			} case 0x0D: {
 				if (opcode & 0x40) { /* STD */
 					insn = "ST";
+					if ((t->status & 1) && memop)
+						sprintf(buf3, "EA=%4.4X%s D=%4.4X", t->ea, buf_ea, t->data);
 				} else { /* BSR/JSR */
 					if (!(opcode & 0x30)) { /* BSR */
 						insn = "BSR";
@@ -838,20 +897,25 @@ void show_trace(int insn_no, struct trace_entry *t)
 				break;
 			} case 0x0E: { /* LDX/LDY/LDU/LDS */
 				insn = "LD";
+				if ((t->status & 1) && memop)
+					sprintf(buf3, "EA=%4.4X%s D=%4.4X", t->ea, buf_ea, t->data);
 				break;
 			} case 0x0F: { /* STX/STY/STU/STS */
 				insn = "ST";
+				if ((t->status & 1) && memop)
+					sprintf(buf3, "EA=%4.4X%s D=%4.4X", t->ea, buf_ea, t->data);
 				break;
 			}
 		}
 
 	} else if ((opcode & 0x40) || !(opcode & 0xF0)) { /* R.M.W. operations */
-
+		int memop = 0;
 		/* Fetch load operand */
 
 		if (!(opcode & 0xF0)) {
 			sprintf(buf + strlen(buf), " %2.2X", t->insn[x]);
 			sprintf(right, "$%2.2x", t->insn[x++]);
+			memop = 1;
 		} else {
 			switch (opcode & 0x30) {
 				case 0x00: {
@@ -861,12 +925,15 @@ void show_trace(int insn_no, struct trace_entry *t)
 					left = "B";
 					break;
 				} case 0x20: {
+					memop = 1;
 					if (show_ind(t, &x, buf, right))
 						goto invalid;
 					break;
 				} case 0x30: {
+					memop = 1;
 					sprintf(buf + strlen(buf), " %2.2X%2.2X", t->insn[x], t->insn[x+1]);
 					sprintf(right, "$%4.4x", (t->insn[x] << 8) + t->insn[x+1]);
+					x += 2;
 					break;
 				}
 			}
@@ -877,6 +944,8 @@ void show_trace(int insn_no, struct trace_entry *t)
 		switch (opcode & 0x0F) {
 			case 0x00: /* NEG N, Z, V= ((f==0x80)?1:0), C= ((f==0)?1:0) */ {
 				insn = "NEG";
+				if ((t->status & 1) && memop)
+                                        sprintf(buf3, "EA=%4.4X%s D=%2.2X", t->ea, buf_ea, t->data);
 				break;
 			} case 0x01: /* ??? */ {
 				goto invalid;
@@ -886,42 +955,62 @@ void show_trace(int insn_no, struct trace_entry *t)
 				break;
 			} case 0x03: /* COM N, Z, V=0, C=1 */ {
 				insn = "COM";
+				if ((t->status & 1) && memop)
+                                        sprintf(buf3, "EA=%4.4X%s D=%2.2X", t->ea, buf_ea, t->data);
 				break;
 			} case 0x04: /* LSR N=0,Z,C,V=N^C */ {
 				insn = "LSR";
+				if ((t->status & 1) && memop)
+                                        sprintf(buf3, "EA=%4.4X%s D=%2.2X", t->ea, buf_ea, t->data);
 				break;
 			} case 0x05: /* ??? */ {
 				goto invalid;
 				break;
 			} case 0x06: /* ROR N,Z,C,V=N^C */ {
 				insn = "ROR";
+				if ((t->status & 1) && memop)
+                                        sprintf(buf3, "EA=%4.4X%s D=%2.2X", t->ea, buf_ea, t->data);
 				break;
 			} case 0x07: /* ASR N,Z,C,V=N^C */ {
 				insn = "ASR";
+				if ((t->status & 1) && memop)
+                                        sprintf(buf3, "EA=%4.4X%s D=%2.2X", t->ea, buf_ea, t->data);
 				break;
 			} case 0x08: /* ASL N,Z,C,V=N^C */ {
 				insn = "ASL";
+				if ((t->status & 1) && memop)
+                                        sprintf(buf3, "EA=%4.4X%s D=%2.2X", t->ea, buf_ea, t->data);
 				break;
 			} case 0x09: /* ROL N,Z,C,V=N^C */ {
 				insn = "ROL";
+				if ((t->status & 1) && memop)
+                                        sprintf(buf3, "EA=%4.4X%s D=%2.2X", t->ea, buf_ea, t->data);
 				break;
 			} case 0x0A: /* DEC N,Z,V = (a=0x80?1:0) */ {
 				insn = "DEC";
+				if ((t->status & 1) && memop)
+                                        sprintf(buf3, "EA=%4.4X%s D=%2.2X", t->ea, buf_ea, t->data);
 				break;
 			} case 0x0B: /* ??? */ {
 				goto invalid;
 				break;
 			} case 0x0C: /* INC N,Z,V = (a=0x7F?1:0) */ {
 				insn = "INC";
+				if ((t->status & 1) && memop)
+                                        sprintf(buf3, "EA=%4.4X%s D=%2.2X", t->ea, buf_ea, t->data);
 				break;
 			} case 0x0D: /* TST N,Z,V=0,C=0 */ {
 				insn = "TST";
+				if ((t->status & 1) && memop)
+                                        sprintf(buf3, "EA=%4.4X%s D=%2.2X", t->ea, buf_ea, t->data);
 				break;
 			} case 0x0E: /* JMP */ {
 				insn = "JMP";
 				break;
 			} case 0x0F: /* CLR N=0, Z=1, V=0, C=0 */ {
 				insn = "CLR";
+				if ((t->status & 1) && memop)
+                                        sprintf(buf3, "EA=%4.4X%s D=%2.2X", t->ea, buf_ea, t->data);
 				break;
 			}
 		}
@@ -1059,8 +1148,6 @@ void show_trace(int insn_no, struct trace_entry *t)
 					sprintf(right, "$%4.4x", 0xFFFF & (t->pc + 2 + (signed char)t->insn[x]));
 					x++;
 				}
-				if (t->status & 1)
-                                        sprintf(buf3, "EA=%4.4X%s", t->ea, buf_ea);
 				break;
 			} case 0x21: /* BRN */ {
 				if (page2) {
@@ -1074,8 +1161,6 @@ void show_trace(int insn_no, struct trace_entry *t)
 					sprintf(right, "$%4.4x", 0xFFFF & (t->pc + 2 + (signed char)t->insn[x]));
 					x++;
 				}
-				if (t->status & 1)
-                                        sprintf(buf3, "EA=%4.4X%s", t->ea, buf_ea);
 				break;
 			} case 0x22: /* BHI */ {
 				if (page2) {
@@ -1089,8 +1174,6 @@ void show_trace(int insn_no, struct trace_entry *t)
 					sprintf(right, "$%4.4x", 0xFFFF & (t->pc + 2 + (signed char)t->insn[x]));
 					x++;
 				}
-				if (t->status & 1)
-                                        sprintf(buf3, "EA=%4.4X%s", t->ea, buf_ea);
 				break;
 			} case 0x23: /* BLS */ {
 				if (page2) {
@@ -1104,8 +1187,6 @@ void show_trace(int insn_no, struct trace_entry *t)
 					sprintf(right, "$%4.4x", 0xFFFF & (t->pc + 2 + (signed char)t->insn[x]));
 					x++;
 				}
-				if (t->status & 1)
-                                        sprintf(buf3, "EA=%4.4X%s", t->ea, buf_ea);
 				break;
 			} case 0x24: /* BCC */ {
 				if (page2) {
@@ -1119,8 +1200,6 @@ void show_trace(int insn_no, struct trace_entry *t)
 					sprintf(right, "$%4.4x", 0xFFFF & (t->pc + 2 + (signed char)t->insn[x]));
 					x++;
 				}
-				if (t->status & 1)
-                                        sprintf(buf3, "EA=%4.4X%s", t->ea, buf_ea);
 				break;
 			} case 0x25: /* BCS */ {
 				if (page2) {
@@ -1134,8 +1213,6 @@ void show_trace(int insn_no, struct trace_entry *t)
 					sprintf(right, "$%4.4x", 0xFFFF & (t->pc + 2 + (signed char)t->insn[x]));
 					x++;
 				}
-				if (t->status & 1)
-                                        sprintf(buf3, "EA=%4.4X%s", t->ea, buf_ea);
 				break;
 			} case 0x26: /* BNE */ {
 				if (page2) {
@@ -1149,8 +1226,6 @@ void show_trace(int insn_no, struct trace_entry *t)
 					sprintf(right, "$%4.4x", 0xFFFF & (t->pc + 2 + (signed char)t->insn[x]));
 					x++;
 				}
-				if (t->status & 1)
-                                        sprintf(buf3, "EA=%4.4X%s", t->ea, buf_ea);
 				break;
 			} case 0x27: /* BEQ */ {
 				if (page2) {
@@ -1164,8 +1239,6 @@ void show_trace(int insn_no, struct trace_entry *t)
 					sprintf(right, "$%4.4x", 0xFFFF & (t->pc + 2 + (signed char)t->insn[x]));
 					x++;
 				}
-				if (t->status & 1)
-                                        sprintf(buf3, "EA=%4.4X%s", t->ea, buf_ea);
 				break;
 			} case 0x28: /* BVC */ {
 				if (page2) {
@@ -1179,8 +1252,6 @@ void show_trace(int insn_no, struct trace_entry *t)
 					sprintf(right, " $%4.4x", 0xFFFF & (t->pc + 2 + (signed char)t->insn[x]));
 					x++;
 				}
-				if (t->status & 1)
-                                        sprintf(buf3, "EA=%4.4X%s", t->ea, buf_ea);
 				break;
 			} case 0x29: /* BVS */ {
 				if (page2) {
@@ -1194,8 +1265,6 @@ void show_trace(int insn_no, struct trace_entry *t)
 					sprintf(right, "$%4.4x", 0xFFFF & (t->pc + 2 + (signed char)t->insn[x]));
 					x++;
 				}
-				if (t->status & 1)
-                                        sprintf(buf3, "EA=%4.4X%s", t->ea, buf_ea);
 				break;
 			} case 0x2A: /* BPL */ {
 				if (page2) {
@@ -1209,8 +1278,6 @@ void show_trace(int insn_no, struct trace_entry *t)
 					sprintf(right, "$%4.4x", 0xFFFF & (t->pc + 2 + (signed char)t->insn[x]));
 					x++;
 				}
-				if (t->status & 1)
-                                        sprintf(buf3, "EA=%4.4X%s", t->ea, buf_ea);
 				break;
 			} case 0x2B: /* BMI */ {
 				if (page2) {
@@ -1224,8 +1291,6 @@ void show_trace(int insn_no, struct trace_entry *t)
 					sprintf(right, "$%4.4x", 0xFFFF & (t->pc + 2 + (signed char)t->insn[x]));
 					x++;
 				}
-				if (t->status & 1)
-                                        sprintf(buf3, "EA=%4.4X%s", t->ea, buf_ea);
 				break;
 			} case 0x2C: /* BGE */ {
 				if (page2) {
@@ -1239,8 +1304,6 @@ void show_trace(int insn_no, struct trace_entry *t)
 					sprintf(right, "$%4.4x", 0xFFFF & (t->pc + 2 + (signed char)t->insn[x]));
 					x++;
 				}
-				if (t->status & 1)
-                                        sprintf(buf3, "EA=%4.4X%s", t->ea, buf_ea);
 				break;
 			} case 0x2D: /* BLT */ {
 				if (page2) {
@@ -1254,8 +1317,6 @@ void show_trace(int insn_no, struct trace_entry *t)
 					sprintf(right, "$%4.4x", 0xFFFF & (t->pc + 2 + (signed char)t->insn[x]));
 					x++;
 				}
-				if (t->status & 1)
-                                        sprintf(buf3, "EA=%4.4X%s", t->ea, buf_ea);
 				break;
 			} case 0x2E: /* BGT */ {
 				if (page2) {
@@ -1269,8 +1330,6 @@ void show_trace(int insn_no, struct trace_entry *t)
 					sprintf(right, "$%4.4x", 0xFFFF & (t->pc + 2 + (signed char)t->insn[x]));
 					x++;
 				}
-				if (t->status & 1)
-                                        sprintf(buf3, "EA=%4.4X%s", t->ea, buf_ea);
 				break;
 			} case 0x2F: /* BLE */ {
 				if (page2) {
@@ -1284,8 +1343,6 @@ void show_trace(int insn_no, struct trace_entry *t)
 					sprintf(right, "$%4.4x", 0xFFFF & (t->pc + 2 + (signed char)t->insn[x]));
 					x++;
 				}
-				if (t->status & 1)
-                                        sprintf(buf3, "EA=%4.4X%s", t->ea, buf_ea);
 				break;
 			} default: /* ??? */ {
 				goto invalid;
@@ -1305,7 +1362,7 @@ void show_trace(int insn_no, struct trace_entry *t)
                 else
                         fprintf(mon_out, " ");
 		fprintf(mon_out, "%10d A=%2.2X B=%2.2X X=%4.4X Y=%4.4X U=%4.4X S=%4.4X P=%2.2X %c%c%c%c%c%c%c%c %-10s %-18s %-11s %-14s %s\n",
-		       insn_no, t->acca, t->accb, t->ireg[0], t->ireg[1], t->ireg[2], t->ireg[3], t->dp,
+		       insn_no, t->acca, t->accb, t->ix, t->iy, t->up, t->sp, t->dp,
 		       ((t->cc & 128) ? 'E' : '-'),
 		       ((t->cc & 64) ? 'F' : '-'),
 		       ((t->cc & 32) ? 'H' : '-'),
@@ -1809,7 +1866,7 @@ void sim(void)
 
 			if (wb) {
 				if (!(opcode & 0xF0)) {
-					mwrite(t->ea, f);
+					mwrite(ea, f);
 				} else {
 					switch (opcode & 0x30) {
 						case 0x00: {
@@ -1837,15 +1894,17 @@ void sim(void)
 				        return;
                 			break;;
                 		} case 0x16: { /* LBRA */
-                			t->ea = fetch2();
-                			t->ea += pc;
-                			jump(t->ea);
+                			ea = fetch2();
+                			ea += pc;
+                			t->ea = ea;
+                			jump(ea);
                 			break;
                 		} case 0x17: { /* LBSR */
-                			t->ea = fetch2();
+                			ea = fetch2();
                 			pushs2(pc);
-                			t->ea += pc;
-                			jump(t->ea);
+                			ea += pc;
+                			t->ea = ea;
+                			jump(ea);
                 			break;
                 		} case 0x19: { /* DAA N,Z,V,C */
 				        /* Only set C, don't clear it */
@@ -2018,144 +2077,160 @@ void sim(void)
 					break;
 				} case 0x20: /* BRA */ {
 					if (page2)
-						t->ea = fetch2();
+						ea = fetch2();
 					else
-						t->ea = (signed char)fetch();
-					t->ea += pc;
-					jump(t->ea);
+						ea = (signed char)fetch();
+					ea += pc;
+					t->ea = ea;
+					jump(ea);
 					break;
 				} case 0x21: /* BRN */ {
 					if (page2)
-						t->ea = fetch2();
+						ea = fetch2();
 					else
-						t->ea = (signed char)fetch();
-					t->ea += pc;
+						ea = (signed char)fetch();
+					ea += pc;
+					t->ea = ea;
 					break;
 				} case 0x22: /* BHI */ {
 					if (page2)
-						t->ea = fetch2();
+						ea = fetch2();
 					else
-						t->ea = (signed char)fetch();
-					t->ea += pc;
+						ea = (signed char)fetch();
+					ea += pc;
+					t->ea = ea;
 					if (!(c_flag | z_flag))
-					        jump(t->ea);
+					        jump(ea);
 					break;
 				} case 0x23: /* BLS */ {
 					if (page2)
-						t->ea = fetch2();
+						ea = fetch2();
 					else
-						t->ea = (signed char)fetch();
-					t->ea += pc;
+						ea = (signed char)fetch();
+					ea += pc;
+					t->ea = ea;
 					if (c_flag | z_flag)
-					        jump(t->ea);
+					        jump(ea);
 					break;
 				} case 0x24: /* BCC */ {
 					if (page2)
-						t->ea = fetch2();
+						ea = fetch2();
 					else
-						t->ea = (signed char)fetch();
-					t->ea += pc;
+						ea = (signed char)fetch();
+					ea += pc;
+					t->ea = ea;
 					if (!c_flag)
-					        jump(t->ea);
+					        jump(ea);
 					break;
 				} case 0x25: /* BCS */ {
 					if (page2)
-						t->ea = fetch2();
+						ea = fetch2();
 					else
-						t->ea = (signed char)fetch();
-					t->ea += pc;
+						ea = (signed char)fetch();
+					ea += pc;
+					t->ea = ea;
 					if (c_flag)
-					        jump(t->ea);
+					        jump(ea);
 					break;
 				} case 0x26: /* BNE */ {
 					if (page2)
-						t->ea = fetch2();
+						ea = fetch2();
 					else
-						t->ea = (signed char)fetch();
-					t->ea += pc;
+						ea = (signed char)fetch();
+					ea += pc;
+					t->ea = ea;
 					if (!z_flag)
-					        jump(t->ea);
+					        jump(ea);
 					break;
 				} case 0x27: /* BEQ */ {
 					if (page2)
-						t->ea = fetch2();
+						ea = fetch2();
 					else
-						t->ea = (signed char)fetch();
-					t->ea += pc;
+						ea = (signed char)fetch();
+					ea += pc;
+					t->ea = ea;
 					if (z_flag)
-					        jump(t->ea);
+					        jump(ea);
 					break;
 				} case 0x28: /* BVC */ {
 					if (page2)
-						t->ea = fetch2();
+						ea = fetch2();
 					else
-						t->ea = (signed char)fetch();
-					t->ea += pc;
+						ea = (signed char)fetch();
+					ea += pc;
+					t->ea = ea;
 					if (!v_flag)
-					        jump(t->ea);
+					        jump(ea);
 					break;
 				} case 0x29: /* BVS */ {
 					if (page2)
-						t->ea = fetch2();
+						ea = fetch2();
 					else
-						t->ea = (signed char)fetch();
-					t->ea += pc;
+						ea = (signed char)fetch();
+					ea += pc;
+					t->ea = ea;
 					if (v_flag)
-					        jump(t->ea);
+					        jump(ea);
 					break;
 				} case 0x2A: /* BPL */ {
 					if (page2)
-						t->ea = fetch2();
+						ea = fetch2();
 					else
-						t->ea = (signed char)fetch();
-					t->ea += pc;
+						ea = (signed char)fetch();
+					ea += pc;
+					t->ea = ea;
 					if (!n_flag)
-					        jump(t->ea);
+					        jump(ea);
 					break;
 				} case 0x2B: /* BMI */ {
 					if (page2)
-						t->ea = fetch2();
+						ea = fetch2();
 					else
-						t->ea = (signed char)fetch();
-					t->ea += pc;
+						ea = (signed char)fetch();
+					ea += pc;
+					t->ea = ea;
 					if (n_flag)
-					        jump(t->ea);
+					        jump(ea);
 					break;
 				} case 0x2C: /* BGE */ {
 					if (page2)
-						t->ea = fetch2();
+						ea = fetch2();
 					else
-						t->ea = (signed char)fetch();
-					t->ea += pc;
+						ea = (signed char)fetch();
+					ea += pc;
+					t->ea = ea;
 					if (!(n_flag ^ v_flag))
-					        jump(t->ea);
+					        jump(ea);
 					break;
 				} case 0x2D: /* BLT */ {
 					if (page2)
-						t->ea = fetch2();
+						ea = fetch2();
 					else
-						t->ea = (signed char)fetch();
-					t->ea += pc;
+						ea = (signed char)fetch();
+					ea += pc;
+					t->ea = ea;
 					if (n_flag ^ v_flag)
-					        jump(t->ea);
+					        jump(ea);
 					break;
 				} case 0x2E: /* BGT */ {
 					if (page2)
-						t->ea = fetch2();
+						ea = fetch2();
 					else
-						t->ea = (signed char)fetch();
-					t->ea += pc;
+						ea = (signed char)fetch();
+					ea += pc;
+					t->ea = ea;
 					if (!(z_flag | (n_flag ^ v_flag)))
-					        jump(t->ea);
+					        jump(ea);
 					break;
 				} case 0x2F: /* BLE */ {
 					if (page2)
-						t->ea = fetch2();
+						ea = fetch2();
 					else
-						t->ea = (signed char)fetch();
-					t->ea += pc;
+						ea = (signed char)fetch();
+					ea += pc;
+					t->ea = ea;
 					if (z_flag | (n_flag ^ v_flag))
-					        jump(t->ea);
+					        jump(ea);
 					break;
 				} default: /* ??? */ {
 				        goto invalid;

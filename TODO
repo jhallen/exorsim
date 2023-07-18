@@ -3,20 +3,16 @@ an exorset emulator (from which we could get the
 exbug-09)
 
   6809 version of assembler
-  6809 version of disassembler
+
   Re-enable exorterm mode: I think it just needed flushes or update calls.
-
-  l command:
-    Return to prompt when S9 received
-    Read S19 from file if filename given
-
-  Clean up DATA= and EA= output.  Print EA only for when instruction accesses memory?
 
   6809 version of flex, should be possible.  There is already a flex09 emulator.
 
-  6309 support?
 
 Exor:
+  l command:
+    Return to prompt when S9 received
+    Read S19 from file if filename given
 
   "make install" (needs paths to binaries).
 
@@ -31,6 +27,7 @@ Exor:
   Ctrl-C twice sends Ctrl-C to program?
 
   6800 simulator: 6801, 6811, 6816 support
+  6309 support?
 
   Share symbols from assembler for facts
   Some way to read assembly listing for symbols (improved facts file).
@@ -88,3 +85,7 @@ Done:
   Backport instruction set fixes to 6800
      DAA
      NEG
+
+  u with no args should continue unassembling from last address
+
+  6809 version of disassembler
