@@ -175,6 +175,11 @@ int parse_bin(char **at_p, unsigned short *hex)
 int parse_dec(char **at_p, int *dec)
 {
 	char *p = *at_p;
+	int neg = 0;
+	while (*p == '-') {
+	        ++p;
+	        neg = !neg;
+	}
 	if (*p == '$') {
 	        int rtn;
 	        int hex;
@@ -182,7 +187,7 @@ int parse_dec(char **at_p, int *dec)
 	        rtn = parse_hex(&p, &hex);
 	        if (rtn) {
 	                *at_p = p;
-	                *dec = hex;
+	                *dec = neg ? -hex : hex;
 	                return 1;
 	        } else
 	                return 0;
@@ -193,14 +198,14 @@ int parse_dec(char **at_p, int *dec)
 	        rtn = parse_bin(&p, &bin);
 	        if (rtn) {
 	                *at_p = p;
-	                *dec = bin;
+	                *dec = neg ? -bin : bin;
 	                return 1;
 	        } else
 	                return 0;
         } else if (*p == '\'' && p[1]) {
                 ++p;
                 unsigned char c = *p++;
-                *dec = c;
+                *dec = neg ? -c : c;
                 if (*p == '\'')
                         ++p;
                 *at_p = p;
@@ -209,7 +214,7 @@ int parse_dec(char **at_p, int *dec)
 		int val = 0;
 		while (*p >= '0' && *p <= '9')
 			val = val * 10 + *p++ - '0';
-		*dec = val;
+		*dec = neg ? -val : val;
 		*at_p = p;
 		return 1;
 	} else {

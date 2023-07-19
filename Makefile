@@ -1,5 +1,5 @@
 
-OBJS = unasm.o utils.o exor.o sim6800.o sim6809.o asm6800.o mdos.o unasm6800.o unasm6809.o exorterm.o mon.o
+OBJS = unasm.o utils.o exor.o sim6800.o sim6809.o asm6800.o asm6809.o mdos.o unasm6800.o unasm6809.o exorterm.o mon.o
 
 DIST = unasm.c utils.c exor.c sim6800.c asm6800.c mdos.c unasm6800.c mon.c exorterm.c Makefile \
   exbug.bin swtbug.bin utils.h sim6800.h asm6800.h unasm6800.h exor.h facts README COPYING \
@@ -72,8 +72,8 @@ unasm : unasm.o utils.o unasm6800.o
 exor : exor.o utils.o sim6800.o asm6800.o unasm6800.o mon.o exorterm.o
 	$(CC) -o exor exor.o utils.o sim6800.o asm6800.o unasm6800.o mon.o exorterm.o
 
-exor09 : exor.o utils.o sim6809.o asm6800.o unasm6809.o mon.o exorterm.o
-	$(CC) -o exor09 exor.o utils.o sim6809.o asm6800.o unasm6809.o mon.o exorterm.o
+exor09 : exor.o utils.o sim6809.o asm6809.o unasm6809.o mon.o exorterm.o
+	$(CC) -o exor09 exor.o utils.o sim6809.o asm6809.o unasm6809.o mon.o exorterm.o
 
 mdos : mdos.o
 	$(CC) -o mdos mdos.o
