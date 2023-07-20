@@ -69,9 +69,9 @@ int match_word(char **at_p, char *word)
 int parse_word(char **at_p, char *buf)
 {
 	char *p = *at_p;
-	if (*p && *p != ' ' && *p != '\t' && *p != ',' && *p != '+' && *p != '-') {
+	if (*p && *p != ' ' && *p != '\t' && *p != ',' && *p != '+' && *p != '-' && *p != '[' && *p != ']') {
 		int x = 0;
-		while (*p && *p != ' ' && *p != '\t' && *p != ',' && *p != '+' && *p != '-') {
+		while (*p && *p != ' ' && *p != '\t' && *p != ',' && *p != '+' && *p != '-' && *p != ']' && *p != '[') {
 			buf[x++] = *p++;
 		}
 		buf[x] = 0;

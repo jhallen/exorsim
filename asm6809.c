@@ -572,7 +572,7 @@ int parse_ireg(char **buf, unsigned char *cb)
         return 1;
 }
 
-int parse_ind(char **buf, unsigned char *at_cb, int *operand, struct symbol **sy, unsigned short addr, int *size)
+int parse_ind(char **buf, unsigned char *at_cb, int *operand, struct symbol **sy, unsigned short addr, int oplen, int *size)
 {
         char *p = *buf;
         int indirect = 0;
@@ -651,19 +651,23 @@ int parse_ind(char **buf, unsigned char *at_cb, int *operand, struct symbol **sy
                         ++p;
                         if (to_upper(p[0]) == 'P' && to_upper(p[1]) == 'C' && to_upper(p[2]) == 'R')
                         {
+                                int target;
                                 p += 3;
-                                /* n,PCR modes */
-                                /* n,X modes */
-                                *operand -= (addr + 4);
-                                if (*sy || *operand > 127 || *operand < -128)
+                                /* Try one byte offset */
+                                target = *operand - (addr + oplen + 2);
+                                if (!*sy && target >= -128 && target < 128)
                                 {
-                                        cb = 0x8D;
-                                        *size = 2;
+                                        /* It fits in a single byte */
+                                        cb = 0x8C;
+                                        *size = 1;
+                                        *operand = target;
                                 }
                                 else
                                 {
-                                        cb = 0x8C;
-                                        *size = 1;
+                                        target = *operand - (addr + oplen + 3); /* Account for larger offset */
+                                        *operand = target;
+                                        cb = 0x8D;
+                                        *size = 2;
                                 }
                         }
                         else if (parse_ireg(&p, &cb))
@@ -940,7 +944,7 @@ unsigned short assemble(unsigned char *mem, unsigned short addr, char *buf)
                                 unsigned char cb;
                                 int size;
                                 int operand;
-                                if (parse_ind(&buf, &cb, &operand, &sy, addr, &size))
+                                if (parse_ind(&buf, &cb, &operand, &sy, addr, (insn->variant[x].opcode >= 0x100 ? 2 : 1), &size))
                                 {
                                         emit_opcode(mem, &addr, insn->variant[x].opcode);
                                         mem[addr++] = cb;
