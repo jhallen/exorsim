@@ -619,6 +619,10 @@ int parse_ind(char **buf, unsigned char *at_cb, int *operand, struct symbol **sy
                                 cb = 0x83;
                                 ++p;
                         }
+                        else if (indirect)
+                        {
+                                return 0; /* Not allowed */
+                        }
                 }
                 if (!parse_ireg(&p, &cb))
                         return 0;
@@ -633,6 +637,10 @@ int parse_ind(char **buf, unsigned char *at_cb, int *operand, struct symbol **sy
                                         cb = (cb & 0xF0) + 0x01;
                                         ++p;
                                 }
+                                else if (indirect)
+                                {
+                                        return 0; /* Not allowed */
+                                }
                         }
                 }
         }
@@ -646,6 +654,7 @@ int parse_ind(char **buf, unsigned char *at_cb, int *operand, struct symbol **sy
                                 p += 3;
                                 /* n,PCR modes */
                                 /* n,X modes */
+                                *operand -= (addr + 4);
                                 if (*sy || *operand > 127 || *operand < -128)
                                 {
                                         cb = 0x8D;
@@ -665,7 +674,7 @@ int parse_ind(char **buf, unsigned char *at_cb, int *operand, struct symbol **sy
                                         cb = 0x89;
                                         *size = 2;
                                 }
-                                else if (*operand > 15 || *operand < -16)
+                                else if (*operand > 15 || *operand < -16 || indirect)
                                 {
                                         cb = 0x88;
                                         *size = 1;
