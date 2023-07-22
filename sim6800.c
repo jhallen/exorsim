@@ -1139,13 +1139,15 @@ void sim(void)
 				} case 0x19: /* DAA N,Z,V,C */ {
 				        /* Only set C, don't clear it */
 				        /* Do not change H */
-				        if (h_flag || (acca & 0x0F) >= 0x0A) {
-				                acca += 0x06;
+				        unsigned short tmp = acca;
+				        if (h_flag || (tmp & 0x0F) >= 0x0A) {
+				                tmp += 0x06;
 				        }
-				        if (c_flag || (acca & 0xF0) >= 0xA0) {
-				                acca += 0x60;
+				        if (c_flag || tmp >= 0xA0) {
+				                tmp += 0x60;
 				                c_flag = 1;
 				        }
+				        acca = tmp;
 				        n_flag = N(acca);
 				        z_flag = Z(acca);
 				        /* ??? What is V supposed to be? */
