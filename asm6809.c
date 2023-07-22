@@ -109,7 +109,7 @@ void show_syms(FILE *f)
                         else if (fix->type == FIXUP_REL)
                                 fprintf(f,"    8-bit rel fixup %4.4X\n", fix->fixup);
                         else if (fix->type == FIXUP_LREL)
-                                fprintf(f,"    168-bit rel fixup %4.4X\n", fix->fixup);
+                                fprintf(f,"    16-bit rel fixup %4.4X\n", fix->fixup);
                 }
         }
 }
@@ -435,7 +435,7 @@ int parse_tfr_nibble(char **buf, unsigned char *at_cb)
         else if (c == 'Y') { cb = 0x02; p += 1; }
         else if (c == 'U') { cb = 0x03; p += 1; }
         else if (c == 'S') { cb = 0x04; p += 1; }
-        else if (c == 'P') { cb = 0x05; p += 1; }
+        else if (c == 'P' && d == 'C') { cb = 0x05; p += 2; }
         else if (c == 'A') { cb = 0x08; p += 1; }
         else if (c == 'B') { cb = 0x09; p += 1; }
         else return 0;
@@ -950,11 +950,15 @@ unsigned short assemble(unsigned char *mem, unsigned short addr, char *buf)
                                         mem[addr++] = cb;
                                         if (size == 2)
                                         {
+                                                if (sy)
+                                                        add_fixup(sy, addr, FIXUP_EXT, operand);
                                                 mem[addr++] = (operand >> 8);
-                                                --size;
+                                                mem[addr++] = operand;
                                         }
-                                        if (size == 1)
+                                        else if (size == 1)
                                         {
+                                                if (sy)
+                                                        add_fixup(sy, addr, FIXUP_DIR, operand);
                                                 mem[addr++] = operand;
                                         }
                                         goto done;

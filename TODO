@@ -2,14 +2,22 @@
 an exorset emulator (from which we could get the
 exbug-09)
 
-  6809 version of assembler
-
   Re-enable exorterm mode: I think it just needed flushes or update calls.
 
   6809 version of flex, should be possible.  There is already a flex09 emulator.
 
 
 Exor:
+  Generic simulator setup? Something like:
+     device acia 0xfcf4 0xfcf5
+     ram 0x0000 0xe7ff
+     readonly 0xf000 0xfbff
+     readonly 0xe800 0xebff
+     cpu 6809
+     load 0xf000 exor.bin
+     load 0xe800 fdc.bin
+     setword 0xFFFe 0xF000
+
   l command:
     Return to prompt when S9 received
     Read S19 from file if filename given
@@ -89,3 +97,4 @@ Done:
   u with no args should continue unassembling from last address
 
   6809 version of disassembler
+  6809 version of assembler
