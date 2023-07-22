@@ -1139,11 +1139,10 @@ void sim(void)
 				} case 0x19: /* DAA N,Z,V,C */ {
 				        /* Only set C, don't clear it */
 				        /* Do not change H */
-				        unsigned char orga = acca;
 				        if (h_flag || (acca & 0x0F) >= 0x0A) {
 				                acca += 0x06;
 				        }
-				        if (c_flag || (orga & 0xF0) >= 0xA0) { /* CPUTEST (take to 6800) */
+				        if (c_flag || (acca & 0xF0) >= 0xA0) {
 				                acca += 0x60;
 				                c_flag = 1;
 				        }
