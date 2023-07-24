@@ -141,7 +141,8 @@ void read_file(int lsn, int size, FILE *f)
                         for (n = 0; n != ends; ++n) {
                                 int c = buf[n];
                                 if (c == 13) {
-                                        /* Convert to UNIX */
+                                        /* Convert to MS-DOS */
+                                        fputc('\r', f);
                                         fputc('\n', f);
                                 } else if (c == 10) {
                                         /* Delete Line Feeds */
