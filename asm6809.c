@@ -22,6 +22,8 @@
 #include "asm6800.h"
 #include "utils.h"
 
+unsigned short pseudo_dp; /* Address of direct page */
+
 /* Fixup types */
 
 enum {
@@ -29,6 +31,11 @@ enum {
         FIXUP_DIR,	/* An 8-bit address */
         FIXUP_REL,	/* A branch offset */
         FIXUP_LREL,	/* A branch offset */
+        FIXUP_IMM8,	/* An 8-bit value, not necessarily an address */
+        FIXUP_IMM16,	/* A 16-bit value, not necessarily an address */
+        FIXUP_IDX8,	/* An 8-bit signed index */
+        FIXUP_UIDX8,	/* An 8-bit unsigned inded */
+        FIXUP_IDX16,	/* A 16-bit signed index */
 };
 
 /* A pending fixup */
@@ -46,7 +53,7 @@ struct symbol {
         struct symbol *next;
         char *name;		/* Name of symbol */
         int valid;		/* Set if symbol's value is known */
-        unsigned short val;	/* Value of symbol */
+        int val;		/* Value of symbol */
         struct fixup *fixups;	/* Fixups waiting for this symbol */
 } *symbols;
 
@@ -103,13 +110,23 @@ void show_syms(FILE *f)
                 }
                 for (fix = sy->fixups; fix; fix = fix->next) {
                         if (fix->type == FIXUP_EXT)
-                                fprintf(f,"    16-bit fixup at %4.4X\n", fix->fixup);
+                                fprintf(f,"    16-bit address fixup at %4.4X\n", fix->fixup);
                         else if (fix->type == FIXUP_DIR)
-                                fprintf(f,"    8-bit fixup at  %4.4X\n", fix->fixup);
+                                fprintf(f,"    8-bit address fixup at  %4.4X\n", fix->fixup);
                         else if (fix->type == FIXUP_REL)
                                 fprintf(f,"    8-bit rel fixup %4.4X\n", fix->fixup);
                         else if (fix->type == FIXUP_LREL)
                                 fprintf(f,"    16-bit rel fixup %4.4X\n", fix->fixup);
+                        else if (fix->type == FIXUP_IMM8)
+                                fprintf(f,"    8-bit fixup at  %4.4X\n", fix->fixup);
+                        else if (fix->type == FIXUP_IMM16)
+                                fprintf(f,"    16-bit fixup at %4.4X\n", fix->fixup);
+                        else if (fix->type == FIXUP_IDX8)
+                                fprintf(f,"    8-bit index fixup at  %4.4X\n", fix->fixup);
+                        else if (fix->type == FIXUP_UIDX8)
+                                fprintf(f,"    8-bit index fixup at  %4.4X\n", fix->fixup);
+                        else if (fix->type == FIXUP_IDX16)
+                                fprintf(f,"    16-bit index fixup at %4.4X\n", fix->fixup);
                 }
         }
 }
@@ -131,9 +148,90 @@ void clr_syms(void)
         }
 }
 
+/* Insert value into instruction */
+
+void insert_val(unsigned char *mem, unsigned short addr, int type, int val, int ofst, int show)
+{
+        int v = val + ofst;
+        if (type == FIXUP_EXT) {
+                if (v >= 0 && v < 65536) {
+                        mem[addr] = (v >> 8);
+                        mem[addr + 1]  = v;
+                        if (show) printf("Address at %4.4X set to %4.4X\n", addr, v);
+                } else {
+                        printf("Error: Address for %4.4x out of range.  It was %d but must be 0 - 65535\n", addr, v);
+                }
+        } else if (type == FIXUP_DIR) {
+                if (v >= 0 && v < 256) {
+                        mem[addr]  = v;
+                        if (show) printf("Byte at %4.4X set to %2.2X\n", addr, v);
+                } else {
+                        printf("Error: Direct address for %4.4x out of range.  It was %4.4x but must be 0x00 - 0xFF\n", addr, v);
+                }
+        } else if (type == FIXUP_REL) {
+                if (v >= 0 && v < 65536) {
+                        v -= addr + 1;
+                        if (v >= -128 && v < 128) {
+                                mem[addr] = v;
+                                if (show) printf("Offset at %4.4X set to %2.2X\n", addr, 255 & v);
+                        } else {
+                                printf("Error: Offset for %4.4x out of range.  It was %d but must be -128 to 127\n", addr, v);
+                        }
+                } else {
+                        printf("Error: Address for %4.4x out of range.  It was %d but must be 0 - 65535\n", addr, v);
+                }
+        } else if (type == FIXUP_LREL) {
+                if (v >= 0 && v < 65536) {
+                        v -= addr + 2;
+                        mem[addr] = (v >> 8);
+                        mem[addr + 1] = v;
+                        if (show) printf("Offset at %4.4X set to %4.4X\n", addr, 65535 & v);
+                } else {
+                        printf("Error: Address for %4.4x out of range.  It was %d but must be 0 - 65535\n", addr, v);
+                }
+        } else if (type == FIXUP_IMM8) {
+                if (v >= -128 && v < 256) {
+                        mem[addr] = v;
+                        if (show) printf("Byte at %4.4X set to %2.2X\n", addr, 255 & v);
+                } else {
+                        printf("Error: Byte for %4.4x out of range.  It was %d but must be -128 to 255\n", addr, v);
+                }
+        } else if (type == FIXUP_IMM16) {
+                if (v >= -32768 && v < 65536) {
+                        mem[addr] = (v >> 8);
+                        mem[addr = 1] = v;
+                        if (show) printf("Word at %4.4X set to %4.4X\n", addr, 65535 & v);
+                } else {
+                        printf("Error: Word for %4.4x out of range.  It was %d but must be -32768 to 65535\n", addr, v);
+                }
+        } else if (type == FIXUP_IDX8) {
+                if (v >= -128 && v < 128) {
+                        mem[addr] = v;
+                        if (show) printf("Index at %4.4X set to %2.2X\n", addr, 255 & v);
+                } else {
+                        printf("Error: Index for %4.4x out of range.  It was %d but must be -128 to 127\n", addr, v);
+                }
+        } else if (type == FIXUP_UIDX8) {
+                if (v >= 0 && v < 256) {
+                        mem[addr] = v;
+                        if (show) printf("Index at %4.4X set to %2.2X\n", addr, 255 & v);
+                } else {
+                        printf("Error: Index for %4.4x out of range.  It was %d but must be 0 to 255\n", addr, v);
+                }
+        } else if (type == FIXUP_IDX16) {
+                if (v >= -65535 && v < 65536) {
+                        mem[addr] = (v >> 8);
+                        mem[addr + 1] = v;
+                        if (show) printf("Index at %4.4X set to %4.4X\n", addr, 65535 & v);
+                } else {
+                        printf("Error: Index for %4.4x out of range.  It was %d but must be -65535 to 65535\n", addr, v);
+                }
+        }
+}
+
 /* Set symbol's value, process pending fixups */
 
-void set_symbol(unsigned char *mem, struct symbol *sy, unsigned short val)
+void set_symbol(unsigned char *mem, struct symbol *sy, int val)
 {
         struct fixup *fix;
         if (!sy)
@@ -146,23 +244,25 @@ void set_symbol(unsigned char *mem, struct symbol *sy, unsigned short val)
         sy->val = val;
         while ((fix = sy->fixups)) {
                 sy->fixups = fix->next;
-                if (fix->type == FIXUP_EXT) {
-                        mem[fix->fixup] = ((val + fix->ofst) >> 8);
-                        mem[fix->fixup + 1]  = (val + fix->ofst);
-                        printf("Address at %4.4X set to %4.4X\n", fix->fixup, val + fix->ofst);
-                } else if (fix->type == FIXUP_DIR) {
-                        mem[fix->fixup]  = (val + fix->ofst);
-                        printf("Byte at %4.4X set to %2.2X\n", fix->fixup, ((val + fix->ofst) & 255));
-                } else if (fix->type == FIXUP_REL) {
-                        mem[fix->fixup] = val + fix->ofst - (fix->fixup + 1);
-                        printf("Offset at %4.4X set to %2.2X\n", fix->fixup, val + fix->ofst - (fix->fixup + 1));
-                } else if (fix->type == FIXUP_LREL) {
-                        unsigned short v = val + fix->ofst - (fix->fixup + 1);
-                        mem[fix->fixup] = (v >> 8);
-                        mem[fix->fixup + 1] = v;
-                        printf("Offset at %4.4X set to %4.4X\n", fix->fixup, v);
-                }
+                insert_val(mem, fix->fixup, fix->type, val, fix->ofst, 1);
                 free(fix);
+        }
+}
+
+/* Insert value or add fixup if symbol not yet defined */
+
+void insert_or_add(unsigned char *mem, unsigned short addr, int type, struct symbol *sy, int val, int show)
+{
+        if (sy) {
+                /* Set it later */
+                printf("later = %x\n", addr);
+                add_fixup(sy, addr, type, val);
+                mem[addr] = 0;
+                if (type == FIXUP_EXT || type == FIXUP_LREL || type == FIXUP_IMM16 || type == FIXUP_IDX16)
+                        mem[addr + 1] = 0;
+        } else {
+                /* Set it now */
+                insert_val(mem, addr, type, val, 0, show);
         }
 }
 
@@ -185,7 +285,8 @@ enum {
         RMB=14,	/* RMB pseudo-op */
         ORG=15,	/* ORG pseudo-op */
         IGN=16,	/* Ignore these pseudo-ops */
-        NONE=17	/* No operand */
+        NONE=17,	/* No operand */
+        SETDP=18 /* setdp pseudo-op */
 };
 
 struct variant
@@ -194,10 +295,12 @@ struct variant
         short type;
 };
 
+#define VARIANT_COUNT 4
+
 struct insn
 {
         char *insn;
-        struct variant variant[4];
+        struct variant variant[VARIANT_COUNT];
 } table[] =
 {
         { "nop", { { 0x12, NONE } } },
@@ -364,6 +467,7 @@ struct insn
         { "ttl", { { 0, IGN } } },
         { "spc", { { 0, IGN } } },
         { "page", { { 0, IGN } } },
+        { "setdp", { { 0, SETDP } } },
 
         { 0, { { 0, 0 } } }
 };
@@ -376,7 +480,7 @@ int parse_val(char **buf, int *operand, struct symbol **sy, unsigned short addr)
         char str[80];
         *sy = 0;
         if (!parse_dec(buf, operand)) {
-                if (parse_word(buf, str)) {
+                if (parse_ident(buf, str)) {
                         char *p;
                         if (!strcmp(str, "*")) {
                                 *operand = addr;
@@ -761,18 +865,18 @@ unsigned short assemble(unsigned char *mem, unsigned short addr, char *buf)
                 return addr;
         }
 
-        if (!(buf[0] == ' ' || buf[0] == '\t') && parse_word(&buf, str)) {
+        if (!(buf[0] == ' ' || buf[0] == '\t') && parse_ident(&buf, str)) {
                 /* A label */
                 label_sy = find_symbol(str);
 
                 skipws(&buf);
 
-                if (!parse_word(&buf, str)) {
+                if (!parse_ident(&buf, str)) {
                         goto done;
                 }
         } else {
                 skipws(&buf);
-                if (!parse_word(&buf, str)) {
+                if (!parse_ident(&buf, str)) {
                         printf("Huh?\n");
                         return addr;
                 }
@@ -794,8 +898,10 @@ unsigned short assemble(unsigned char *mem, unsigned short addr, char *buf)
 
         /* Determine instruction variant based on operand
            First one that works wins */
-        for (x = 0; x != 4 && insn->variant[x].type; ++x)
-                switch (insn->variant[x].type)
+        for (x = 0; x != VARIANT_COUNT && insn->variant[x].type; ++x)
+        {
+                struct variant *ivariant = &insn->variant[x];
+                switch (ivariant->type)
                 {
                         case IGN:
                         {
@@ -803,7 +909,7 @@ unsigned short assemble(unsigned char *mem, unsigned short addr, char *buf)
                         }
                         case NONE:
                         {
-                                emit_opcode(mem, &addr, insn->variant[x].opcode);
+                                emit_opcode(mem, &addr, ivariant->opcode);
                                 goto done;
                         }
                         case REL:
@@ -811,16 +917,8 @@ unsigned short assemble(unsigned char *mem, unsigned short addr, char *buf)
                                 int operand;
                                 if (parse_val(&buf, &operand, &sy, addr))
                                 {
-                                        emit_opcode(mem, &addr, insn->variant[x].opcode);
-                                        if (sy)
-                                        {
-                                                mem[addr] = 0;
-                                                add_fixup(sy, addr, FIXUP_REL, operand);
-                                        }
-                                        else
-                                        {
-                                                mem[addr] = operand - (addr + 1);
-                                        }
+                                        emit_opcode(mem, &addr, ivariant->opcode);
+                                        insert_or_add(mem, addr, FIXUP_REL, sy, operand, 0);
                                         addr++;
                                         goto done;
                                 }
@@ -831,19 +929,8 @@ unsigned short assemble(unsigned char *mem, unsigned short addr, char *buf)
                                 int operand;
                                 if (parse_val(&buf, &operand, &sy, addr))
                                 {
-                                        emit_opcode(mem, &addr, insn->variant[x].opcode);
-                                        if (sy)
-                                        {
-                                                mem[addr] = 0;
-                                                mem[addr+1] = 0;
-                                                add_fixup(sy, addr, FIXUP_LREL, operand);
-                                        }
-                                        else
-                                        {
-                                                unsigned short v = operand - (addr + 2);
-                                                mem[addr] = (v >> 8);
-                                                mem[addr + 1] = v;
-                                        }
+                                        emit_opcode(mem, &addr, ivariant->opcode);
+                                        insert_or_add(mem, addr, FIXUP_LREL, sy, operand, 0);
                                         addr += 2;
                                         goto done;
                                 }
@@ -854,16 +941,8 @@ unsigned short assemble(unsigned char *mem, unsigned short addr, char *buf)
                                 int operand;
                                 if (parse_imm(&buf, &operand, &sy, addr))
                                 {
-                                        emit_opcode(mem, &addr, insn->variant[x].opcode);
-                                        if (sy)
-                                        {
-                                                mem[addr] = 0;
-                                                add_fixup(sy, addr, FIXUP_DIR, operand);
-                                        }
-                                        else
-                                        {
-                                                mem[addr] = operand;
-                                        }
+                                        emit_opcode(mem, &addr, ivariant->opcode);
+                                        insert_or_add(mem, addr, FIXUP_IMM8, sy, operand, 0);
                                         addr += 1;
                                         goto done;
                                 }
@@ -874,18 +953,8 @@ unsigned short assemble(unsigned char *mem, unsigned short addr, char *buf)
                                 int operand;
                                 if (parse_imm(&buf, &operand, &sy, addr))
                                 {
-                                        emit_opcode(mem, &addr, insn->variant[x].opcode);
-                                        if (sy)
-                                        {
-                                                mem[addr] = 0;
-                                                mem[addr + 1] = 0;
-                                                add_fixup(sy, addr, FIXUP_EXT, operand);
-                                        }
-                                        else
-                                        {
-                                                mem[addr] = operand >> 8;
-                                                mem[addr+1] = operand;
-                                        }
+                                        emit_opcode(mem, &addr, ivariant->opcode);
+                                        insert_or_add(mem, addr, FIXUP_IMM16, sy, operand, 0);
                                         addr += 2;
                                         goto done;
                                 }
@@ -894,7 +963,7 @@ unsigned short assemble(unsigned char *mem, unsigned short addr, char *buf)
                         case TFR:
                         {
                                 unsigned char cb;
-                                emit_opcode(mem, &addr, insn->variant[x].opcode);
+                                emit_opcode(mem, &addr, ivariant->opcode);
                                 if (parse_tfr(&buf, &cb))
                                 {
                                         mem[addr] = cb;
@@ -910,7 +979,7 @@ unsigned short assemble(unsigned char *mem, unsigned short addr, char *buf)
                         case SLIST:
                         {
                                 unsigned char cb;
-                                emit_opcode(mem, &addr, insn->variant[x].opcode);
+                                emit_opcode(mem, &addr, ivariant->opcode);
                                 if (parse_list(&buf, &cb, 0))
                                 {
                                         mem[addr] = cb;
@@ -926,7 +995,7 @@ unsigned short assemble(unsigned char *mem, unsigned short addr, char *buf)
                         case ULIST:
                         {
                                 unsigned char cb;
-                                emit_opcode(mem, &addr, insn->variant[x].opcode);
+                                emit_opcode(mem, &addr, ivariant->opcode);
                                 if (parse_list(&buf, &cb, 1))
                                 {
                                         mem[addr] = cb;
@@ -944,22 +1013,19 @@ unsigned short assemble(unsigned char *mem, unsigned short addr, char *buf)
                                 unsigned char cb;
                                 int size;
                                 int operand;
-                                if (parse_ind(&buf, &cb, &operand, &sy, addr, (insn->variant[x].opcode >= 0x100 ? 2 : 1), &size))
+                                if (parse_ind(&buf, &cb, &operand, &sy, addr, (ivariant->opcode >= 0x100 ? 2 : 1), &size))
                                 {
-                                        emit_opcode(mem, &addr, insn->variant[x].opcode);
+                                        emit_opcode(mem, &addr, ivariant->opcode);
                                         mem[addr++] = cb;
                                         if (size == 2)
                                         {
-                                                if (sy)
-                                                        add_fixup(sy, addr, FIXUP_EXT, operand);
-                                                mem[addr++] = (operand >> 8);
-                                                mem[addr++] = operand;
+                                                insert_or_add(mem, addr, FIXUP_IDX16, sy, operand, 0);
+                                                addr += 2;
                                         }
                                         else if (size == 1)
                                         {
-                                                if (sy)
-                                                        add_fixup(sy, addr, FIXUP_DIR, operand);
-                                                mem[addr++] = operand;
+                                                insert_or_add(mem, addr, FIXUP_IDX8, sy, operand, 0);
+                                                addr += 1;
                                         }
                                         goto done;
                                 }
@@ -971,10 +1037,10 @@ unsigned short assemble(unsigned char *mem, unsigned short addr, char *buf)
                                 char *org = buf;
                                 if (parse_val(&buf, &operand, &sy, addr))
                                 {
-                                        if (!sy && operand >= 0 && operand < 0x100)
+                                        if (!sy && operand >= pseudo_dp && operand < pseudo_dp + 0x100)
                                         {
-                                                emit_opcode(mem, &addr, insn->variant[x].opcode);
-                                                mem[addr] = operand;
+                                                emit_opcode(mem, &addr, ivariant->opcode);
+                                                insert_or_add(mem, addr, FIXUP_DIR, sy, (operand & 0xFF), 0);
                                                 addr += 1;
                                                 goto done;
                                         }
@@ -992,18 +1058,8 @@ unsigned short assemble(unsigned char *mem, unsigned short addr, char *buf)
                                 int operand;
                                 if (parse_val(&buf, &operand, &sy, addr))
                                 {
-                                        emit_opcode(mem, &addr, insn->variant[x].opcode);
-                                        if (sy)
-                                        {
-                                                mem[addr] = 0;
-                                                mem[addr + 1] = 0;
-                                                add_fixup(sy, addr, FIXUP_EXT, operand);
-                                        }
-                                        else
-                                        {
-                                                mem[addr] = operand >> 8;
-                                                mem[addr+1] = operand;
-                                        }
+                                        emit_opcode(mem, &addr, ivariant->opcode);
+                                        insert_or_add(mem, addr, FIXUP_EXT, sy, operand, 0);
                                         addr += 2;
                                         goto done;
                                 }
@@ -1033,18 +1089,8 @@ unsigned short assemble(unsigned char *mem, unsigned short addr, char *buf)
                                         }
                                         else if (parse_val(&buf, &operand, &sy, addr))
                                         {
-                                                if (sy)
-                                                {
-                                                        add_fixup(sy, addr, FIXUP_DIR, operand);
-                                                        mem[addr++] = 0;
-                                                }
-                                                else
-                                                {
-                                                        if ((operand >= 0 && (operand & ~0xFF)) ||
-                                                            (operand < 0 && ((operand & ~0xFF) + 0x100)))
-                                                                printf("Argument range error\n");
-                                                        mem[addr++] = operand;
-                                                }
+                                                insert_or_add(mem, addr, FIXUP_IMM8, sy, operand, 0);
+                                                addr += 1;
                                         }
                                         else
                                         {
@@ -1075,17 +1121,8 @@ unsigned short assemble(unsigned char *mem, unsigned short addr, char *buf)
                                         int operand;
                                         if (parse_val(&buf, &operand, &sy, addr))
                                         {
-                                                if (sy)
-                                                {
-                                                        add_fixup(sy, addr, FIXUP_EXT, operand);
-                                                        mem[addr++] = 0;
-                                                        mem[addr++] = 0;
-                                                }
-                                                else
-                                                {
-                                                        mem[addr++] = (operand >> 8);
-                                                        mem[addr++] = operand;
-                                                }
+                                                insert_or_add(mem, addr, FIXUP_IMM16, sy, operand, 0);
+                                                addr += 2;
                                         }
                                         else
                                         {
@@ -1117,6 +1154,30 @@ unsigned short assemble(unsigned char *mem, unsigned short addr, char *buf)
                                         else
                                         {
                                                 addr += operand;
+                                        }
+                                }
+                                else
+                                {
+                                        printf("Missing argument\n");
+                                }
+                                goto done;
+                        }
+                        case SETDP:
+                        {
+                                int operand;
+                                if (parse_val(&buf, &operand, &sy, addr))
+                                {
+                                        if (sy)
+                                        {
+                                                printf("Resolved symbol required for setdp\n");
+                                        }
+                                        else if (operand < 0 || operand >= 65536 || (operand & 255) != 0)
+                                        {
+                                                printf("Setdp with %4.4x, but expected value is a multiple of 0x100 in the range 0 - 0xff00\n", operand);
+                                        }
+                                        else
+                                        {
+                                                pseudo_dp = operand;
                                         }
                                 }
                                 else
@@ -1165,9 +1226,18 @@ unsigned short assemble(unsigned char *mem, unsigned short addr, char *buf)
                                 goto done;
                         }
                 }
+        }
         printf("Syntax error\n");
 
         done:
+        if (*buf == ' ' || *buf == '\t' || !*buf)
+        {
+                /* Good */ 
+        }
+        else
+        {
+                printf("Syntax error\n");
+        }
         set_symbol(mem, label_sy, label_addr);
         return addr;
 }

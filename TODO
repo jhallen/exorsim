@@ -6,6 +6,14 @@ exbug-09)
 
   6809 version of flex, should be possible.  There is already a flex09 emulator.
 
+  assembler:
+    < and > to force index size and direct/extended
+    expression evaluator including Motorola operators
+    non-motorola mode?
+    parse_word should handle motorola identifiers
+    complain if there is extra junk (space begins comment after operand)
+
+  regs command must show 6809 regs
 
 Exor:
   Generic simulator setup? Something like:
@@ -18,9 +26,7 @@ Exor:
      load 0xe800 fdc.bin
      setword 0xFFFe 0xF000
 
-  l command:
-    Return to prompt when S9 received
-    Read S19 from file if filename given
+  l command: file name argument instead of input redirect which is weird
 
   "make install" (needs paths to binaries).
 
@@ -32,17 +38,17 @@ Exor:
   More breakpoints
   Switch disks
 
-  Ctrl-C twice sends Ctrl-C to program?
+  Ctrl-C twice sends Ctrl-C to program?  It exists now.. or some way to send Ctrl-C to program.
 
   6800 simulator: 6801, 6811, 6816 support
-  6309 support?
+  6809 simulator: 6309 support?
 
-  Share symbols from assembler for facts
+  Share symbols from external assembler for facts
   Some way to read assembly listing for symbols (improved facts file).
 
   Show top of stack command?
 
-  User GNU readline or add history for monitor jgetline?
+  User GNU readline or add history for monitor jgetline?  We probably also want tab-completion
 
   Televideo emulation for Flex2?  Maybe not necessary.
 
@@ -98,3 +104,10 @@ Done:
 
   6809 version of disassembler
   6809 version of assembler
+    setdp directive
+
+  better 'm' command
+
+  l command:
+    Return to prompt when S9 received [fixed]
+    Read S19 from file if filename given (we have this with input redirection)

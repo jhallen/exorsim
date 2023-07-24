@@ -82,6 +82,22 @@ int parse_word(char **at_p, char *buf)
 	}
 }
 
+int parse_ident(char **at_p, char *buf)
+{
+	char *p = *at_p;
+	if ((*p >= 'a' && *p <= 'z') || (*p >= 'A' && *p <= 'Z') || *p == '.') {
+	        int x = 0;
+		while ((*p >= 'a' && *p <= 'z') || (*p >= 'A' && *p <= 'Z') || (*p >= '0' && *p <= '9') || *p == '_' || *p == '$' || *p == '.') {
+			buf[x++] = *p++;
+		}
+		buf[x] = 0;
+		*at_p = p;
+		return 1;
+	} else {
+		return 0;
+	}
+}
+
 /* Parse one hex digit */
 
 int parse_hex1(char **at_p, int *hex)

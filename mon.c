@@ -81,20 +81,85 @@ int caps_cmd(char *p)
 
 int m_cmd(char *p)
 {
-        char buf[180];
-        int addr;
-        if (parse_hex(&p, &addr)) {
+        int a;
+        if (parse_hex(&p, &a)) {
+                unsigned short addr;
+                if (a < 0 || a > 65535) {
+                        printf("Invalid address\n");
+                        return 0;
+                }
+                addr = a;
                 for (;;) {
+                        char c;
+                        unsigned char d;
                         printf("%4.4x %2.2x ", addr, mem[addr]);
-                        if (!jgetline(stdin, buf)) {
-                               if (buf[0]) {
-                                       mem[addr] = hatoi((unsigned char *)buf);
-                               }
-                               ++addr;
-                        } else {
-                                printf("\n");
+                        fflush(stdout);
+                        again:
+                        d = 0;
+                        if (read(fileno(stdin), &c, 1) < 0) {
+                                putchar('\n');
                                 break;
                         }
+                        if (c == 'C' - '@') {
+                                putchar('\n');
+                                break;
+                        } else if (c >= '0' && c <= '9') {
+                                putchar(c);
+                                fflush(stdout);
+                                d = ((c - '0') << 4);
+                        } else if (c >= 'a' && c <= 'f') {
+                                putchar(c);
+                                fflush(stdout);
+                                d = ((c - 'a' + 10) << 4);
+                        } else if (c >= 'A' && c <= 'F') {
+                                putchar(c);
+                                fflush(stdout);
+                                d = ((c - 'A' + 10) << 4);
+                        } else if (c == 8 || c == 127) {
+                                putchar('\n');
+                                --addr;
+                                continue;
+                        } else {
+                                putchar('\n');
+                                ++addr;
+                                continue;
+                        }
+                        if (read(fileno(stdin), &c, 1) < 0) {
+                                putchar('\n');
+                                break;
+                        }
+                        if (c == 'C' - '@') {
+                                putchar(8);
+                                putchar(32);
+                                putchar('\n');
+                                break;
+                        } else if (c >= '0' && c <= '9') {
+                                putchar(c);
+                                fflush(stdout);
+                                d += (c - '0');
+                        } else if (c >= 'a' && c <= 'f') {
+                                putchar(c);
+                                fflush(stdout);
+                                d += (c - 'a' + 10);
+                        } else if (c >= 'A' && c <= 'F') {
+                                putchar(c);
+                                fflush(stdout);
+                                d += (c - 'A' + 10);
+                        } else if (c == 8 || c == 127) {
+                                putchar(8);
+                                putchar(32);
+                                putchar(8);
+                                fflush(stdout);
+                                goto again;
+                        } else {
+                                putchar(8);
+                                putchar(32);
+                                putchar('\n');
+                                ++addr;
+                                continue;
+                        }
+                        mem[addr++] = d;
+                        putchar('\n');
                 }
         } else
                 huh();
@@ -177,6 +242,7 @@ int clr_cmd(char *p)
 int sy_cmd(char *p)
 {
         show_syms(mon_out);
+        printf("setdp value is %2.2x\n", pseudo_dp);
         return 0;
 }
 
@@ -296,8 +362,10 @@ int l_cmd(char *p)
                         }
                         pc = addr;
                         printf("PC set to %4.4x\n", addr);
+                        break;
                 } else {
                         printf("Unknown record on line %d\n", line);
+                        break;
                 }
         }
         return 0;
