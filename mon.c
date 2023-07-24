@@ -170,17 +170,23 @@ int regs_cmd(char *p)
 {
         int val;
         if (!*p) {
-                fprintf(mon_out, "PC=%4.4X A=%2.2X B=%2.2X X=%4.4X SP=%2.2X CC=%2.2X\n", pc, acca, accb, ix, sp, read_flags());
+                fprintf(mon_out, "PC=%4.4X A=%2.2X B=%2.2X X=%4.4X Y=%4.4X U=%4.4X SP=%2.2X DP=%2.2X CC=%2.2X\n", pc, acca, accb, ix, iy, up, sp, dp, read_flags());
         } else if (match_word(&p, "pc") && parse_hex(&p, &val)) {
                 pc = val;
         } else if (match_word(&p, "sp") && parse_hex(&p, &val)) {
                 sp = val;
         } else if (match_word(&p, "x") && parse_hex(&p, &val)) {
                 ix = val;
+        } else if (match_word(&p, "y") && parse_hex(&p, &val)) {
+                iy = val;
+        } else if (match_word(&p, "u") && parse_hex(&p, &val)) {
+                up = val;
         } else if (match_word(&p, "a") && parse_hex(&p, &val)) {
                 acca = val;
         } else if (match_word(&p, "b") && parse_hex(&p, &val)) {
                 accb = val;
+        } else if (match_word(&p, "dp") && parse_hex(&p, &val)) {
+                dp = val;
         } else if (match_word(&p, "cc") && parse_hex(&p, &val)) {
                 write_flags(val);
         } else
@@ -319,9 +325,21 @@ int p_cmd(char *p)
 
 int l_cmd(char *p)
 {
+        char name[100];
         char buf[180];
+        FILE *f = 0;
+        int err = 0;
+        int count = 0;
         int line = 0;
-        while (!jgetline(mon_in, buf)) {
+        if (parse_word(&p, name))
+        {
+                f = fopen(name, "r");
+                if (!f) {
+                        printf("Couldn't open %s\n", name);
+                        return 0;
+                }
+        }
+        while (f ? !!fgets(buf, sizeof(buf), f) : !jgetline(mon_in, buf)) {
                 ++line;
                 if (buf[0] == 'S' && buf[1] == '1') {
                         int l;
@@ -340,10 +358,12 @@ int l_cmd(char *p)
                                 parse_hex2(&p, &data);
                                 chk += data;
                                 mem[addr + x] = data;
+                                ++count;
                         }
                         parse_hex2(&p, &cksum);
                         if (cksum != (~chk & 0xFF)) {
                                 printf("Checksum mismatch on line %d\n", line);
+                                err = 1;
                         }
                 } else if (buf[0] == 'S' && buf[1] == '9') {
                         int l;
@@ -359,6 +379,7 @@ int l_cmd(char *p)
                         parse_hex2(&p, &cksum);
                         if (cksum != (~chk & 0xFF)) {
                                 printf("Checksum mismatch on line %d\n", line);
+                                err = 1;
                         }
                         pc = addr;
                         printf("PC set to %4.4x\n", addr);
@@ -367,6 +388,14 @@ int l_cmd(char *p)
                         printf("Unknown record on line %d\n", line);
                         break;
                 }
+        }
+        if (f)
+                fclose(f);
+        printf("%d bytes loaded\n", count);
+        if (err) {
+                printf("There were checksum errors during the load.\n");
+        } else {
+                printf("No checksum errors.\n");
         }
         return 0;
 }
@@ -564,16 +593,19 @@ struct cmd cmds[]=
         { "clr", clr_cmd,	"			Clear symbol table" },
         { "sy", sy_cmd,		"			Show symbol table" },
         { "u", u_cmd,		" hhhh			Unassemble" },
-        { "p", p_cmd,		" hhhh nnnn [ssss]	Punch S19" },
-        { "l", l_cmd,		"			Load S19" },
-        { "save", dump_cmd,	" [file [hhhh [nnnn]]]	Save memory to file in binary\n" },
-        { "read", read_cmd,	" [file [hhhh]]		Read binary file into memory\n" },
+        { "p", p_cmd,		" hhhh nnnn [ssss]	Punch nn bytes starting at hh in S19 format (ss is PC in S9)" },
+        { "l", l_cmd,		" [file]		Load S19 from file or stdin" },
+        { "save", dump_cmd,	" [file [hhhh [nnnn]]]	Save nn bytes of memory starting at hh to file in binary\n" },
+        { "read", read_cmd,	" [file [hhhh]]		Read binary file into memory starting at hh\n" },
         { "lpt", lpt_cmd,       " [file]		Open line printer file\n" },
         { 0, 0, 0 }
 };
 
 void monitor()
 {
+        /* Flush any remaining terminal output */
+        update();
+
         if (mon_out != stdout) {
                 fclose(mon_out);
                 mon_out = stdout;

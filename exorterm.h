@@ -10,3 +10,4 @@ int term_in();
 /* Poll for user input, return true if there is any */
 int quick_term_poll(); /* Actual OS poll only occasionally */
 int term_poll();
+void update();
