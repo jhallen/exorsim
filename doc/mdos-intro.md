@@ -424,7 +424,9 @@ PRIN, QUIT, R, RANG, RESE, S, SAVE, SEAR, TAB, V, VERI, X, XTRA.</code></p>
 
 
 <dl>
-<dt>F<dd>Go to top of file
+<dt>F 0<dd>Go to top of file
+<dt>F //<dd>Go to top of file
+<dt>F<dd>Print current line
 <dt>F -1<dd>Go back one line
 <dt>F 1<dd>Go forward one line
 <dt>F /<i>string</i>/<dd>Search for <i>string</i> starting at beginning of file

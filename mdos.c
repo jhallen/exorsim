@@ -199,7 +199,7 @@ void read_file(int sector, int type, FILE *f)
                                                         /* Last sector of file, truncate trailing NULs */
                                                         while (ends && buf[ends-1] == 0) --ends;
                                                 }
-                                                /* Convert line end of ASCII file to UNIX unless no_convert is set */
+                                                /* Convert line end of ASCII file to MS-DOS unless no_convert is set */
                                                 for (n = 0; n != ends; ++n) {
                                                         int c = buf[n];
                                                         if (c & 0x80) { // Expand compressed spaces
@@ -207,7 +207,8 @@ void read_file(int sector, int type, FILE *f)
                                                                 for (z = 0; z != (c & 0x7F); ++z)
                                                                         fputc(' ', f);
                                                         } else if (c == 13) {
-                                                                /* Convert to UNIX */
+                                                                /* Convert to MS-DOS */
+                                                                fputc('\r', f);
                                                                 fputc('\n', f);
                                                         } else if (c == 10) {
                                                                 /* Delete Line Feeds */
@@ -660,6 +661,7 @@ int put_file(char *local_name, char *mdos_name)
         long size;
         long up;
         long x;
+        int c;
         unsigned char *buf;
         unsigned char cat[SECTOR_SIZE];
         int rib_sect;
@@ -681,17 +683,26 @@ int put_file(char *local_name, char *mdos_name)
         rewind(f);
         up = ((size + SECTOR_SIZE - 1) & ~(long)(SECTOR_SIZE - 1));
         buf = (unsigned char *)malloc(up);
-        if (size != fread(buf, 1, size, f)) {
-                printf("Couldn't read file '%s'\n", local_name);
-                fclose(f);
-                free(buf);
-                return -1;
+
+
+        /* Read file, convert UNIX or MS-DOS ASCII to MDOS ASCII */
+        x = 0;
+        while ((c = fgetc(f)) != -1)
+        {
+                if (c == '\n') {
+                        /* MDOS line terminator is CR */
+                        buf[x++] = '\r';
+                } else if (c == '\r') {
+                        /* Ignore carriage returns */
+                } else {
+                        buf[x++] = c;
+                }
         }
+        size = x;
         fclose(f);
-        /* Convert UNIX line endings to MDOS */
-        for (x = 0; x != size; ++x)
-                if (buf[x] == '\n')
-                        buf[x] = '\r';
+        /* Round up to sector size again */
+        up = ((size + SECTOR_SIZE - 1) & ~(long)(SECTOR_SIZE - 1));
+
         /* Fill with NULs to end of sector */
         while (x != up)
                 buf[x++] = 0;
