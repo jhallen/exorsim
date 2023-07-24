@@ -969,7 +969,7 @@ void sim(void)
 					v_flag = ((b & f) >> 7);
 					n_flag = N(f);
 					z_flag = Z(f);
-					c_flag = z_flag;
+					c_flag = !z_flag; /* CPUTEST (take to 6800) */
 					break;
 				} case 0x01: /* ??? */ {
 				        goto invalid;
