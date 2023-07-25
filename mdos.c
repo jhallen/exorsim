@@ -945,6 +945,88 @@ int get_file(char *mdos_name, char *local_name)
         }
 }
 
+int extract_name(char *mdos, char *local)
+{
+        char *start = 0;
+        int x;
+        /* Find last part of path */
+        for (x = 0; local[x]; ++x)
+                if (local[x] == '/')
+                        start = local + x;
+        /* Point to start of name */
+        if (start)
+                ++start;
+        else
+                start = local;
+        x = 0;
+        /* Copy name */
+        if (!((start[x] >= 'a' && start[x] <= 'z') ||
+            (start[x] >= 'A' && start[x] <= 'Z')))
+        {
+                printf("MDOS name must start with letter\n");
+                return -1;
+        }
+        for (; start[x] && start[x] != '.' && x != 8; ++x)
+        {
+                if (!((start[x] >= 'a' && start[x] <= 'z') ||
+                      (start[x] >= 'A' && start[x] <= 'Z') ||
+                      (start[x] >= '0' && start[x] <= '9')))
+                {
+                        printf("MDOS name must be made of letter or numbers\n");
+                        return -1;
+                }
+                mdos[x] = start[x];
+        }
+
+
+        if (x == 8 && start[x] != '.') {
+                printf("MDOS name is too long\n");
+                return -1;
+        }
+        if (x == 0) {
+                printf("MDOS name is too short\n");
+                return -1;
+        }
+        if (start[x] == '.') {
+                int count;
+                /* Copy the . */
+                mdos[x] = start[x];
+                ++x;
+                if (!((start[x] >= 'a' && start[x] <= 'z') ||
+                    (start[x] >= 'A' && start[x] <= 'Z')))
+                {
+                        printf("MDOS extension must start with letter\n");
+                        return -1;
+                }
+                /* Copy the extension */
+                for (count = 0; start[x] && count != 2; ++count, ++x)
+                        mdos[x] = start[x];
+                if (count == 2 && start[x]) {
+                        if (!((start[x] >= 'a' && start[x] <= 'z') ||
+                              (start[x] >= 'A' && start[x] <= 'Z') ||
+                              (start[x] >= '0' && start[x] <= '9')))
+                        {
+                                printf("MDOS name must be made of letter or numbers\n");
+                                return -1;
+                        }
+                        printf("MDOS extension is too long\n");
+                        return -1;
+                }
+                if (count == 0) {
+                        printf("MDOS extension is too short\n");
+                        return -1;
+                }
+                mdos[x] = 0;
+        } else {
+                /* No extension */
+                mdos[x] = 0;
+                printf("MDOS extension is missing\n");
+                return -1;
+        }
+        printf("MDOS name is %s\n", mdos);
+        return 0;
+}
+
 int main(int argc, char *argv[])
 {
         int all = 0;
@@ -1049,17 +1131,21 @@ int main(int argc, char *argv[])
                         local_name = argv[++x];
                 return get_file(mdos_name, local_name);
         } else if (!strcmp(argv[x], "put")) {
+                char mdos_name[100];
                 char *local_name;
-                char *mdos_name;
                 ++x;
                 if (x == argc) {
                         printf("Missing file name to put\n");
                         return -1;
                 }
                 local_name = argv[x];
-                mdos_name = local_name;
-                if (x + 1 != argc)
-                        mdos_name = argv[++x];
+                if (x + 1 != argc) {
+                        if (extract_name(mdos_name, argv[++x]))
+                                return -1;
+                } else {
+                        if (extract_name(mdos_name, local_name))
+                                return -1;
+                }
                 return put_file(local_name, mdos_name);
         } else if (!strcmp(argv[x], "rm")) {
                 char *name;
