@@ -909,6 +909,8 @@ int main(int argc, char *argv[])
                                 trace_disk = 1;
                         } else if (!strcmp(argv[x], "--mon")) {
                                 stop = 1;
+                        } else if (!strcmp(argv[x], "--no_exorterm")) {
+                                exorterm = 0;
                         } else if (!strcmp(argv[x], "--skip") && x + 1 != argc) {
                                 ++x;
                                 skip = atoi(argv[x]);
@@ -943,6 +945,7 @@ int main(int argc, char *argv[])
                                 printf("  --lpt file    Save line printer output to a file\n");
                                 printf("  --append file Append line printer output to a file\n");
                                 printf("  --no_protect  Allow writing to ROMs\n");
+                                printf("  --no_exorterm Disable exorterm emulation\n");
                                 printf("\n");
                                 printf("Default disk0 is mdos.dsk/flex.dsk\n");
                                 printf("\n");

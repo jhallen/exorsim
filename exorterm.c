@@ -31,6 +31,8 @@
 #define WIDTH 80
 #define HEIGHT 24
 
+int exorterm = 1; /* Enable exorterm mode */
+
 int scrn[WIDTH*HEIGHT]; /* Screen contents */
 int scrn_x = 0; /* Screen cursor position */
 int scrn_y = 0;
@@ -824,6 +826,10 @@ char *decode(int c)
 
 void term_out(int c)
 {
+	if (!exorterm) {
+		putchar(c);
+		return;
+	}
 	if (reveal) {
 		if (!logfile) {
 			logfile = fopen("logfile", "w");
@@ -1129,8 +1135,10 @@ int term_poll()
 	if (fifo_old != fifo_new)
 		return 1;
 
-	update();
-	// fflush(stdout);
+	if (!exorterm)
+		fflush(stdout);
+	else
+		update();
 
 	again:
 
@@ -1146,6 +1154,12 @@ int term_poll()
 		poll(NULL, 0, 8); /* Don't hog CPU time */
 	}
 	if (rtn == 1) {
+		if (!exorterm) {
+			if (!lower && c >= 'a' && c <= 'z')
+				c += 'A' - 'a';
+			term_put(c);
+			return 1;
+		}
 		switch (instate) {
 			case INIDLE: {
 				if (c == 27) {
@@ -1308,6 +1322,10 @@ int term_poll()
 			}
 		}
 		goto again;
+	} else if (instate == INESC) {
+		instate = INIDLE;
+		term_put(27);
+		return 1;
 	}
 	return 0;
 }
