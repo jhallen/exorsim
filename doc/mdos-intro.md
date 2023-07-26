@@ -409,9 +409,11 @@ Check it out:</p>
 <p>In this mode, E is a modal editor like vi.  You type commands (see the
 list below) into a prompt.  You move the "current line" pointer using the
 arrow keys, scrolling keys (F3 - F6) or by executing one of the commands. 
-If you type the insert command, the cursor jumps into the text at the
-current line.  When you are done inserting new lines, hit F1 to get back
-to the command prompt.</p>
+If you do not have line numbers and type the insert (I) command, the cursor
+jumps into the text at the current line.  If you do have line numbers and
+type the number (N) command, the cursor jumps into the text at the specified
+line.  When you are done inserting new lines, hit F1 to get back to the
+command prompt.</p>
 
 <p>At any time you can switch between scroll mode or crt mode by hitting F2
 or F1.</p>
@@ -448,6 +450,7 @@ line
 <dt>EX /<i>string</i>/<dd>Append <i>string</i> to current line
 <dt>RESE<dd>Add line numbers, resequence
 <dt>RESE N<dd>Eliminate line numbers
+<dt>N nn[,ii]<dd>Enter lines with auto-incrementing line numbers starting with line nn, increment ii (default is 10).
 <dt>MERG <i>name</i><dd>Insert file
 <dt>I<dd>Enter insert mode: Insert lines until you try to enter a blank
 line (in scroll mode) or hit F1 (in crt mode).
