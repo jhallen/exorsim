@@ -1043,7 +1043,8 @@ int main(int argc, char *argv[])
                         {
                                 /* But only if EXBUG was recogized */
                                 sp = 0xFF8A;
-                                pc = 0xE800;
+                                // pc = 0xE800;
+                                jump(0xE800);
                         }
                 }
         }
