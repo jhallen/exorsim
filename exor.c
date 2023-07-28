@@ -565,7 +565,6 @@ void jump(unsigned short addr)
                         switch (addr) {
                                 case 0xE800: /* OSLOAD (no modified parms) */ {
                                         printf("\nOSLOAD...\n");
-                                        stop=1;
                                         getsect(0, 0x0020, 23, 128);
                                         getsect(0, 0x0020 + 0x0080, 24, 128);
                                         pc = 0x0020;
@@ -1058,7 +1057,8 @@ int main(int argc, char *argv[])
                         {
                                 /* But only if EXBUG was recogized */
                                 sp = 0xFF8A;
-                                pc = 0xE800;
+                                // pc = 0xE800;
+                                jump(0xE800);
                         }
                 }
         }
