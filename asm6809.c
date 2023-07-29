@@ -199,7 +199,7 @@ void insert_val(unsigned char *mem, unsigned short addr, int type, int val, int 
         } else if (type == FIXUP_IMM16) {
                 if (v >= -32768 && v < 65536) {
                         mem[addr] = (v >> 8);
-                        mem[addr = 1] = v;
+                        mem[addr + 1] = v;
                         if (show) printf("Word at %4.4X set to %4.4X\n", addr, 65535 & v);
                 } else {
                         printf("Error: Word for %4.4x out of range.  It was %d but must be -32768 to 65535\n", addr, v);
@@ -439,7 +439,7 @@ struct insn
         { "ldd", { { 0xCC, IMM16 }, { 0xEC, IND }, { 0xDC, DIR }, { 0xFC, EXT } } },
 
         { "bsr", { { 0x8D, REL } } },
-        { "jsr", { { 0x9D, IND }, { 0x9D, DIR }, { 0x9D, EXT } } },
+        { "jsr", { { 0xAD, IND }, { 0x9D, DIR }, { 0xBD, EXT } } },
 
         { "std", { { 0xED, IND }, { 0xDD, DIR }, { 0xFD, EXT } } },
 
@@ -779,17 +779,17 @@ int parse_ind(char **buf, unsigned char *at_cb, int *operand, struct symbol **sy
                                 /* n,X modes */
                                 if (*sy || *operand > 127 || *operand < -128)
                                 {
-                                        cb = 0x89;
+                                        cb = (cb & 0x60) | 0x89;
                                         *size = 2;
                                 }
                                 else if (*operand > 15 || *operand < -16 || indirect)
                                 {
-                                        cb = 0x88;
+                                        cb = (cb & 0x60) | 0x88;
                                         *size = 1;
                                 }
                                 else
                                 {
-                                        cb = (0x1F & *operand);
+                                        cb = (cb & 0x60) | (0x1F & *operand);
                                         *size = 0;
                                 }
                         }
