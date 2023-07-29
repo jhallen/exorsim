@@ -595,8 +595,8 @@ void unasm_line(unsigned char *mem, unsigned short *at_pc, char *outbuf, int *at
 					if (!(opcode & 0x30)) { /* BSR */
 						insn = "BSR";
 						/* Replace immediate operand with branch target */
-						--pc;
-						branch_target = unasm_bra(mem, &pc, buf, right);
+						branch_target = (0xFFFF & (pc + (signed char)mem[0xFFFF & (pc - 1)]));
+						sprintf(right, "$%4.4x", branch_target);
 						left = "";
 					} else {
 						insn = "JSR";
