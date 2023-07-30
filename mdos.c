@@ -21,6 +21,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "utils.h"
 
 #define SECTOR_SIZE 128
 #define CLUSTER_SIZE (SECTOR_SIZE * 4)
@@ -619,7 +620,7 @@ int find_file(char *filename, int *type, int del)
                                 }
                                 while (p && s[p - 1] == ' ') --p;
                                 s[p] = 0;
-                                if (!strcmp(s, filename)) {
+                                if (!jstricmp(s, filename)) {
                                         if (type)
                                                 *type = (d->attr_high & 7);
                                         if (del) {

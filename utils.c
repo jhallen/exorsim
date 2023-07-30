@@ -384,6 +384,16 @@ int to_upper(int c)
         return c;
 }
 
+/* Convert to lower case */
+
+int to_lower(int c)
+{
+        if (c >= 'A' && c <= 'Z')
+                return c - 'A' + 'a';
+        else
+                return c;
+}
+
 /* stricmp not univeral.. */
 
 int jstricmp(char *d, char *s)

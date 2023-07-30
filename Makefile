@@ -15,8 +15,8 @@ exor :
 exor09 :
 	make -f Makefile.09
 
-mdos : obj/mdos.o
-	$(CC) -o mdos obj/mdos.o
+mdos : obj/mdos.o obj/utils.o
+	$(CC) -o mdos obj/mdos.o obj/utils.o
 
 edos : obj/edos.o
 	$(CC) -o edos obj/edos.o

@@ -1,4 +1,5 @@
 int to_upper(int c);
+int to_lower(int c);
 
 int skipws(char **at_p);
 int ws(char **at_p);
