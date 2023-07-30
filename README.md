@@ -61,9 +61,8 @@ available in the early 1980s.  This system had a built-in terminal, used 5 1/4" 
 ran "XDOS".  XDOS is nearly identical to the 6809 version of MDOS, but with mini-floppy
 support.
 
-So far EXORsim only runs MDOS: because EXORsim only simulates a 6800 and
-I've not found any bootable EDOS disks.  Note that even though MDOS is for
-6800-based EXORcisers, you can write 6809 programs with it.
+**New!** EXORsim simulates both 6800 and 6809 versions of the EXORciser.  It
+can run both MDOS and MDOS09.
 
 ## SWTPC
 
@@ -179,6 +178,38 @@ COPYRIGHT MOTOROLA 1978
 **UNIF. I/O ERROR-STATUS=00 AT 2971
 
 =
+</code></pre>
+
+You can also emulate a 6809 EXORciser:
+
+<pre style="font-family: Andale Mono, Lucida Console, Monaco, fixed,
+monospace; color: #000000; background-color: #eee;font-size: 12px;border:
+1px dashed #999999;line-height: 14px;padding: 5px; overflow: auto; width:
+100%"><code>
+
+~/exorsim$ ./exor09
+Load facts file 'facts09'
+'exbug09.bin' loaded.
+  EXBUG09-2.1 detected
+'mdos09.dsk' opened for drive 0 (double sided)
+
+OSLOAD...
+
+Hit Ctrl-C for simulator command line.  Starting simulation...
+
+
+MDOS09  3.04
+=<b>DIR</b>
+DRIVE : 0   DISK I.D. : TEST
+RASM09  .CM
+XASM    .CM
+PROMPROG.CM
+EDIT    .CM
+E       .CM
+NEWS    .SA
+TOTAL DIRECTORY ENTRIES SHOWN : 006/$06
+=
+
 </code></pre>
 
 
