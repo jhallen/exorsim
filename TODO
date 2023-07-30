@@ -1,10 +1,8 @@
-Merge exor / exor09
-Include 6809 assembler improvements for 6800?
 
 Exor:
   assembler:
     non-motorola mode? (; comments, : after label, allow whitespace ?)
-
+    Include 6809 assembler improvements for 6800?
     expression evaluator including Motorola operators
 
   exorterm update(): maybe call it periodically even if there is no input polling
@@ -113,3 +111,5 @@ Done:
     parse_word should handle motorola identifiers
     complain if there is extra junk (space begins comment after operand)
     < and > to force index size and direct/extended
+
+  Merge exor / exor09
