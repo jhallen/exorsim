@@ -1,0 +1,24 @@
+
+OBJ_DIR := obj00/
+
+OBJS = utils.o exor.o sim6800.o asm6800.o unasm6800.o exorterm.o mon.o
+
+SUBDIR_OBJS := $(addprefix $(OBJ_DIR), $(OBJS))
+
+CFLAGS = -DM6800 -g -Wall
+
+CC = gcc
+
+exor : $(SUBDIR_OBJS)
+	$(CC) -o exor $(SUBDIR_OBJS)
+
+clean :
+	rm -rf $(OBJ_DIR)
+
+# include dependancy files if they exist
+-include $(SUBDIR_OBJS:.o=.d)
+
+$(OBJ_DIR)%.o: %.c
+	@echo
+	@mkdir -p $(OBJ_DIR)$(shell dirname $*)
+	$(CC) -c $(CFLAGS) -MT $@ -MMD -MP -MF $(OBJ_DIR)$*.d $*.c -o $(OBJ_DIR)$*.o

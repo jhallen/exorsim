@@ -170,23 +170,30 @@ int regs_cmd(char *p)
 {
         int val;
         if (!*p) {
+#ifdef M6809
                 fprintf(mon_out, "PC=%4.4X A=%2.2X B=%2.2X X=%4.4X Y=%4.4X U=%4.4X SP=%2.2X DP=%2.2X CC=%2.2X\n", pc, acca, accb, ix, iy, up, sp, dp, read_flags());
+#endif
+#ifdef M6800
+                fprintf(mon_out, "PC=%4.4X A=%2.2X B=%2.2X X=%4.4X SP=%2.2X CC=%2.2X\n", pc, acca, accb, ix, sp, read_flags());
+#endif
         } else if (match_word(&p, "pc") && parse_hex(&p, &val)) {
                 pc = val;
         } else if (match_word(&p, "sp") && parse_hex(&p, &val)) {
                 sp = val;
         } else if (match_word(&p, "x") && parse_hex(&p, &val)) {
                 ix = val;
+#ifdef M6809
         } else if (match_word(&p, "y") && parse_hex(&p, &val)) {
                 iy = val;
         } else if (match_word(&p, "u") && parse_hex(&p, &val)) {
                 up = val;
+        } else if (match_word(&p, "dp") && parse_hex(&p, &val)) {
+                dp = val;
+#endif
         } else if (match_word(&p, "a") && parse_hex(&p, &val)) {
                 acca = val;
         } else if (match_word(&p, "b") && parse_hex(&p, &val)) {
                 accb = val;
-        } else if (match_word(&p, "dp") && parse_hex(&p, &val)) {
-                dp = val;
         } else if (match_word(&p, "cc") && parse_hex(&p, &val)) {
                 write_flags(val);
         } else
@@ -248,7 +255,9 @@ int clr_cmd(char *p)
 int sy_cmd(char *p)
 {
         show_syms(mon_out);
+#ifdef M6809
         printf("setdp value is %2.2x\n", pseudo_dp);
+#endif
         return 0;
 }
 

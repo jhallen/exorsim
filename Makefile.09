@@ -1,0 +1,24 @@
+
+OBJ_DIR := obj09/
+
+OBJS = utils.o exor.o sim6809.o asm6809.o unasm6809.o exorterm.o mon.o
+
+SUBDIR_OBJS := $(addprefix $(OBJ_DIR), $(OBJS))
+
+CFLAGS = -DM6809 -g -Wall
+
+CC = gcc
+
+exor09 : $(SUBDIR_OBJS)
+	$(CC) -o exor09 $(SUBDIR_OBJS)
+
+clean :
+	rm -rf $(OBJ_DIR)
+
+# include dependancy files if they exist
+-include $(SUBDIR_OBJS:.o=.d)
+
+$(OBJ_DIR)%.o: %.c
+	@echo
+	@mkdir -p $(OBJ_DIR)$(shell dirname $*)
+	$(CC) -c $(CFLAGS) -MT $@ -MMD -MP -MF $(OBJ_DIR)$*.d $*.c -o $(OBJ_DIR)$*.o

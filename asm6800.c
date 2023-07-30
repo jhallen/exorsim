@@ -385,7 +385,7 @@ int parse_val(char **buf, int *operand, struct symbol **sy, unsigned short addr)
         return 1;
 }
 
-unsigned assemble(unsigned char *mem, unsigned addr, char *buf)
+unsigned short assemble(unsigned char *mem, unsigned short addr, char *buf)
 {
         char str[80];
         unsigned short label_addr = addr;

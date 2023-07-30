@@ -16,10 +16,12 @@ extern unsigned char acca;
 extern unsigned char accb;
 #define accd ((acca << 8) + accb)
 extern unsigned short pc;
-extern unsigned char dp; /* 6809 */
 extern unsigned short ix;
+#ifdef M6809
 extern unsigned short iy; /* 6809 */
 extern unsigned short up; /* 6809 */
+extern unsigned char dp; /* 6809 */
+#endif
 extern unsigned short sp;
 extern unsigned char c_flag;
 extern unsigned char v_flag;

@@ -1,119 +1,43 @@
-
-OBJS = unasm.o utils.o exor.o sim6800.o sim6809.o asm6800.o asm6809.o mdos.o unasm6800.o unasm6809.o exorterm.o mon.o
-
-DIST = unasm.c utils.c exor.c sim6800.c asm6800.c mdos.c unasm6800.c mon.c exorterm.c Makefile \
-  exbug.bin swtbug.bin utils.h sim6800.h asm6800.h unasm6800.h exor.h facts README COPYING \
-  doc/doc.man doc/mdos-hello.txt doc/mdos-tech.txt doc/mdos.txt doc/mpl_upd.txt doc/mplnotes \
-  doc/notes doc/fort.man
-
-DISKS = \
-  mdos.dsk \
-  flex.dsk \
-  disks/32479-1.dsk \
-  disks/32479-10.dsk \
-  disks/32479-3.dsk \
-  disks/32479-8.dsk \
-  disks/32479-9.dsk \
-  disks/b220mast.dsk \
-  disks/b300mast.dsk \
-  disks/bascomp.dsk \
-  disks/blank.dsk \
-  disks/doc.dsk \
-  disks/games.dsk \
-  disks/gamesetc.dsk \
-  disks/hll.dsk \
-  disks/joe.dsk \
-  disks/mace3814.dsk \
-  disks/md201bc.dsk \
-  disks/md22.dsk \
-  disks/mdb301.dsk \
-  disks/ug01-25.dsk \
-  disks/ug26-50.dsk \
-  disks/ug51-75.dsk \
-  disks/ug76-90.dsk \
-  disks/unlab02.dsk \
-  disks/unlab03.dsk \
-  disks/unlab04.dsk \
-  disks/unlab06.dsk \
-  disks/unlab07.dsk \
-  disks/unlab08.dsk \
-  disks/unlab09.dsk \
-  disks/unlab10.dsk \
-  disks/unlab11.dsk \
-  disks/unlab12.dsk \
-  disks/unlab13.dsk \
-  disks/unlab14.dsk \
-  disks/unlab16.dsk \
-  disks/unlab17.dsk \
-  disks/unlab18.dsk \
-  disks/unlab21.dsk \
-  disks/upd3_2.dsk \
-  disks/upd_5.dsk
-
-PDFS = \
-  pdfs/M6800_Microprocessor_Applications_Manual_1975.pdf \
-  pdfs/M6809PM.rev0_May83.pdf \
-  pdfs/M68MDOS3_MDOS3um_Jun79.pdf \
-  pdfs/Motorola_M6800_Programming_Reference_Manual_M68PRMD_Nov76.pdf \
-  pdfs/m6800.pdf
-
-
-NAME = exor-1.1
-
 CFLAGS = -g -Wall
 
 CC = gcc
 
-all : mdos exor09 unasm edos lpf imdx
+all : mdos exor exor09 unasm edos lpf imdx
 
-unasm : unasm.o utils.o unasm6800.o
-	$(CC) -o unasm unasm.o utils.o unasm6800.o
+unasm : obj/unasm.o obj/utils.o obj/unasm6800.o
+	$(CC) -o unasm obj/unasm.o obj/utils.o obj/unasm6800.o
 
-exor : exor.o utils.o sim6800.o asm6800.o unasm6800.o mon.o exorterm.o
-	$(CC) -o exor exor.o utils.o sim6800.o asm6800.o unasm6800.o mon.o exorterm.o
+.PHONY: exor
+exor :
+	make -f Makefile.00
 
-exor09 : exor.o utils.o sim6809.o asm6809.o unasm6809.o mon.o exorterm.o
-	$(CC) -o exor09 exor.o utils.o sim6809.o asm6809.o unasm6809.o mon.o exorterm.o
+.PHONY: exor09
+exor09 :
+	make -f Makefile.09
 
-mdos : mdos.o
-	$(CC) -o mdos mdos.o
+mdos : obj/mdos.o
+	$(CC) -o mdos obj/mdos.o
 
-edos : edos.o
-	$(CC) -o edos edos.o
+edos : obj/edos.o
+	$(CC) -o edos obj/edos.o
 
-imdx : imdx.o
-	$(CC) -o imdx imdx.o
+imdx : obj/imdx.o
+	$(CC) -o imdx obj/imdx.o
 
-lpf : lpf.o
-	$(CC) -o lpf lpf.o
+lpf : obj/lpf.o
+	$(CC) -o lpf obj/lpf.o
 
+.PHONY: clean
 clean :
-	rm -f ${OBJS} ${OBJS:.o=.d}
-	rm -f unasm.o utils.o unasm6800.o
-	rm -f mdos.o
-
-dist :
-	rm -rf $(NAME)
-	mkdir $(NAME) && \
-	(tar cf - $(DIST) | (cd $(NAME); tar -xf -)) && \
-	tar cf - $(NAME) | gzip >$(NAME).tar.gz
-
-joedist :
-	rm -rf $(NAME)
-	mkdir $(NAME) && \
-	(tar cf - $(DIST) $(DISKS) | (cd $(NAME); tar -xf -)) && \
-	tar cf - $(NAME) | gzip >$(NAME).tar.gz
+	rm -rf obj
+	make -f Makefile.00 clean
+	make -f Makefile.09 clean
 
 # include dependancy files if they exist
--include $(OBJS:.o=.d)
+-include obj/unasm.d obj/utils.d obj/unasm6800.d obj/mdos.d obj/edos.d obj/imdx.d obj/lpf.d
 
 # compile and generate dependency info
-%.o: %.c
-	$(CC) -c $(CFLAGS) $*.c -o $*.o
-	@$(CC) -MM $(CFLAGS) $*.c > $*.d
-# Improve dependency file produced by gcc... allows files to be renamed and source files to exist
-# in subdirectories.
-	@mv -f $*.d $*.d.tmp
-	@sed -e 's|.*:|$*.o:|' < $*.d.tmp > $*.d
-	@sed -e 's/.*://' -e 's/\\$$//' < $*.d.tmp | fmt -1 | sed -e 's/^ *//' -e 's/$$/:/' >> $*.d
-	@rm -f $*.d.tmp
+obj/%.o: %.c
+	@echo
+	@mkdir -p obj/$(shell dirname $*)
+	$(CC) -c $(CFLAGS) -MT $@ -MMD -MP -MF obj/$*.d $*.c -o obj/$*.o

@@ -793,6 +793,7 @@ int load_exbug()
                 echo_flag_addr = 0xFF53;
                 exbug_detected = 1;
         }
+#ifdef M6809
         else if (!memcmp(&mem[0xF0D2], "\xb6\xfc\xf4\x47", 4))
         {
                 printf("  EXBUG09-2.1 detected\n");
@@ -800,6 +801,7 @@ int load_exbug()
                 echo_flag_addr = 0xFF58;
                 exbug_detected = 1;
         }
+#endif
         return 0;
 }
 
@@ -909,7 +911,11 @@ int main(int argc, char *argv[])
         int gotox = 0;
         mon_out = stdout;
         mon_in = stdin;
+#ifdef M6809
         char *facts_name = "facts09";
+#else
+        char *facts_name = "facts";
+#endif
         char *lpt_name = "listing.lp";
         int lpt_append = 1;
 
@@ -964,7 +970,12 @@ int main(int argc, char *argv[])
                                 printf("  --no_protect  Allow writing to ROMs\n");
                                 printf("  --no_exorterm Disable exorterm emulation\n");
                                 printf("\n");
-                                printf("Default disk0 is mdos09.dsk/flex.dsk\n");
+#ifdef M6809
+                                printf("Default disk0 is mdos09.dsk/flex09.dsk\n");
+#endif
+#ifdef M6800
+                                printf("Default disk0 is mdos.dsk/flex.dsk\n");
+#endif
                                 printf("\n");
                                 printf("Hints:\n");
                                 printf("  To load MDOS from EXBUG, type MAID followed by E800;G\n");
@@ -1000,19 +1011,34 @@ int main(int argc, char *argv[])
         /* Default disk image name */
         if (!drive[0].name)
         {
+#ifdef M6809
+                if (swtpc)
+                        drive[0].name = "flex09.dsk";
+                else
+                        drive[0].name = "mdos09.dsk";
+#else
                 if (swtpc)
                         drive[0].name = "flex.dsk";
                 else
-                        drive[0].name = "mdos09.dsk";
+                        drive[0].name = "mdos.dsk";
+#endif
         }
 
         /* Default memory image name */
         if (!exbug_name) {
+#ifdef M6809
                 if (swtpc) {
-                        exbug_name = "swtbug.bin";
+                        exbug_name = "swtbug09.bin";
                 } else {
                         exbug_name = "exbug09.bin";
                 }
+#else
+                if (swtpc) {
+                        exbug_name = "swtbug.bin";
+                } else {
+                        exbug_name = "exbug.bin";
+                }
+#endif
         }
 
         /* Load facts file */
