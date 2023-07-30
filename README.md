@@ -61,8 +61,8 @@ available in the early 1980s.  This system had a built-in terminal, used 5 1/4" 
 ran "XDOS".  XDOS is nearly identical to the 6809 version of MDOS, but with mini-floppy
 support.
 
-**New!** EXORsim simulates both 6800 and 6809 versions of the EXORciser.  It
-can run both MDOS and MDOS09.
+**New!** EXORsim can now simulate a 6809-based EXORciser as well as the
+original 6800-based one.  It can run both MDOS and MDOS09.
 
 ## SWTPC
 
@@ -180,7 +180,7 @@ COPYRIGHT MOTOROLA 1978
 =
 </code></pre>
 
-You can also emulate a 6809 EXORciser:
+You can also emulate a 6809-based EXORciser:
 
 <pre style="font-family: Andale Mono, Lucida Console, Monaco, fixed,
 monospace; color: #000000; background-color: #eee;font-size: 12px;border:
