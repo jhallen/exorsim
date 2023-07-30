@@ -150,7 +150,7 @@ void clr_syms(void)
 
 /* Insert value into instruction */
 
-void insert_val(unsigned char *mem, unsigned short addr, int type, int val, int ofst, int show)
+int insert_val(unsigned char *mem, unsigned short addr, int type, int val, int ofst, int show)
 {
         int v = val + ofst;
         if (type == FIXUP_EXT) {
@@ -160,6 +160,7 @@ void insert_val(unsigned char *mem, unsigned short addr, int type, int val, int 
                         if (show) printf("Address at %4.4X set to %4.4X\n", addr, v);
                 } else {
                         printf("Error: Address for %4.4x out of range.  It was %d but must be 0 - 65535\n", addr, v);
+                        return -1;
                 }
         } else if (type == FIXUP_DIR) {
                 if (v >= 0 && v < 256) {
@@ -167,6 +168,7 @@ void insert_val(unsigned char *mem, unsigned short addr, int type, int val, int 
                         if (show) printf("Byte at %4.4X set to %2.2X\n", addr, v);
                 } else {
                         printf("Error: Direct address for %4.4x out of range.  It was %4.4x but must be 0x00 - 0xFF\n", addr, v);
+                        return -1;
                 }
         } else if (type == FIXUP_REL) {
                 if (v >= 0 && v < 65536) {
@@ -176,9 +178,11 @@ void insert_val(unsigned char *mem, unsigned short addr, int type, int val, int 
                                 if (show) printf("Offset at %4.4X set to %2.2X\n", addr, 255 & v);
                         } else {
                                 printf("Error: Offset for %4.4x out of range.  It was %d but must be -128 to 127\n", addr, v);
+                                return -1;
                         }
                 } else {
                         printf("Error: Address for %4.4x out of range.  It was %d but must be 0 - 65535\n", addr, v);
+                        return -1;
                 }
         } else if (type == FIXUP_LREL) {
                 if (v >= 0 && v < 65536) {
@@ -188,6 +192,7 @@ void insert_val(unsigned char *mem, unsigned short addr, int type, int val, int 
                         if (show) printf("Offset at %4.4X set to %4.4X\n", addr, 65535 & v);
                 } else {
                         printf("Error: Address for %4.4x out of range.  It was %d but must be 0 - 65535\n", addr, v);
+                        return -1;
                 }
         } else if (type == FIXUP_IMM8) {
                 if (v >= -128 && v < 256) {
@@ -195,6 +200,7 @@ void insert_val(unsigned char *mem, unsigned short addr, int type, int val, int 
                         if (show) printf("Byte at %4.4X set to %2.2X\n", addr, 255 & v);
                 } else {
                         printf("Error: Byte for %4.4x out of range.  It was %d but must be -128 to 255\n", addr, v);
+                        return -1;
                 }
         } else if (type == FIXUP_IMM16) {
                 if (v >= -32768 && v < 65536) {
@@ -203,6 +209,7 @@ void insert_val(unsigned char *mem, unsigned short addr, int type, int val, int 
                         if (show) printf("Word at %4.4X set to %4.4X\n", addr, 65535 & v);
                 } else {
                         printf("Error: Word for %4.4x out of range.  It was %d but must be -32768 to 65535\n", addr, v);
+                        return -1;
                 }
         } else if (type == FIXUP_IDX8) {
                 if (v >= -128 && v < 128) {
@@ -210,6 +217,7 @@ void insert_val(unsigned char *mem, unsigned short addr, int type, int val, int 
                         if (show) printf("Index at %4.4X set to %2.2X\n", addr, 255 & v);
                 } else {
                         printf("Error: Index for %4.4x out of range.  It was %d but must be -128 to 127\n", addr, v);
+                        return -1;
                 }
         } else if (type == FIXUP_UIDX8) {
                 if (v >= 0 && v < 256) {
@@ -217,6 +225,7 @@ void insert_val(unsigned char *mem, unsigned short addr, int type, int val, int 
                         if (show) printf("Index at %4.4X set to %2.2X\n", addr, 255 & v);
                 } else {
                         printf("Error: Index for %4.4x out of range.  It was %d but must be 0 to 255\n", addr, v);
+                        return -1;
                 }
         } else if (type == FIXUP_IDX16) {
                 if (v >= -65535 && v < 65536) {
@@ -225,8 +234,10 @@ void insert_val(unsigned char *mem, unsigned short addr, int type, int val, int 
                         if (show) printf("Index at %4.4X set to %4.4X\n", addr, 65535 & v);
                 } else {
                         printf("Error: Index for %4.4x out of range.  It was %d but must be -65535 to 65535\n", addr, v);
+                        return -1;
                 }
         }
+        return 0;
 }
 
 /* Set symbol's value, process pending fixups */
@@ -251,7 +262,7 @@ void set_symbol(unsigned char *mem, struct symbol *sy, int val)
 
 /* Insert value or add fixup if symbol not yet defined */
 
-void insert_or_add(unsigned char *mem, unsigned short addr, int type, struct symbol *sy, int val, int show)
+int insert_or_add(unsigned char *mem, unsigned short addr, int type, struct symbol *sy, int val, int show)
 {
         if (sy) {
                 /* Set it later */
@@ -260,9 +271,10 @@ void insert_or_add(unsigned char *mem, unsigned short addr, int type, struct sym
                 mem[addr] = 0;
                 if (type == FIXUP_EXT || type == FIXUP_LREL || type == FIXUP_IMM16 || type == FIXUP_IDX16)
                         mem[addr + 1] = 0;
+                return 0;
         } else {
                 /* Set it now */
-                insert_val(mem, addr, type, val, 0, show);
+                return insert_val(mem, addr, type, val, 0, show);
         }
 }
 
@@ -680,8 +692,20 @@ int parse_ind(char **buf, unsigned char *at_cb, int *operand, struct symbol **sy
 {
         char *p = *buf;
         int indirect = 0;
+        int force_small = 0;
+        int force_large = 0;
         unsigned char cb = 0;
         *operand = 0;
+        if (*p == '<')
+        {
+                force_small = 1;
+                ++p;
+        }
+        else if (*p == '>')
+        {
+                force_large = 1;
+                ++p;
+        }
         if (*p == '[')
         {
                 ++p;
@@ -759,7 +783,7 @@ int parse_ind(char **buf, unsigned char *at_cb, int *operand, struct symbol **sy
                                 p += 3;
                                 /* Try one byte offset */
                                 target = *operand - (addr + oplen + 2);
-                                if (!*sy && target >= -128 && target < 128)
+                                if (force_small || (!force_large && !*sy && target >= -128 && target < 128))
                                 {
                                         /* It fits in a single byte */
                                         cb = 0x8C;
@@ -777,12 +801,12 @@ int parse_ind(char **buf, unsigned char *at_cb, int *operand, struct symbol **sy
                         else if (parse_ireg(&p, &cb))
                         {
                                 /* n,X modes */
-                                if (*sy || *operand > 127 || *operand < -128)
+                                if (force_large || (!force_small && (*sy || *operand > 127 || *operand < -128)))
                                 {
                                         cb = (cb & 0x60) | 0x89;
                                         *size = 2;
                                 }
-                                else if (*operand > 15 || *operand < -16 || indirect)
+                                else if (force_small || *operand > 15 || *operand < -16 || indirect)
                                 {
                                         cb = (cb & 0x60) | 0x88;
                                         *size = 1;
@@ -848,9 +872,48 @@ void emit_opcode(unsigned char *mem, unsigned short *addr, unsigned short opcode
         *addr = *addr + 1;
 }
 
+int allow_dir(char **buf)
+{
+        char *p = *buf;
+        if (*p == '>')
+        {
+                return 0;
+        }
+        else if (*p =='<')
+        {
+                ++p;
+                *buf = p;
+                return 1;
+        }
+        else
+        {
+                return 1;
+        }
+}
+
+int allow_ext(char **buf)
+{
+        char *p = *buf;
+        if (*p == '>')
+        {
+                ++p;
+                *buf = p;
+                return 1;
+        }
+        else if (*p =='<')
+        {
+                return 0;
+        }
+        else
+        {
+                return 1;
+        }
+}
+
 unsigned short assemble(unsigned char *mem, unsigned short addr, char *buf)
 {
         char str[80];
+        unsigned short org_addr = addr;
         unsigned short label_addr = addr;
         struct symbol *label_sy;
         struct symbol *sy;
@@ -862,27 +925,21 @@ unsigned short assemble(unsigned char *mem, unsigned short addr, char *buf)
 
         if (buf[0] == '*' || !buf[0]) {
                 /* Comment line, ignore */
-                return addr;
+                goto done;
         }
 
-        if (!(buf[0] == ' ' || buf[0] == '\t') && parse_ident(&buf, str)) {
+        if (parse_ident(&buf, str)) {
                 /* A label */
                 label_sy = find_symbol(str);
+        }
 
-                skipws(&buf);
-
-                if (!parse_ident(&buf, str)) {
-                        goto done;
-                }
-        } else {
-                skipws(&buf);
-                if (!parse_ident(&buf, str)) {
-                        printf("Huh?\n");
-                        return addr;
-                }
+        if (ws(&buf) && !parse_ident(&buf, str)) {
+                printf("Error: Missing instruction\n");
+                goto fail;
         }
 
         /* Lookup instruction */
+        insn = 0;
         for (x = 0; table[x].insn; ++x)
                 if (!jstricmp(table[x].insn, str)) {
                         insn = &table[x];
@@ -890,16 +947,15 @@ unsigned short assemble(unsigned char *mem, unsigned short addr, char *buf)
                 }
 
         if (!insn) {
-                printf("Huh?\n");
-                return addr;
+                printf("Error: Unknown instruction\n");
+                goto fail;
         }
-
-        skipws(&buf);
 
         /* Determine instruction variant based on operand
            First one that works wins */
         for (x = 0; x != VARIANT_COUNT && insn->variant[x].type; ++x)
         {
+                char *org_buf = buf;
                 struct variant *ivariant = &insn->variant[x];
                 switch (ivariant->type)
                 {
@@ -910,53 +966,57 @@ unsigned short assemble(unsigned char *mem, unsigned short addr, char *buf)
                         case NONE:
                         {
                                 emit_opcode(mem, &addr, ivariant->opcode);
-                                goto done;
+                                goto check;
                         }
                         case REL:
                         {
                                 int operand;
-                                if (parse_val(&buf, &operand, &sy, addr))
+                                if (ws(&buf) && parse_val(&buf, &operand, &sy, addr))
                                 {
                                         emit_opcode(mem, &addr, ivariant->opcode);
-                                        insert_or_add(mem, addr, FIXUP_REL, sy, operand, 0);
+                                        if (insert_or_add(mem, addr, FIXUP_REL, sy, operand, 0))
+                                                goto fail;
                                         addr++;
-                                        goto done;
+                                        goto check;
                                 }
                                 break;
                         }
                         case LREL:
                         {
                                 int operand;
-                                if (parse_val(&buf, &operand, &sy, addr))
+                                if (ws(&buf) && parse_val(&buf, &operand, &sy, addr))
                                 {
                                         emit_opcode(mem, &addr, ivariant->opcode);
-                                        insert_or_add(mem, addr, FIXUP_LREL, sy, operand, 0);
+                                        if (insert_or_add(mem, addr, FIXUP_LREL, sy, operand, 0))
+                                                goto fail;
                                         addr += 2;
-                                        goto done;
+                                        goto check;
                                 }
                                 break;
                         }
                         case IMM8:
                         {
                                 int operand;
-                                if (parse_imm(&buf, &operand, &sy, addr))
+                                if (ws(&buf) && parse_imm(&buf, &operand, &sy, addr))
                                 {
                                         emit_opcode(mem, &addr, ivariant->opcode);
-                                        insert_or_add(mem, addr, FIXUP_IMM8, sy, operand, 0);
+                                        if (insert_or_add(mem, addr, FIXUP_IMM8, sy, operand, 0))
+                                                goto fail;
                                         addr += 1;
-                                        goto done;
+                                        goto check;
                                 }
                                 break;
                         }
                         case IMM16:
                         {
                                 int operand;
-                                if (parse_imm(&buf, &operand, &sy, addr))
+                                if (ws(&buf) && parse_imm(&buf, &operand, &sy, addr))
                                 {
                                         emit_opcode(mem, &addr, ivariant->opcode);
-                                        insert_or_add(mem, addr, FIXUP_IMM16, sy, operand, 0);
+                                        if (insert_or_add(mem, addr, FIXUP_IMM16, sy, operand, 0))
+                                                goto fail;
                                         addr += 2;
-                                        goto done;
+                                        goto check;
                                 }
                                 break;
                         }
@@ -964,70 +1024,72 @@ unsigned short assemble(unsigned char *mem, unsigned short addr, char *buf)
                         {
                                 unsigned char cb;
                                 emit_opcode(mem, &addr, ivariant->opcode);
-                                if (parse_tfr(&buf, &cb))
+                                if (ws(&buf) && parse_tfr(&buf, &cb))
                                 {
                                         mem[addr] = cb;
                                 }
                                 else
                                 {
-                                        mem[addr] = 0;
-                                        printf("Syntax error\n");
+                                        printf("Error: bad register pair\n");
+                                        goto fail;
                                 }
                                 addr += 1;
-                                goto done;
+                                goto check;
                         }
                         case SLIST:
                         {
                                 unsigned char cb;
                                 emit_opcode(mem, &addr, ivariant->opcode);
-                                if (parse_list(&buf, &cb, 0))
+                                if (ws(&buf) && parse_list(&buf, &cb, 0))
                                 {
                                         mem[addr] = cb;
                                 }
                                 else
                                 {
-                                        mem[addr] = 0;
-                                        printf("Syntax error\n");
+                                        printf("Error: bad register list\n");
+                                        goto fail;
                                 }
                                 addr += 1;
-                                goto done;
+                                goto check;
                         }
                         case ULIST:
                         {
                                 unsigned char cb;
                                 emit_opcode(mem, &addr, ivariant->opcode);
-                                if (parse_list(&buf, &cb, 1))
+                                if (ws(&buf) && parse_list(&buf, &cb, 1))
                                 {
                                         mem[addr] = cb;
                                 }
                                 else
                                 {
-                                        mem[addr] = 0;
-                                        printf("Syntax error\n");
+                                        printf("Error: bad register list\n");
+                                        goto fail;
                                 }
                                 addr += 1;
-                                goto done;
+                                goto check;
                         }
                         case IND:
                         {
                                 unsigned char cb;
                                 int size;
                                 int operand;
-                                if (parse_ind(&buf, &cb, &operand, &sy, addr, (ivariant->opcode >= 0x100 ? 2 : 1), &size))
+                                if (ws(&buf) && parse_ind(&buf, &cb, &operand, &sy, addr, (ivariant->opcode >= 0x100 ? 2 : 1), &size))
                                 {
                                         emit_opcode(mem, &addr, ivariant->opcode);
                                         mem[addr++] = cb;
                                         if (size == 2)
                                         {
-                                                insert_or_add(mem, addr, FIXUP_IDX16, sy, operand, 0);
+                                                if (insert_or_add(mem, addr, FIXUP_IDX16, sy, operand, 0))
+                                                        goto fail;
                                                 addr += 2;
                                         }
                                         else if (size == 1)
                                         {
-                                                insert_or_add(mem, addr, FIXUP_IDX8, sy, operand, 0);
+                                                if (insert_or_add(mem, addr, FIXUP_IDX8, sy, operand, 0))
+                                                        goto fail;
                                                 addr += 1;
                                         }
-                                        goto done;
+                                        goto check;
                                 }
                                 break;
                         }
@@ -1035,14 +1097,15 @@ unsigned short assemble(unsigned char *mem, unsigned short addr, char *buf)
                         {
                                 int operand;
                                 char *org = buf;
-                                if (parse_val(&buf, &operand, &sy, addr))
+                                if (ws(&buf) && allow_dir(&buf) && parse_val(&buf, &operand, &sy, addr))
                                 {
                                         if (!sy && operand >= pseudo_dp && operand < pseudo_dp + 0x100)
                                         {
                                                 emit_opcode(mem, &addr, ivariant->opcode);
-                                                insert_or_add(mem, addr, FIXUP_DIR, sy, (operand & 0xFF), 0);
+                                                if (insert_or_add(mem, addr, FIXUP_DIR, sy, (operand & 0xFF), 0))
+                                                        goto fail;
                                                 addr += 1;
-                                                goto done;
+                                                goto check;
                                         }
                                         else
                                         {
@@ -1056,22 +1119,23 @@ unsigned short assemble(unsigned char *mem, unsigned short addr, char *buf)
                         case EXT:
                         {
                                 int operand;
-                                if (parse_val(&buf, &operand, &sy, addr))
+                                if (ws(&buf) && allow_ext(&buf) && parse_val(&buf, &operand, &sy, addr))
                                 {
                                         emit_opcode(mem, &addr, ivariant->opcode);
-                                        insert_or_add(mem, addr, FIXUP_EXT, sy, operand, 0);
+                                        if (insert_or_add(mem, addr, FIXUP_EXT, sy, operand, 0))
+                                                goto fail;
                                         addr += 2;
-                                        goto done;
+                                        goto check;
                                 }
                                 break;
                         }
                         case FCB:
                         {
                                 char c;
-                                if (!*buf)
+                                if (!ws(&buf))
                                 {
-                                        printf("Missing argument\n");
-                                        goto done;
+                                        printf("Error: Missing argument\n");
+                                        goto fail;
                                 }
                                 for (;;)
                                 {
@@ -1089,67 +1153,67 @@ unsigned short assemble(unsigned char *mem, unsigned short addr, char *buf)
                                         }
                                         else if (parse_val(&buf, &operand, &sy, addr))
                                         {
-                                                insert_or_add(mem, addr, FIXUP_IMM8, sy, operand, 0);
+                                                if (insert_or_add(mem, addr, FIXUP_IMM8, sy, operand, 0))
+                                                        goto fail;
                                                 addr += 1;
                                         }
                                         else
                                         {
-                                                mem[addr++] = 0;
+                                                printf("Error: missing operand\n");
+                                                goto fail;
                                         }
-                                        skipws(&buf);
                                         if (buf[0] == ',')
                                         {
                                                 ++buf;
-                                                skipws(&buf);
                                         }
                                         else
                                         {
                                                 break;
                                         }
                                 }
-                                goto done;
+                                goto check;
                         }
                         case FDB:
                         {
-                                if (!*buf)
+                                if (!ws(&buf))
                                 {
-                                        printf("Missing argument\n");
-                                        goto done;
+                                        printf("Error: Missing argument\n");
+                                        goto fail;
                                 }
                                 for (;;)
                                 {
                                         int operand;
                                         if (parse_val(&buf, &operand, &sy, addr))
                                         {
-                                                insert_or_add(mem, addr, FIXUP_IMM16, sy, operand, 0);
+                                                if (insert_or_add(mem, addr, FIXUP_IMM16, sy, operand, 0))
+                                                        goto fail;
                                                 addr += 2;
                                         }
                                         else
                                         {
-                                                mem[addr++] = 0;
-                                                mem[addr++] = 0;
+                                                printf("Error: missing operand\n");
+                                                goto fail;
                                         }
-                                        skipws(&buf);
                                         if (buf[0] == ',')
                                         {
                                                 ++buf;
-                                                skipws(&buf);
                                         }
                                         else
                                         {
                                                 break;
                                         }
                                 }
-                                goto done;
+                                goto check;
                         }
                         case RMB:
                         {
                                 int operand;
-                                if (parse_val(&buf, &operand, &sy, addr))
+                                if (ws(&buf) && parse_val(&buf, &operand, &sy, addr))
                                 {
                                         if (sy)
                                         {
-                                                printf("Resolved symbol required for rmb\n");
+                                                printf("Error: Resolved symbol required for rmb\n");
+                                                goto fail;
                                         }
                                         else
                                         {
@@ -1158,22 +1222,25 @@ unsigned short assemble(unsigned char *mem, unsigned short addr, char *buf)
                                 }
                                 else
                                 {
-                                        printf("Missing argument\n");
+                                        printf("Error: Missing argument\n");
+                                        goto fail;
                                 }
-                                goto done;
+                                goto check;
                         }
                         case SETDP:
                         {
                                 int operand;
-                                if (parse_val(&buf, &operand, &sy, addr))
+                                if (ws(&buf) && parse_val(&buf, &operand, &sy, addr))
                                 {
                                         if (sy)
                                         {
-                                                printf("Resolved symbol required for setdp\n");
+                                                printf("Error: Resolved symbol required for setdp\n");
+                                                goto fail;
                                         }
                                         else if (operand < 0 || operand >= 65536 || (operand & 255) != 0)
                                         {
-                                                printf("Setdp with %4.4x, but expected value is a multiple of 0x100 in the range 0 - 0xff00\n", operand);
+                                                printf("Error: Setdp with %4.4x, but expected value is a multiple of 0x100 in the range 0 - 0xff00\n", operand);
+                                                goto fail;
                                         }
                                         else
                                         {
@@ -1182,37 +1249,42 @@ unsigned short assemble(unsigned char *mem, unsigned short addr, char *buf)
                                 }
                                 else
                                 {
-                                        printf("Missing argument\n");
+                                        printf("Error: Missing argument\n");
+                                        goto fail;
                                 }
-                                goto done;
+                                goto check;
                         }
                         case EQU:
                         {
                                 int operand;
-                                if (parse_val(&buf, &operand, &sy, addr))
+                                if (ws(&buf) && parse_val(&buf, &operand, &sy, addr))
                                 {
                                         if (sy) {
-                                                printf("Resolved symbol required for equ\n");
+                                                printf("Error: Resolved symbol required for equ\n");
+                                                goto fail;
                                         } else if (!label_sy) {
-                                                printf("Label required for equ\n");
+                                                printf("Error: Label required for equ\n");
+                                                goto fail;
                                         } else {
                                                 label_addr = operand;
                                         }
                                 }
                                 else
                                 {
-                                        printf("Missing argument\n");
+                                        printf("Error: Missing argument\n");
+                                        goto fail;
                                 }
-                                goto done;
+                                goto check;
                         }
                         case ORG:
                         {
                                 int operand;
-                                if (parse_val(&buf, &operand, &sy, addr))
+                                if (ws(&buf) && parse_val(&buf, &operand, &sy, addr))
                                 {
                                         if (sy)
                                         {
-                                                printf("Resolved symbol required for org\n");
+                                                printf("Error: Resolved symbol required for org\n");
+                                                goto fail;
                                         }
                                         else
                                         {
@@ -1221,23 +1293,32 @@ unsigned short assemble(unsigned char *mem, unsigned short addr, char *buf)
                                 }
                                 else
                                 {
-                                        printf("Missing argument\n");
+                                        printf("Error: Missing argument\n");
+                                        goto fail;
                                 }
-                                goto done;
+                                goto check;
                         }
                 }
+                buf = org_buf;
         }
-        printf("Syntax error\n");
+        printf("Error: bad operand\n");
+        goto fail;
 
-        done:
+        check:
         if (*buf == ' ' || *buf == '\t' || !*buf)
         {
-                /* Good */ 
+                goto done;
         }
         else
         {
-                printf("Syntax error\n");
+                printf("Error: unknown extra characters\n");
+                goto fail;
         }
+
+        done:
         set_symbol(mem, label_sy, label_addr);
         return addr;
+
+        fail:
+        return org_addr;
 }

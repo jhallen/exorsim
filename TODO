@@ -1,13 +1,12 @@
-6809 simulator:
-
-  assembler:
-    < and > to force index size and direct/extended
-    expression evaluator including Motorola operators
-    non-motorola mode?
-    parse_word should handle motorola identifiers
-    complain if there is extra junk (space begins comment after operand)
+Merge exor / exor09
+Include 6809 assembler improvements for 6800?
 
 Exor:
+  assembler:
+    non-motorola mode? (; comments, : after label, allow whitespace ?)
+
+    expression evaluator including Motorola operators
+
   exorterm update(): maybe call it periodically even if there is no input polling
 
   Generic simulator setup? Something like:
@@ -95,10 +94,6 @@ Done:
 
   u with no args should continue unassembling from last address
 
-  6809 version of disassembler
-  6809 version of assembler
-    setdp directive
-
   better 'm' command
 
   l command:
@@ -110,3 +105,11 @@ Done:
   regs command must show 6809 regs
 
   Re-enable exorterm mode: I think it just needed flushes or update calls.
+
+  6809 version of disassembler
+
+  6809 version of assembler
+    setdp directive
+    parse_word should handle motorola identifiers
+    complain if there is extra junk (space begins comment after operand)
+    < and > to force index size and direct/extended

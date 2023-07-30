@@ -1,6 +1,7 @@
 int to_upper(int c);
 
 int skipws(char **at_p);
+int ws(char **at_p);
 int match_word(char **at_p, char *word);
 int parse_word(char **at_p, char *buf);
 int parse_ident(char **at_p, char *buf);

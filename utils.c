@@ -35,6 +35,20 @@ int skipws(char **at_p)
 	return 1;
 }
 
+/* Required whitespace */
+
+int ws(char **at_p)
+{
+        int ok = 0;
+	char *p = *at_p;
+	while (*p == ' ' || *p == '\t') {
+		++p;
+		ok = 1;
+        }
+	*at_p = p;
+	return ok;
+}
+
 /* Skip to whitespace */
 
 int skiptows(char **at_p)
