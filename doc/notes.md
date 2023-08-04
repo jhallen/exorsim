@@ -135,7 +135,7 @@ back a bunch of NULs which appear before the start of the buffer).
 
 Here is the patched version of 6800 E:
 
-~~~~
+~~~
 % u 3483
 3483: 7E 2D 9A            JMP $2D9A
 
