@@ -292,3 +292,5 @@ A number of utilities are built in addition to "exor":
 [MPL language](mpl/readme.md)
 <br>
 [EXORterm info](doc/exorterm.md)
+<br>
+[Notes](doc/notes.md)
