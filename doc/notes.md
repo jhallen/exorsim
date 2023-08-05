@@ -4,13 +4,19 @@
 
 We don't have RASM.CM for MDOS09.
 
-We don't have EDIT.CM for MDOS09.
+We don't have EDIT.CM for MDOS09: but now we have MEDIT!  This is an EDIT
+clone by Dave Hatch, see MEDIT.SA.  Rubout works correctly for this editor.
 
 We don't have the COBOL manual.
 
 We don't have the FORTRAN manual.
 
 We don't have the RLOAD object file format.
+
+We don't have a bootable EDOS-II disk.  We don't have a manual for it
+either but some of commands are shown in the EXORdisk-I brochure.
+
+We don't have a bootable EDOS disk.
 
 ## CRT-mode patches
 
