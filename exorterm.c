@@ -432,41 +432,49 @@ void term_clear()
 
 void term_set_left(int col)
 {
-	if (col >= 0 && col < xright) {
+	if (col >= 0 && col < WIDTH) {
 		xleft = col;
 		if (xpos < xleft) {
 			xpos = xleft;
 		}
+		if (xleft <= xright)
+			xright = WIDTH;
 	}
 }
 
 void term_set_right(int col)
 {
-	if (col > xleft && col < WIDTH) {
+	if (col >= 0 && col < WIDTH) {
 		xright = col + 1;
 		if (xpos >= xright) {
 			xpos = xright - 1;
 		}
+		if (xleft >= xright)
+			xleft = 0;
 	}
 }
 
 void term_set_top(int row)
 {
-	if (row >= 0 && row < ybottom) {
+	if (row >= 0 && row < HEIGHT) {
 		ytop = row;
 		if (ypos < ytop) {
 			ypos = ytop;
 		}
+		if (ybottom <= ytop)
+			ybottom = HEIGHT;
 	}
 }
 
 void term_set_bottom(int row)
 {
-	if (row > ytop && row < HEIGHT) {
+	if (row >= 0 && row < HEIGHT) {
 		ybottom = row + 1;
 		if (ypos >= ybottom) {
 			ypos = ybottom - 1;
 		}
+		if (ytop >= ybottom)
+			ytop = 0;
 	}
 }
 
