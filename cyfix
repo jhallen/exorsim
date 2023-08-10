@@ -1,0 +1,6 @@
+for a in $*
+do
+NEWNAME=`echo $a | sed 's/.sa/.txt/'`
+echo Converting $a to $NEWNAME
+tr -d -c '[:print:]\r\n\t' <$a | fold -s -w 70 >$NEWNAME
+done
