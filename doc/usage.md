@@ -21,9 +21,9 @@
 
 Disk images are selected as follows:
 
-1. If "-0 path" is given on the command line, then path is the location of the drive 0 disk image.
-2. Otherwise if the environment variable EXOR_DISK0 (for exor) or EXOR09_DISK0 (for exor09) is given, it provides the location of the drive 0 disk image.
-3. Otherwise "mdos.dsk" is the default name.
+1.  If "-0 path" is given on the command line, then path is the location of the drive 0 disk image.
+2.  Otherwise if the environment variable EXOR_DRIVE0 (for exor) or EXOR09_DRIVE0 (for exor09) is given, it provides the location of the drive 0 disk image.
+3.  Otherwise mdos.dsk, flex.dsk, exor09.dsk or flex09.dsk is the default name, depending on which emulator you are running.
 
 It's the same for the drive1 .. drive3, but there is no final default
 built-in name as there is for drive0.
@@ -34,7 +34,7 @@ The "--exbug" option supplies the path to the initial memory image.  If it
 not given, then the environment variable EXOR_EXBUG or EXOR09_EXBUG is used. 
 Otherwise the default is "exbug.bin".
 
-For SWTPC (when the "--swtpc" option is given), "--exbug" still supplies the
+For SWTPC (when the "--swtpc" option is given), "--exbug" supplies the
 path to the initial memory image.  But if it is not set, then the
 environment variable EXOR_SWTBUG or EXOR09_SWTBUG is used.  Otherwise the
 default is "swtbug.bin".
@@ -45,8 +45,6 @@ If "--facts path" is given, then path is the location of the "facts" file.
 If this option is not provided, then if the environment variable EXOR_FACTS or
 EXOR09_FACTS exists, it provides the path.  Otherwise the default name is
 "facts" or "facts09".
-
-<p>Default disk0 is mdos.dsk / flex.dsk</p>
 
 <p>To load MDOS from EXBUG, type MAID followed by E800;G</p>
 <p>To load FLEX from SWTBUG, type D</p>
