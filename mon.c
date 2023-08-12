@@ -549,6 +549,74 @@ int lpt_cmd(char *p)
         return 0;
 }
 
+int drive0_cmd(char *p)
+{
+        char name[180];
+
+        if (parse_word(&p, name))
+        {
+                close_drive(0);
+                set_drive(0, strdup(name));
+                load_drive(0);
+        }
+        else
+        {
+                show_drive(0);
+        }
+        return 0;
+}
+
+int drive1_cmd(char *p)
+{
+        char name[180];
+
+        if (parse_word(&p, name))
+        {
+                close_drive(1);
+                set_drive(1, strdup(name));
+                load_drive(1);
+        }
+        else
+        {
+                show_drive(1);
+        }
+        return 0;
+}
+
+int drive2_cmd(char *p)
+{
+        char name[180];
+
+        if (parse_word(&p, name))
+        {
+                close_drive(2);
+                set_drive(2, strdup(name));
+                load_drive(2);
+        }
+        else
+        {
+                show_drive(2);
+        }
+        return 0;
+}
+
+int drive3_cmd(char *p)
+{
+        char name[180];
+
+        if (parse_word(&p, name))
+        {
+                close_drive(3);
+                set_drive(3, strdup(name));
+                load_drive(3);
+        }
+        else
+        {
+                show_drive(3);
+        }
+        return 0;
+}
+
 int t_cmd(char *p)
 {
         if (match_word(&p, "on"))
@@ -607,6 +675,10 @@ struct cmd cmds[]=
         { "save", dump_cmd,	" [file [hhhh [nnnn]]]	Save nn bytes of memory starting at hh to file in binary\n" },
         { "read", read_cmd,	" [file [hhhh]]		Read binary file into memory starting at hh\n" },
         { "lpt", lpt_cmd,       " [file]		Open line printer file\n" },
+        { "drive0", drive0_cmd, " [file]		Change disk in drive 0\n" },
+        { "drive1", drive1_cmd, " [file]		Change disk in drive 1\n" },
+        { "drive2", drive2_cmd, " [file]		Change disk in drive 2\n" },
+        { "drive3", drive3_cmd, " [file]		Change disk in drive 3\n" },
         { 0, 0, 0 }
 };
 

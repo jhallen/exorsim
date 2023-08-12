@@ -19,13 +19,9 @@ Exor:
 
   "make install" (needs paths to binaries).
 
-  Default options and file locations in environment variables, so you don't need
-  exbug.bin in current directory.
-
   Step over function (we only have step into now)
   Break key
   More breakpoints
-  Switch disks
 
   Ctrl-C twice sends Ctrl-C to program?  It exists now.. or some way to send Ctrl-C to program.
 
@@ -113,3 +109,10 @@ Done:
     < and > to force index size and direct/extended
 
   Merge exor / exor09
+
+  Default options and file locations in environment variables, so you don't need
+  exbug.bin in current directory.
+     [now we have environment variables for this]
+
+  Switch disks
+     [drive0..drive3 commands]

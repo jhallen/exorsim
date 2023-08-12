@@ -1,6 +1,6 @@
 <h3>Usage guide</h3>
 
-<p>Summary: exor [options] [disk0 [disk1 [disk2 [disk3]]]]</p>
+<p>Summary: exor [options] [-0 disk0] [-1 disk1] [-2 disk2] [-3 disk3]</p>
 
 <dl><dt>Options:<dl>
 <dt>--trace<dd>Produce instruction trace on stderr
@@ -16,6 +16,35 @@
 <dt>--append file<dd>Append line printer output to a file (default is listing.lp)
 <dt>--no_protect<dd>Allow writing to ROMs
 </dl></dl>
+
+<h3>Paths</h3>
+
+Disk images are selected as follows:
+
+1. If "-0 path" is given on the command line, then path is the location of the drive 0 disk image.
+2. Otherwise if the environment variable EXOR_DISK0 (for exor) or EXOR09_DISK0 (for exor09) is given, it provides the location of the drive 0 disk image.
+3. Otherwise "mdos.dsk" is the default name.
+
+It's the same for the drive1 .. drive3, but there is no final default
+built-in name as there is for drive0.
+
+Initial memory image is selected as follows:
+
+The "--exbug" option supplies the path to the initial memory image.  If it
+not given, then the environment variable EXOR_EXBUG or EXOR09_EXBUG is used. 
+Otherwise the default is "exbug.bin".
+
+For SWTPC (when the "--swtpc" option is given), "--exbug" still supplies the
+path to the initial memory image.  But if it is not set, then the
+environment variable EXOR_SWTBUG or EXOR09_SWTBUG is used.  Otherwise the
+default is "swtbug.bin".
+
+Debug "facts" file is selected as follows:
+
+If "--facts path" is given, then path is the location of the "facts" file. 
+If this option is not provided, then if the environment variable EXOR_FACTS or
+EXOR09_FACTS exists, it provides the path.  Otherwise the default name is
+"facts" or "facts09".
 
 <p>Default disk0 is mdos.dsk / flex.dsk</p>
 

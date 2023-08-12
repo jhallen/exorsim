@@ -31,6 +31,7 @@
 #include "exorterm.h"
 #include "utils.h"
 
+char *lpt_name; /* Name of line printer file */
 FILE *lpt_file; /* Line printer file */
 
 /* Options */
@@ -45,7 +46,7 @@ int protect_roms = 1; /* Protect "ROM"s from writing if set */
 /* Diskettes */
 
 struct drive_info {
-        char *name;
+        const char *name;
         FILE *f;
         int bytes; /* Bytes per sector */
         int tracks; /* Tracks per disk */
@@ -805,6 +806,28 @@ int load_exbug()
         return 0;
 }
 
+void close_drive(int n)
+{
+        if (drive[n].f) {
+                fclose(drive[n].f);
+        }
+        drive[n].f = 0;
+}
+
+void show_drive(int n)
+{
+        if (drive[n].f) {
+                printf("%s mounted as drive %d\n", drive[n].name, n);
+        } else {
+                printf("No disk in drive %d\n", n);
+        }
+}
+
+void set_drive(int n, const char *name)
+{
+        drive[n].name = name;
+}
+
 int load_drive(int n)
 {
         FILE *f;
@@ -911,12 +934,7 @@ int main(int argc, char *argv[])
         int gotox = 0;
         mon_out = stdout;
         mon_in = stdin;
-#ifdef M6809
-        char *facts_name = "facts09";
-#else
-        char *facts_name = "facts";
-#endif
-        char *lpt_name = "listing.lp";
+        char *facts_name = 0;
         int lpt_append = 1;
 
         for (x = 1; x != argc; ++x) {
@@ -941,6 +959,14 @@ int main(int argc, char *argv[])
                                 exbug_name = argv[++x];
                         } else if (!strcmp(argv[x], "-x")) {
                                 gotox = 1;
+                        } else if (!strcmp(argv[x], "-0") && x + 1 != argc) {
+                                drive[0].name = argv[++x];
+                        } else if (!strcmp(argv[x], "-1") && x + 1 != argc) {
+                                drive[1].name = argv[++x];
+                        } else if (!strcmp(argv[x], "-2") && x + 1 != argc) {
+                                drive[2].name = argv[++x];
+                        } else if (!strcmp(argv[x], "-3") && x + 1 != argc) {
+                                drive[3].name = argv[++x];
                         } else if (!strcmp(argv[x], "--lpt") && x + 1 != argc) {
                                 lpt_append = 0;
                                 lpt_name = argv[++x];
@@ -954,7 +980,7 @@ int main(int argc, char *argv[])
                         } else {
                                 printf("EXORciser emulator\n");
                                 printf("\n");
-                                printf("exor [options] [disk0 [disk1 [disk2 [disk3]]]]\n");
+                                printf("exor [options] [-0 disk0] [-1 disk1] [-2 disk2] [-3 disk3]\n");
                                 printf("\n");
                                 printf("  --trace	Produce instruction trace on stderr\n");
                                 printf("  --dtrace	Produce disk access trace on stderr\n");
@@ -994,6 +1020,18 @@ int main(int argc, char *argv[])
                 }
         }
 
+        /* Line printer */
+
+        if (!lpt_name)
+#ifdef M6809
+                lpt_name = getenv("EXOR_LPT_NAME");
+#else
+                lpt_name = getenv("EXOR09_LPT_NAME");
+#endif
+
+        if (!lpt_name)
+                lpt_name = "listing.lp";
+
         /* Open line printer */
         if (lpt_name)
         {
@@ -1008,7 +1046,19 @@ int main(int argc, char *argv[])
                 }
         }
 
-        /* Default disk image name */
+        /* Default disk image names */
+#ifdef M6809
+        if (!drive[0].name) drive[0].name = getenv("EXOR09_DRIVE0");
+        if (!drive[1].name) drive[1].name = getenv("EXOR09_DRIVE1");
+        if (!drive[2].name) drive[2].name = getenv("EXOR09_DRIVE2");
+        if (!drive[3].name) drive[3].name = getenv("EXOR09_DRIVE3");
+#else
+        if (!drive[0].name) drive[0].name = getenv("EXOR_DRIVE0");
+        if (!drive[1].name) drive[1].name = getenv("EXOR_DRIVE1");
+        if (!drive[2].name) drive[2].name = getenv("EXOR_DRIVE2");
+        if (!drive[3].name) drive[3].name = getenv("EXOR_DRIVE3");
+#endif
+
         if (!drive[0].name)
         {
 #ifdef M6809
@@ -1024,6 +1074,22 @@ int main(int argc, char *argv[])
 #endif
         }
 
+#ifdef M6809
+        if (!exbug_name) {
+                if (swtpc)
+                        exbug_name = getenv("EXOR09_SWTBUG");
+                else
+                        exbug_name = getenv("EXOR09_EXBUG");
+        }
+#else
+        if (!exbug_name) {
+                if (swtpc)
+                        exbug_name = getenv("EXOR_SWTBUG");
+                else
+                        exbug_name = getenv("EXOR_EXBUG");
+        }
+#endif
+
         /* Default memory image name */
         if (!exbug_name) {
 #ifdef M6809
@@ -1038,6 +1104,22 @@ int main(int argc, char *argv[])
                 } else {
                         exbug_name = "exbug.bin";
                 }
+#endif
+        }
+
+        if (!facts_name) {
+#ifdef M6809
+                facts_name = getenv("EXOR09_FACTS");
+#else
+                facts_name = getenv("EXOR_FACTS");
+#endif
+        }
+
+        if (!facts_name) {
+#ifdef M6809
+                facts_name = "facts09";
+#else
+                facts_name = "facts";
 #endif
         }
 

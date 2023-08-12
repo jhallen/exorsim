@@ -7,16 +7,22 @@ We don't have RASM.CM for MDOS09.
 We don't have EDIT.CM for MDOS09: but now we have MEDIT!  This is an EDIT
 clone by Dave Hatch, see MEDIT.SA.  Rubout works correctly for this editor.
 
-We don't have the COBOL manual.
-
-We don't have the FORTRAN manual.
-
-We don't have the RLOAD object file format.
+We don't have the RLOAD object file format.  This is not in the RLOAD manual
+nor in the recent assembler manual.  I think it might be in an appendix of
+the older assembler manual.
 
 We don't have a bootable EDOS-II disk.  We don't have a manual for it
 either but some of commands are shown in the EXORdisk-I brochure.
 
 We don't have a bootable EDOS disk.
+
+We have the PASCAL manual, but not the software.
+
+Done:
+
+We don't have the COBOL manual.  We now have it!
+
+We don't have the FORTRAN manual.  We now have it!
 
 ## CRT-mode patches
 
