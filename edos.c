@@ -50,7 +50,7 @@ int interleave_table[]=
 
 struct dirent {
     unsigned char name[5]; /* 5 '*'s if deleted */
-    unsigned char mark; /* 0xFF if deleted, 0x00 otherwise. Some files have 0x80? */
+    unsigned char mark; /* 0xFF means end of directory, 0x80 means file was deleted */
     unsigned char track; /* Starting track number of file */
     unsigned char sect; /* Starting sector number of file (1 based) */
     unsigned char size_hi; /* Size high byte? */
@@ -199,8 +199,11 @@ void edos_load_dir()
                 getsect(buf, x);
                 for (y = 0; y <= SECTOR_SIZE - ENTRY_SIZE; y += ENTRY_SIZE) {
                         struct dirent *d = (struct dirent *)(buf + y);
+                        if (d->mark == 0xFF)
+                                goto done;
                         /* if (d->mark != 0xff && d->name[0] != '*') { */
-                        if (d->name[0] >= 'A' && d->name[0] <= 'Z') {
+                        /* if (d->name[0] >= 'A' && d->name[0] <= 'Z') { */
+                        if (d->mark != 0x80) {
                                 struct name *nam;
                                 char s[50];
                                 int p = 0;
@@ -220,6 +223,7 @@ void edos_load_dir()
                         }
                 }
         }
+        done:
         qsort(names, name_n, sizeof(struct name *), (int (*)(const void *, const void *))comp);
 }
 
