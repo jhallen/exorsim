@@ -23,6 +23,8 @@
 #include <string.h>
 #include <fcntl.h>
 #include <sys/poll.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <signal.h>
 #include <unistd.h>
 
@@ -71,9 +73,57 @@ int polling = 1; /* Allow ACIA polling */
 
 static int saved;
 
-const char *maybe_local(const char *name)
+const char *local_prefix;
+
+/* Copy a file by name */
+
+int copyfile(const char *src, const char *dest)
 {
-        FILE *f = fopen(name, "r");
+        FILE *f, *g;
+        printf("Copying %s to %s...\n", src, dest);
+        f = fopen(src, "r");
+        if (f)
+        {
+                g = fopen(dest, "w");
+                if (g)
+                {
+                        char buf[1024];
+                        size_t len;
+                        while ((len = fread(buf, 1, sizeof(buf), f)))
+                                fwrite(buf, 1, len, g);
+                        fclose(g);
+                        fclose(f);
+                        return 0;
+                }
+                else
+                {
+                        fclose(f);
+                        return -1;
+                }
+        }
+        else
+        {
+                return -1;
+        }
+}
+
+/* Find configuration or state file */
+/* If 'copy' set, make a writable copy of the file in the user's home directory */
+
+const char *choose_config_file(const char *name, int copy)
+{
+        FILE *f;
+        /* Create path $HOME/.exorsim */
+        if (!local_prefix)
+        {
+                char *home = getenv("HOME");
+                char *tmp = malloc(strlen(home) + strlen("/.exorsim") + 1);
+                sprintf(tmp, "%s/.exorsim", home);
+                local_prefix = tmp;
+                mkdir(local_prefix, 0700); /* Create directory in case it doesn't exist */
+        }
+        /* First try current directory */
+        f = fopen(name, "r");
         if (f)
         {
                 fclose(f);
@@ -81,9 +131,32 @@ const char *maybe_local(const char *name)
         }
         else
         {
-                char *buf = malloc(strlen(name) + strlen(DATADIR) + 1);
-                sprintf(buf, "%s%s", DATADIR, name);
-                return buf;
+                /* Next, try ~/.exotsim */
+                char *local = malloc(strlen(local_prefix) + 1 + strlen(name) + 1);
+                sprintf(local, "%s/%s", local_prefix, name);
+                f = fopen(local, "r");
+                if (f)
+                {
+                        fclose(f);
+                        return local;
+                }
+                else
+                {
+                        /* Try /usr/local/share/exorsim */
+                        char *sys = malloc(strlen(DATADIR) + strlen(name) + 1);
+                        sprintf(sys, "%s%s", DATADIR, name);
+                        if (copy)
+                        {
+                                /* Make local copy */
+                                copyfile(sys, local);
+                                return local;
+                        }
+                        else
+                        {
+                                /* Otherwise it had better be there */
+                                return sys;
+                        }
+                }
         }
 }
 
@@ -1079,14 +1152,14 @@ int main(int argc, char *argv[])
         {
 #ifdef M6809
                 if (swtpc)
-                        drive[0].name = maybe_local("flex09.dsk");
+                        drive[0].name = choose_config_file("flex09.dsk", 1);
                 else
-                        drive[0].name = maybe_local("mdos09.dsk");
+                        drive[0].name = choose_config_file("mdos09.dsk", 1);
 #else
                 if (swtpc)
-                        drive[0].name = maybe_local("flex.dsk");
+                        drive[0].name = choose_config_file("flex.dsk", 1);
                 else
-                        drive[0].name = maybe_local("mdos.dsk");
+                        drive[0].name = choose_config_file("mdos.dsk", 1);
 #endif
         }
 
@@ -1110,15 +1183,15 @@ int main(int argc, char *argv[])
         if (!exbug_name) {
 #ifdef M6809
                 if (swtpc) {
-                        exbug_name = maybe_local("swtbug09.bin");
+                        exbug_name = choose_config_file("swtbug09.bin", 0);
                 } else {
-                        exbug_name = maybe_local("exbug09.bin");
+                        exbug_name = choose_config_file("exbug09.bin", 0);
                 }
 #else
                 if (swtpc) {
-                        exbug_name = maybe_local("swtbug.bin");
+                        exbug_name = choose_config_file("swtbug.bin", 0);
                 } else {
-                        exbug_name = maybe_local("exbug.bin");
+                        exbug_name = choose_config_file("exbug.bin", 0);
                 }
 #endif
         }
@@ -1133,9 +1206,9 @@ int main(int argc, char *argv[])
 
         if (!facts_name) {
 #ifdef M6809
-                facts_name = maybe_local("facts09");
+                facts_name = choose_config_file("facts09", 0);
 #else
-                facts_name = maybe_local("facts");
+                facts_name = choose_config_file("facts", 0);
 #endif
         }
 

@@ -48,9 +48,9 @@ install : mdos exor exor09 edos unasm6800 lpf imdx
 	install -D edos $(BINDIR)edos
 	install -D -m 644 facts $(DATADIR)facts
 	install -D -m 644 facts09 $(DATADIR)facts09
-	install -D -m 666 mdos.dsk $(DATADIR)mdos.dsk
-	install -D -m 666 flex.dsk $(DATADIR)flex.dsk
-	install -D -m 666 mdos09.dsk $(DATADIR)mdos09.dsk
+	install -D -m 644 mdos.dsk $(DATADIR)mdos.dsk
+	install -D -m 644 flex.dsk $(DATADIR)flex.dsk
+	install -D -m 644 mdos09.dsk $(DATADIR)mdos09.dsk
 	install -D -m 644 exbug.bin $(DATADIR)exbug.bin
 	install -D -m 644 exbug09.bin $(DATADIR)exbug09.bin
 	install -D -m 644 swtbug.bin $(DATADIR)swtbug.bin
