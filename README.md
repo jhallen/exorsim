@@ -255,7 +255,25 @@ You can get FLEX2 disk images here:
 
 # Build instructions
 
-Clone this repository on a recent Linux or Cygwin system and type "make" to compile it.
+1. Make a clone of this repository
+
+2. (Linux)
+
+	sudo make install
+
+2. (Cygwin) "run as administrator" the Cygwin terminal, then:
+
+	make install
+
+This will install the binaries in /usr/local/bin and install the data files
+in /usr/local/share/exorsim.  When you run exor or exor09, the default drive 0
+disk image is copied to $HOME/.exorsim.
+
+The search order for data files is:
+
+1. Current directory
+2. $HOME/.exorsim
+3. /usr/local/share/exorsim
 
 # Utilities
 
