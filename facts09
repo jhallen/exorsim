@@ -1,0 +1,279 @@
+
+ Facts start in column 1.  If column one has a blank, then the line is
+ a comment.
+
+ Facts are in the following format:
+
+ ffc0 fcc <length> <label> <comment>		String
+ fff8 fdb <length> <label> <comment>		Word
+ fff8 fcb <length> <label> <comment>		Byte
+ fcf4 rmb <length> <label> <comment>		Space
+ e800 code <label> <comment>			Code label
+ e800 subr <label> <comment>			Beginning of subroutine label
+ 0 swi <number> <label> <comment>		MDOS operating system call
+
+
+ Known facts about EXORciser and MDOS
+
+ ** MDOS SWIs **
+
+0 swi $0000 .RESRV RESERVE A DEVICE
+0 swi $0001 .RELES RELEASE A DEVICE
+0 swi $0002 .OPEN OPEN A FILE
+0 swi $0003 .CLOSE CLOSE A FILE
+0 swi $0004 .GETRC READ A RECORD
+0 swi $0005 .PUTRC WRITE A RECORD
+0 swi $0006 .REWND POSITION TO BEGINNING OF
+0 swi $0007 .GETLS READ LOGICAL SECTOR
+0 swi $0008 .PUTLS WRITE LOGICAL SECTOR
+0 swi $0009 .KEYIN CONSOLE INPUT
+0 swi $000A .DSPLY CONSOLE OUTPUT (TERM W/
+0 swi $000B .DSPLX CONSOLE OUTPUT (TERM W/
+0 swi $000C .DSPLZ CONSOLE OUTPUT (TERM W/
+0 swi $000D .CKBRK CHECK CONSOLE FOR BREAK
+0 swi $000E .DREAD EROM DISK READ
+0 swi $000F .DWRIT EROM DISK WRITE
+0 swi $0010 .MOVE MOVE A STRING
+0 swi $0011 .CMPAR COMPARE STRINGS
+0 swi $0012 .STCHB STORE BLANKS
+0 swi $0013 .STCHR STORE CHARACTERS
+0 swi $0014 .ALPHA CHECK ALPHABETIC CHARACT
+0 swi $0015 .NUMD CHECK DECIMAL DIGIT
+0 swi $0016 .ADDAM INCREMENT MEMORY (DOUBLE
+0 swi $0017 .SUBAM DECREMENT MEMORY (DOUBLE
+0 swi $0018 .MMA MULTIPLY (SHIFT LEFT) ME
+0 swi $0019 .DMA DIVIDE (SHIFT RIGHT) MEM
+0 swi $001A .MDENT ENTER MDOS WITHOUT RELOA
+0 swi $001B .LOAD LOAD A FILE FROM DISK
+0 swi $001C .DIRSM DIRECTORY SEARCH AND MOD
+0 swi $001D .PFNAM PROCESS FILE NAME
+0 swi $001E .ALUSM ALLOCATE USER MEMORY
+0 swi $001F .CHANG CHANGE NAME/ATTRIBUTES
+0 swi $0020 .MDERR MDOS ERROR MESSAGE HANDL
+0 swi $0021 .ALLOC ALLOCATE DISK SPACE
+0 swi $0022 .DEALC RETURN DISK SPACE
+0 swi $0023 .EWORD SET ERROR STATUS WORD FO
+0 swi $0024 .TXBA TRANSFER X TO B,A
+0 swi $0025 .TBAX TRANSFER B,A TO X
+0 swi $0026 .XBAX EXCHANGE B,A AND X
+0 swi $0027 .ADBX ADD B TO X
+0 swi $0028 .ADAX ADD A TO X
+0 swi $0029 .ADBAX ADD B,A TO X
+0 swi $002A .ADXBA ADD X TO B,A
+0 swi $002B .SUBX SUBTRACT B FROM X
+0 swi $002C .SUAX SUBTRACT A FROM X
+0 swi $002D .SUBAX SUBTRACT B,A FROM X
+0 swi $002E .SUXBA SUBTRACT X FROM B,A
+0 swi $002F .CPBAX COMPARE B,A TO X
+0 swi $0030 .ASRX SHIFT X RIGHT (ARITHMETI
+0 swi $0031 .ASLX SHIFT X LEFT (ARITHMETIC
+0 swi $0032 .PSHX PUSH X ON STACK
+0 swi $0033 .PULX PULL X FROM STACK
+0 swi $0034 .PRINT PRINT-TERMINATE WITH CR
+0 swi $0035 .PRINX PRINT-TERMINATE WITH EOT
+0 swi $0036 .GETFD READ FDR (RESIDENT MDOS
+0 swi $0037 .PUTFD WRITE FDR (RESIDENT MDOS
+0 swi $0038 .PUTEF WRITE EOF (RESIDENT MDOS
+0 swi $0039 .EREAD DISK READ W/ ERR RETN
+0 swi $003A .EWRIT DISK WRITE W/ ERR RETN
+0 swi $003B .MREAD MULTIPLE SECTOR READ
+0 swi $003C .MWRIT MULTIPLE SECTOR WRITE
+0 swi $003D .MERED MULTIPLE SECTOR READ W/
+0 swi $003E .MEWRT MULTIPLE SECTOR WRITE W/
+
+022f subr MDOS_SWI MDOS SWI Handler
+02ff subr MDOS_IRQ MDOS IRQ Handler
+00ae rmb 80 CBUFF$ Command buffer
+00fe rmb 2 CBUFP$ Command buffer pointer
+0100 rmb 2 VERS$$ MDOS version number
+0102 rmb 2 REVS$$ MDOS revision number
+0104 rmb 2 KYI$SV Save area for KEYIN$ vec
+0106 fdb 1 ENDOS$ END of MDOS
+0108 fdb 1 ENDUS$ END of user space
+010a fdb 1 ENDSY$ End of system RAM
+010e fdb 2 RIBBA$ Rib buffer address
+0110 fdb 1 ENDRV$ End of MDOS ROM variable
+0112 fdb 1 GDBA$ Generic device table address
+0114 fdb 1 SYERR$ System error status word
+0116 fdb 1 SWI$SV SWI vector save area
+0118 fdb 1 SWI$UV SWI user vector
+011a fdb 1 IRQ$UV IRQ user vector
+011c fdb 1 IRQ$SV IRQ vector save area
+011e fdb 1 CHFLG$ Chain function flag word
+0120 rmb 37 SYIOCB System console IOCB
+0145 rmb 37 SYPOCB System printer IOCB
+016a rmb 37 SYEOCB Error message file IOCB
+
+ ** Floppy Controller **
+
+ Hardware
+
+ec00 rmb 1 FDPIA0
+ec01 rmb 1 FDPIA1
+ec02 rmb 1 FDPIA2
+ec03 rmb 1 FDPIA3
+ec04 rmb 1 SSDA0
+ec05 rmb 1 SSDA1
+ec06 rmb 1 SSDA2
+ec07 rmb 1 SSDA3
+
+ Parameters
+
+0000 rmb 1 CURDRV 	Current drive
+0001 rmb 2 STRSCT 	Starting sector
+0003 rmb 2 NUMSCT 	Number of sectors
+0005 rmb 1 LSCTLN 	Length of last sector
+0006 rmb 2 CURADR 	Floppy transfer address
+0008 rmb 1 FDSTAT 	Error status
+0009 rmb 2 H--
+000b rmb 2 SCTCNT	Sector count
+000d rmb 2 SIDES 	Floppy sides
+000e rmb 242 H--
+
+ Code
+
+e800 subr OSLOAD	Load OS
+e822 subr FDINIT	Initialize floppy
+e853 subr CHKERR	Check floppy error
+e85a subr PRNTER	Print floppy error
+e869 subr READSC	Read sectors
+e86d subr READPS	Read partial sectors
+e86f subr FDCRC		CRC check read
+e875 subr RESTOR	Restore to track 0
+e878 subr SEEK		Seek to a track
+e872 subr RWTEST	R/W test
+e87b subr WRTEST	Write test
+e87e subr WRDDAM	Write deleted address mark
+e884 subr WRITSC	Write sectors
+e881 subr WRVERF	Write and verify
+e887 subr CLOCK		Calibrate floppy clock / Main floppy entry point
+ebc0 subr LPINIT	Init line printer
+ebcc subr LIST		Print char
+ebe4 subr LDATA		Print string
+ebf2 subr LDATA1	Print string
+
+ Tricks in floppy controller
+
+e86e fcb 1 SKIP		Skip next two bytes
+e871 fcb 1 SKIP		Skip next two bytes
+e874 fcb 1 SKIP		Skip next two bytes
+e877 fcb 1 SKIP		Skip next two bytes
+e87a fcb 1 SKIP		Skip next two bytes
+e87d fcb 1 SKIP		Skip next two bytes
+e880 fcb 1 SKIP		Skip next two bytes
+e883 fcb 1 SKIP		Skip next two bytes
+
+ ** EXBug **
+
+ Hardware
+
+fcf4 rmb 1 ACIA0 	ACIA Status
+fcf5 rmb 1 ACIA1 	ACIA Data
+fcf8 rmb 1 EXPIA0	EXBUG PIA data A
+fcf9 rmb 1 EXPIA1	EXBUG PIA control A
+fcfa rmb 1 EXPIA2	EXBUG PIA data B
+fcfb rmb 1 EXPIA3	EXBUG PIA control B
+
+ Jump table
+
+f000 code COLDSTART	Cold start
+f003 code ADDRPROMPT	Prompt for address
+f006 code HEXBIN	Convert hex to binary
+f009 code CVTUPPER	Convert upper half to ascii
+f00c code CVTLOWER	Convert lower half to ascii
+f00f code GETHEX	Get 4 hex digits from user into x
+f012 code INBYTEV	Input byte with echo
+f015 code INCHV		Input char with echo (strip bit 7)
+f018 code OUTCH		Output character
+f01b code OUTHEX1	Output byte in hex ,x+
+f01e code OUTHEX2	Output 2 bytes in hex ,x++
+f021 code PCRLF		Print CR-LF
+f024 code PDATA		Print CR-LF then string
+f027 code PDATA1	Print string
+f02a code PSPC		Print space
+
+ exbug-1.1 Code
+
+f9cf subr OUTCH		Output a character
+f9dc subr OUTCH		Output a character
+fa8b subr INCH		Input a character
+f558 subr COLDBOOT	Cold start (main reset)
+f789 subr ADDRPRMT	Prompt for addresses
+faa7 subr CVTHEX	Convert ascii hex to binary
+f9c0 subr CVTUPP	Convert upper half to ascii hex
+f9c4 subr CVTLOW	Convert lower half to ascii hex
+fa65 subr GETHEX4	Get 4 hex digits from user into x
+fa8b subr INBYTE	Input byte with echo unless AECHO is set
+faa0 subr INCH		Input character
+f9dc subr OUTCH		Output character with NULs
+fa24 subr OUTHEX1	Output byte in hex ,x+
+fa22 subr OUTHEX2	Output 2 bytes in hex ,x+
+fa41 subr PCRLF		Print CR-LF
+fa33 subr PDATA		Print CR-LF then string
+fa35 subr PDATA1	Print string
+fa26 subr PSPC		Print space
+
+f0f3 subr MAID$		MAID entry point
+
+f7bb subr LOAD LOAD command
+f7c0 subr VERF VERF command
+f7b4 subr SRCH SRCH command
+f719 subr PRNT PRNT/PNCH command
+f0f3 subr MAID MAID command
+f623 subr S10. S10. command
+f626 subr S30. S30. command
+f62d subr S120 S120 command
+
+ Data
+
+ff00 rmb 2 USERTOP	Top of user memory, normally 83FF
+FF02 rmb 1 NULCTRL	NUL control flag
+FF03 rmb 1 STRBUF0	String buffer 0
+FF04 rmb 1 STRBUF0	String buffer 0
+FF05 rmb 1 STRBUF0	String buffer 0
+FF06 rmb 1 STRBUF0	String buffer 0
+FF07 rmb 1 STRBUF0	String buffer 0
+ff53 rmb 1 AECHO	Echo flag: 0=echo
+ff8a rmb 1 EXBUGTOP	Top of stack
+
+ Strings
+
+FAF5 fcc 4 sload "LOAD"
+FAFB fcc 4 sverf "VERF"
+FB01 fcc 4 ssrch "SRCH"
+FB07 fcc 4 sprnt "PRNT"
+FB0D fcc 4 spnch "PNCH"
+FB12 fcc 4 smaid "MAID"
+FB19 fcc 4 ss10. "S10."
+FB1F fcc 4 ss30. "S30."
+FB25 fcc 4 ss120 "S120"
+
+fb36 fcc 8 STRBEG	"BEG ADDR ",4
+fb40 fcc 10 STREND	"END ADDR ",4
+fb4a fcc 16 STRCONT	"CONT/LOAD/VERF ",4
+fb5a fcc 11 STRNOCHNG	"No CHANGE",7,4
+fb65 fcc 7 STRCKSM	"CKSM ",4
+fb6b fcc 14 STRADDR	"ADDR/MEM/TAPE",4
+fb79 fcc 6 STRINVL	" INVL",4
+fb7f fcc 6 STREXEC	"EXEC ",4
+fb85 fcc 10 STRSGL	"SGL/CONT ",4
+fb8f fcc 17 STRSTPON	"STOP-ON-ADDRESS ",4
+fba0 fcc 11 STRSTOP	"STOP ADDR ",4
+fbab fcc 12 STRABORT	"ABORTED AT ",4
+fbbf fcc 3 STRPRM	" ?",4
+fbc2 fcc 14 STRBKPT	"* BKPT ERROR ",4
+fbd2 fcc 3 STRS1	"S1",4
+fbd6 fcc 3 STRCRLF	13,10,0
+fbd9 fcc 12 STRS9	"S903000",4
+fbe5 fcc 3 STRCRLF1	13,10,0
+fbe8 fcc 13 STRS0	"S00B00005820",4
+fbf5 fcc 7 STRHDR	"HDR=X ",4
+
+
+ ** CPU **
+
+fff8 fdb 1 IRQVEC	IRQ vector
+fffa fdb 1 SWIVEC	SWI vector
+fffc fdb 1 NMIVEC	NMI vector
+fffe fdb 1 RSTVEC	RESET vector
+
