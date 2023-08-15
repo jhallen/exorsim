@@ -645,6 +645,27 @@ int poll_cmd(char *p)
         return 0;
 }
 
+int cd_cmd(char *p)
+{
+        chdir(p);
+        system("/bin/pwd");
+        return 0;
+}
+
+int pwd_cmd(char *p)
+{
+        system("/bin/pwd");
+        return 0;
+}
+
+int ls_cmd(char *p)
+{
+        char buf[180];
+        sprintf(buf, "/bin/ls %s", p);
+        system(buf);
+        return 0;
+}
+
 /* Command table */
 
 struct cmd cmds[]=
@@ -679,6 +700,9 @@ struct cmd cmds[]=
         { "drive1", drive1_cmd, " [file]		Change disk in drive 1\n" },
         { "drive2", drive2_cmd, " [file]		Change disk in drive 2\n" },
         { "drive3", drive3_cmd, " [file]		Change disk in drive 3\n" },
+        { "cd", cd_cmd,         " path			Change directory\n" },
+        { "pwd", pwd_cmd,       "			Print current directory\n" },
+        { "ls", ls_cmd,         " [ls-args]		Print directory\n" },
         { 0, 0, 0 }
 };
 
