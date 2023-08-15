@@ -647,8 +647,12 @@ int poll_cmd(char *p)
 
 int cd_cmd(char *p)
 {
-        chdir(p);
-        system("/bin/pwd");
+        if (!*p)
+                p = getenv("HOME");
+        if (chdir(p))
+                printf("Error changing directory\n");
+        else
+                system("/bin/pwd");
         return 0;
 }
 
