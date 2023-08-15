@@ -37,7 +37,7 @@ FILE *lpt_file; /* Line printer file */
 /* Options */
 
 int swtpc = 0;
-char *exbug_name; /*  = "exbug.bin"; */
+const char *exbug_name; /*  = "exbug.bin"; */
 int trace_disk = 0; /* Enable disk trace */
 int lower = 0; /* Allow lower case */
 
@@ -70,6 +70,22 @@ int count = 10;
 int polling = 1; /* Allow ACIA polling */
 
 static int saved;
+
+const char *maybe_local(const char *name)
+{
+        FILE *f = fopen(name, "r");
+        if (f)
+        {
+                fclose(f);
+                return name;
+        }
+        else
+        {
+                char *buf = malloc(strlen(name) + strlen(DATADIR) + 1);
+                sprintf(buf, "%s%s", DATADIR, name);
+                return buf;
+        }
+}
 
 void getsect(int n, int addr, int sect, int len)
 {
@@ -934,7 +950,7 @@ int main(int argc, char *argv[])
         int gotox = 0;
         mon_out = stdout;
         mon_in = stdin;
-        char *facts_name = 0;
+        const char *facts_name = 0;
         int lpt_append = 1;
 
         for (x = 1; x != argc; ++x) {
@@ -1063,14 +1079,14 @@ int main(int argc, char *argv[])
         {
 #ifdef M6809
                 if (swtpc)
-                        drive[0].name = "flex09.dsk";
+                        drive[0].name = maybe_local("flex09.dsk");
                 else
-                        drive[0].name = "mdos09.dsk";
+                        drive[0].name = maybe_local("mdos09.dsk");
 #else
                 if (swtpc)
-                        drive[0].name = "flex.dsk";
+                        drive[0].name = maybe_local("flex.dsk");
                 else
-                        drive[0].name = "mdos.dsk";
+                        drive[0].name = maybe_local("mdos.dsk");
 #endif
         }
 
@@ -1094,15 +1110,15 @@ int main(int argc, char *argv[])
         if (!exbug_name) {
 #ifdef M6809
                 if (swtpc) {
-                        exbug_name = "swtbug09.bin";
+                        exbug_name = maybe_local("swtbug09.bin");
                 } else {
-                        exbug_name = "exbug09.bin";
+                        exbug_name = maybe_local("exbug09.bin");
                 }
 #else
                 if (swtpc) {
-                        exbug_name = "swtbug.bin";
+                        exbug_name = maybe_local("swtbug.bin");
                 } else {
-                        exbug_name = "exbug.bin";
+                        exbug_name = maybe_local("exbug.bin");
                 }
 #endif
         }
@@ -1117,9 +1133,9 @@ int main(int argc, char *argv[])
 
         if (!facts_name) {
 #ifdef M6809
-                facts_name = "facts09";
+                facts_name = maybe_local("facts09");
 #else
-                facts_name = "facts";
+                facts_name = maybe_local("facts");
 #endif
         }
 

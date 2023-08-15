@@ -1,3 +1,4 @@
+DATADIR ?= /usr/local/share/exorsim/
 
 OBJ_DIR := obj09/
 
@@ -5,7 +6,7 @@ OBJS = utils.o exor.o sim6809.o asm6809.o unasm6809.o exorterm.o mon.o
 
 SUBDIR_OBJS := $(addprefix $(OBJ_DIR), $(OBJS))
 
-CFLAGS = -DM6809 -g -Wall
+CFLAGS = -DM6809 -g -Wall -DDATADIR=\"$(DATADIR)\"
 
 CC = gcc
 

@@ -1,5 +1,9 @@
 
 Exor:
+  write man page
+
+  maybe replace --exbug with something implying that it's the entire memory image
+
   assembler:
     non-motorola mode? (; comments, : after label, allow whitespace ?)
     Include 6809 assembler improvements for 6800?
@@ -16,8 +20,6 @@ Exor:
      load 0xf000 exor.bin
      load 0xe800 fdc.bin
      setword 0xFFFe 0xF000
-
-  "make install" (needs paths to binaries).
 
   Step over function (we only have step into now)
   Break key
@@ -116,3 +118,6 @@ Done:
 
   Switch disks
      [drive0..drive3 commands]
+
+  "make install" (needs paths to binaries).
+
