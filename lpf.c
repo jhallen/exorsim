@@ -37,6 +37,7 @@ FILE *outfile;
 int lp_lines = 66;
 int lp_topskip = 6; /* Skip first 6 lines of each page */
 int lp_botskip = 0; /* Skip last n lines of each page */
+int lp_shift = 0; /* Skip (positive) or insert (negative) lines on just the first page */
 
 /* Set-up file parameters */
 int fontsize=8;	/* Font size (used to be 12) */
@@ -127,6 +128,15 @@ void flshpage()
 
 void nextline()
  {
+ if (lp_shift > 0)
+  {
+  /* Shift entire document up: delete this line */
+  --lp_shift;
+  linep = 0;
+  cursor_x = 0;
+  return;
+  }
+
  if (line_count >= lp_topskip && line_count < (lp_lines - lp_botskip))
   {
   flshline();
@@ -158,7 +168,7 @@ void pcl(int c)
    else if(c=='\n') nextline();
    else if(c=='\r')
     {
-    if (line_count >= lp_topskip && line_count < (lp_lines - lp_botskip))
+    if (line_count >= lp_topskip && line_count < (lp_lines - lp_botskip) && lp_shift == 0)
      flshline();
     cursor_x = 0;
     linep = 0;
@@ -254,6 +264,7 @@ int main(int argc, char *argv[])
    printf("   --lplines 66    Number of lines per page of infile\n");
    printf("   --lptopskip 6   Number of lines to skip at top of each page\n");
    printf("   --lpbotskip 0   Number of lines to skip at bottom of each page\n");
+   printf("   --lpshift 1     Shift entire document up (positive) or down (negative)\n");
    printf(" Output:\n");
    printf("   --copies nn     Number of copies to print\n");
    printf("   --fontsize 8    Postscript font size\n");
@@ -291,6 +302,11 @@ int main(int argc, char *argv[])
    {
    ++a;
    lp_botskip = atoi(argv[a]);
+   }
+  else if (!strcmp(argv[a], "--lpshift") && argv[a+1])
+   {
+   ++a;
+   lp_shift = atoi(argv[a]);
    }
   else if (!strcmp(argv[a], "--tmargin") && argv[a+1])
    {
@@ -403,6 +419,14 @@ int main(int argc, char *argv[])
  else
   { /* Input is PCL.  Give it to PCL interpreter */
   izpcl();
+
+  /* Shift entire document down by inserting blank lines at the top */
+  while (lp_shift < 0)
+   {
+   pcl('\n');
+   ++lp_shift;
+   }
+
   pcl(a);
   pcl(b);
   while((a=fgetc(infile))!= -1) pcl(a);
