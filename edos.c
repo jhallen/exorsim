@@ -333,8 +333,8 @@ int main(int argc, char *argv[])
                 printf("      ls [-la1A]                    Directory listing\n");
                 printf("                  -l for long\n");
                 printf("                  -1 to show a single name per line\n");
-                printf("      cat mdos-name                 Type file to console\n");
-                printf("      get mdos-name [local-name]    Copy file from diskette to local-name\n");
+                printf("      cat edos-name                 Type file to console\n");
+                printf("      get edos-name [local-name]    Copy file from diskette to local-name\n");
                 printf("      x                             Extract all files into current directory\n");
                 printf("\n");
                 return -1;
