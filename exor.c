@@ -176,9 +176,14 @@ void getsect(int n, int addr, int sect, int len)
 
 void getsect1(int n, unsigned char *addr, int ofst, int len)
 {
-        if (trace_disk) printf("Read sector %d\n", ofst / 256);
-        fseek(drive[n].f, ofst, SEEK_SET);
-        fread(addr, len, 1, drive[n].f);
+        if (trace_disk) printf("Read sector %d\n", ofst / len);
+        if (drive[n].f) {
+                fseek(drive[n].f, ofst, SEEK_SET);
+                fread(addr, len, 1, drive[n].f);
+        } else {
+                printf("Tried to read from non-existent disk %d\n", n);
+                stop = 1;
+        }
 }
 
 void putsect(int n, int addr, int sect, int len)
@@ -196,10 +201,15 @@ void putsect(int n, int addr, int sect, int len)
 
 void putsect1(int n, unsigned char *addr, int ofst, int len)
 {
-        if (trace_disk) printf("Write sector %d\n", ofst / 256);
-        fseek(drive[n].f, ofst, SEEK_SET);
-        fwrite(addr, len, 1, drive[n].f);
-        fflush(drive[n].f);
+        if (trace_disk) printf("Write sector %d\n", ofst / len);
+        if (drive[n].f) {
+                fseek(drive[n].f, ofst, SEEK_SET);
+                fwrite(addr, len, 1, drive[n].f);
+                fflush(drive[n].f);
+        } else {
+                printf("Tried to write to non-existent disk %d\n", n);
+                stop = 1;
+        }
 }
 
 /* FD1771 emulation.. */
@@ -1188,8 +1198,6 @@ void add_exordisk_ii_lpt(unsigned short addr)
 
 // EXORdisk-I
 
-unsigned char last_unit_sector; // Last written unit/sector
-unsigned char last_track; // Last written track
 int secbuf_idx; // Index into cur_buf
 unsigned char dkdid_data;
 
@@ -1198,8 +1206,10 @@ unsigned char exordisk_i_read_dkdid(unsigned short addr)
         if ((mem[0xec03] & 0x38) == 0x38)
                 return dkdid_data;
         else {
-                // No error, but report last unit
-                return (last_unit_sector >> 5) & 0x06;
+                if (drive[cur_drive].f)
+                        return (cur_drive << 1); // Report no errors
+                else
+                        return 0x20 | (cur_drive << 1); // Report missing disk
         }
 }
 
@@ -1229,25 +1239,23 @@ void exordisk_i_write_dkcod(unsigned short addr, unsigned char data)
                 } case 0x06: { // Read for CRC (Verify)
                         break;
                 } case 0x08: { // Seek
-                        cur_drive = (last_unit_sector >> 6);
-                        cur_track = last_track;
-                        cur_sect = (last_unit_sector & 0x3F);
                         break;
                 } case 0x0A: { // Clear error flag
                         break;
                 } case 0x0C: { // Restore to track 0
-                        last_track = 0;
                         cur_track = 0;
+                        cur_sect = 1;
                         break;
                 } case 0x0E: { // Write as DD
                         break;
                 } case 0x10: { // Give track
                         // Set track in dkdod
-                        last_track = mem[0xEC06];
+                        cur_track = mem[0xEC06];
                         break;
                 } case 0x20: { // Give unit/sector
                         // Set unit/sector in dkdod
-                        last_unit_sector = mem[0xEC06];
+                        cur_drive = (mem[0xEC06] >> 6);
+                        cur_sect = (mem[0xEC06] & 0x3F);
                         break;
                 } case 0x30: { // Write data byte to buffer
                         // Write byte in dkdod to buffer
