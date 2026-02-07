@@ -5,6 +5,7 @@ int skipws(char **at_p);
 int ws(char **at_p);
 int match_word(char **at_p, char *word);
 int parse_word(char **at_p, char *buf);
+int parse_string(char **at_p, char *buf);
 int parse_ident(char **at_p, char *buf);
 int parse_hex(char **at_p, int *hex);
 int parse_hex1(char **at_p, int *hex);

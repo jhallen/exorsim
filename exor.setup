@@ -1,0 +1,22 @@
+; Comment
+
+echo "Hello..."
+
+; Load initial memory
+
+read exbug.bin
+
+; Mark address ranges with ROMs
+
+rom e800 ec00
+rom f000 fc00
+rom fcfc fd00
+
+; Load device drivers
+
+device exbug_acia fcf4
+device exbug_pia fcf8
+device exordisk_ii e800
+device exordisk_ii_lpt e800
+
+echo "Done."

@@ -78,6 +78,42 @@ int match_word(char **at_p, char *word)
                 return 0;
 }
 
+/* Extract string */
+
+int parse_string(char **at_p, char *buf)
+{
+        char *p = *at_p;
+        if (*p == '"') {
+                ++p;
+                while (*p && *p != '"') {
+                        if (*p == '\\' && p[1]) {
+                                ++p;
+                                if (*p == 'n') {
+                                        *buf++ = '\n';
+                                } else if (*p == 'r') {
+                                        *buf++ = '\r';
+                                } else if (*p == '"') {
+                                        *buf++ = '"';
+                                } else if (*p == '\'') {
+                                        *buf++ = '\'';
+                                } else if (*p == '\t') {
+                                        *buf++ = '\t';
+                                } else if (*p == '\b') {
+                                        *buf++ = '\b';
+                                }
+                                ++p;
+                        } else
+                                *buf++ = *p++;
+                }
+                if (*p == '"')
+                        ++p;
+                *at_p = p;
+                *buf = 0;
+                return 1;
+        } else
+                return 0;
+}
+
 /* Extract word */
 
 int parse_word(char **at_p, char *buf)

@@ -47,4 +47,6 @@ void show_traces(int n);
 void jump(unsigned short addr);
 unsigned char mread(unsigned short addr);
 void mwrite(unsigned short addr, unsigned char data);
+
 void monitor(void);
+int load_setup(const char *name);

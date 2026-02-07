@@ -1,0 +1,20 @@
+; Comment
+
+echo "Hello..."
+
+; Load initial memory
+
+read swtbug.bin
+
+; Mark address ranges with ROMs
+
+rom e000 e400
+
+; Load device drivers
+
+device swtpc_acia 8004
+device swtpc_acia_alias 8006
+device swtpc_1771 8018
+device swtpc_1771_ds 8014
+
+echo "Done."

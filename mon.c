@@ -670,6 +670,59 @@ int ls_cmd(char *p)
         return 0;
 }
 
+int echo_cmd(char *p)
+{
+        char buf[180];
+        if (parse_string(&p, buf))
+                printf("%s\n", buf);
+        else
+                printf("\n");
+        return 0;
+}
+
+int device_cmd(char *p)
+{
+        char buf[32];
+        int addr = 0;
+        if (parse_word(&p, buf))
+        {
+                skipws(&p);
+                parse_hex(&p, &addr);
+                printf("Load device %s at %x\n", buf, addr);
+                if (!strcmp(buf, "swtpc_acia")) add_acia_simple(addr);
+                else if (!strcmp(buf, "swtpc_acia_alias")) add_acia_alias(addr);
+                else if (!strcmp(buf, "exbug_acia")) add_acia(addr);
+                else if (!strcmp(buf, "exbug_pia")) add_exbug_pia(addr);
+                else if (!strcmp(buf, "swtpc_1771")) add_swtpc_1771(addr);
+                else if (!strcmp(buf, "swtpc_1771_ds")) add_swtpc_1771_ds(addr);
+                else if (!strcmp(buf, "exordisk_ii")) add_exordisk_ii(addr);
+                else if (!strcmp(buf, "exordisk_i")) add_exordisk_i(addr);
+                else if (!strcmp(buf, "exordisk_ii_lpt")) add_exordisk_ii_lpt(addr);
+                else printf("Unknown device\n");
+        }
+        else
+        {
+                printf("Missing device name\n");
+        }
+        return 0;
+}
+
+int rom_cmd(char *p)
+{
+        int low, high;
+        if (parse_hex(&p, &low))
+        {
+                skipws(&p);
+                if (parse_hex(&p, &high))
+                {
+                        add_rom(low, high);
+                        return 0;
+                }
+        }
+        printf("Syntax error\n");
+        return 0;
+}
+
 /* Command table */
 
 struct cmd cmds[]=
@@ -700,6 +753,8 @@ struct cmd cmds[]=
         { "save", dump_cmd,	" [file [hhhh [nnnn]]]	Save nn bytes of memory starting at hh to file in binary\n" },
         { "read", read_cmd,	" [file [hhhh]]		Read binary file into memory starting at hh\n" },
         { "lpt", lpt_cmd,       " [file]		Open line printer file\n" },
+        { "device", device_cmd, " name [hhhh]           Install a device at address hhhh\n" },
+        { "rom", rom_cmd,       " llll hhhh             Mark range of memory as ROM\n" },
         { "drive0", drive0_cmd, " [file]		Change disk in drive 0\n" },
         { "drive1", drive1_cmd, " [file]		Change disk in drive 1\n" },
         { "drive2", drive2_cmd, " [file]		Change disk in drive 2\n" },
@@ -707,8 +762,96 @@ struct cmd cmds[]=
         { "cd", cd_cmd,         " path			Change directory\n" },
         { "pwd", pwd_cmd,       "			Print current directory\n" },
         { "ls", ls_cmd,         " [ls-args]		Print directory\n" },
+        { "echo", echo_cmd,     " \"string\"              Echo a string\n" },
         { 0, 0, 0 }
 };
+
+int process_line(char *buf)
+{
+        int rtn = 0;
+        char word[180];
+        char *p = buf;
+        char *q;
+
+        if ((p = strstr(buf, " >>")) && parse_word(((q = p + 3), &q), word)) {
+                /* Append output */
+                jstrcpy(p, q);
+                mon_out = fopen(word, "a");
+                if (!mon_out) {
+                        printf("Couldn't open '%s' for append\n", word);
+                        return 0;
+                }
+        } else if ((p = strstr(buf, " >")) && parse_word(((q = p + 2), &q), word)) {
+                /* Redirect output */
+                jstrcpy(p, q);
+                mon_out = fopen(word, "w");
+                if (!mon_out) {
+                        printf("Couldn't open '%s' for write\n", word);
+                        return 0;
+                }
+        }
+        if ((p = strstr(buf, " <")) && parse_word(((q = p + 2), &q), word)) {
+                /* Redirect input */
+                jstrcpy(p, q);
+                mon_in = fopen(word, "r");
+                if (!mon_in) {
+                        printf("Couldn't open '%s' for reading\n", word);
+                        if (mon_out != stdout) {
+                                fclose(mon_out);
+                                mon_out = stdout;
+                        }
+                        return 0;
+                }
+        }
+        p = buf;
+        if (skipws(&p) && *p && *p != ';') {
+                int x;
+                for (x = 0; cmds[x].name; ++x)
+                        if (match_word(&p, cmds[x].name))
+                                break;
+                if (cmds[x].name) {
+                        skipws(&p);
+                        if (cmds[x].func(p)) {
+                                rtn = -1;
+                        }
+                } else
+                        printf("Huh?\n");
+        }
+        if (mon_out != stdout) {
+                fclose(mon_out);
+                mon_out = stdout;
+        }
+        if (mon_in != stdin) {
+                fclose(mon_in);
+                mon_in = stdin;
+        }
+        return rtn;
+}
+
+int load_setup(const char *name)
+{
+        char buf[180];
+        FILE *f;
+        printf("Loading setup file %s...\n", name);
+        f = fopen(name, "r");
+        if (f)
+        {
+                while (fgets(buf, sizeof(buf) - 1, f))
+                {
+                        int l = strlen(buf);
+                        if (l && buf[l - 1] == '\n')
+                                buf[l - 1] = 0;
+                        process_line(buf);
+                }
+                fclose(f);
+                return 0;
+        }
+        else
+        {
+                perror(name);
+                return -1;
+        }
+}
 
 void monitor()
 {
@@ -748,64 +891,14 @@ void monitor()
 
         for (;;) {
                 char buf[180];
-                char word[180];
                 char *p = buf;
-                char *q;
                 fputs("% ", stdout);
                 if (jgetline(stdin, buf)) {
                         quit_cmd(p);
                 }
-                if ((p = strstr(buf, " >>")) && parse_word(((q = p + 3), &q), word)) {
-                        /* Append output */
-                        jstrcpy(p, q);
-                        mon_out = fopen(word, "a");
-                        if (!mon_out) {
-                                printf("Couldn't open '%s' for append\n", word);
-                                continue;
-                        }
-                } else if ((p = strstr(buf, " >")) && parse_word(((q = p + 2), &q), word)) {
-                        /* Redirect output */
-                        jstrcpy(p, q);
-                        mon_out = fopen(word, "w");
-                        if (!mon_out) {
-                                printf("Couldn't open '%s' for write\n", word);
-                                continue;
-                        }
-                }
-                if ((p = strstr(buf, " <")) && parse_word(((q = p + 2), &q), word)) {
-                        /* Redirect input */
-                        jstrcpy(p, q);
-                        mon_in = fopen(word, "r");
-                        if (!mon_in) {
-                                printf("Couldn't open '%s' for reading\n", word);
-                                if (mon_out != stdout) {
-                                        fclose(mon_out);
-                                        mon_out = stdout;
-                                }
-                                continue;
-                        }
-                }
-                p = buf;
-                if (skipws(&p) && *p) {
-                        int x;
-                        for (x = 0; cmds[x].name; ++x)
-                                if (match_word(&p, cmds[x].name))
-                                        break;
-                        if (cmds[x].name) {
-                                skipws(&p);
-                                if (cmds[x].func(p))
-                                        break;
-                        } else
-                                printf("Huh?\n");
-                }
-                if (mon_out != stdout) {
-                        fclose(mon_out);
-                        mon_out = stdout;
-                }
-                if (mon_in != stdin) {
-                        fclose(mon_in);
-                        mon_in = stdin;
-                }
+
+                if (process_line(buf))
+                        break;
         }
         /* system("stty isig"); */
         sig_termios();
