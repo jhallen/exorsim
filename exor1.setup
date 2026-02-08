@@ -18,5 +18,6 @@ rom fcfc fd00
 device exbug_acia fcf4
 device exbug_pia fcf8
 device exordisk_i e800
+device exordisk_i_lpt eab0
 
 echo "Done."

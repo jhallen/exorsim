@@ -698,6 +698,7 @@ int device_cmd(char *p)
                 else if (!strcmp(buf, "exordisk_ii")) add_exordisk_ii(addr);
                 else if (!strcmp(buf, "exordisk_i")) add_exordisk_i(addr);
                 else if (!strcmp(buf, "exordisk_ii_lpt")) add_exordisk_ii_lpt(addr);
+                else if (!strcmp(buf, "exordisk_i_lpt")) add_exordisk_i_lpt(addr);
                 else printf("Unknown device\n");
         }
         else

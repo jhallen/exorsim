@@ -164,7 +164,11 @@ const char *choose_config_file(const char *name, int copy)
 
 void getsect(int n, int addr, int sect, int len)
 {
-        if (trace_disk) printf("Read sector %d into %x, size=%d\n", sect, addr, len);
+        if (trace_disk)
+        {
+                
+                printf("Read sector %d into %x, size=%d\n", sect, addr, len);
+        }
         if (drive[n].f) {
                 fseek(drive[n].f, sect * drive[n].bytes, SEEK_SET);
                 fread(mem + addr, len, 1, drive[n].f);
@@ -174,9 +178,32 @@ void getsect(int n, int addr, int sect, int len)
         }
 }
 
+int physical_to_logical[]=
+{
+        0,  3,  6,  9, 12, 15, 18, 21, 24, 1,
+        4,  7, 10, 13, 16, 19, 22, 25,  2, 5,
+        8, 11, 14, 17, 20, 23
+};
+
+void geom(int ofst, int len, int *o_track, int *o_sect)
+{
+        int sect = ofst / len;
+        int track = sect / 26;
+        sect -= (track * 26);
+        sect = physical_to_logical[sect];
+        *o_track = track;
+        *o_sect = sect + 1;
+}
+
 void getsect1(int n, unsigned char *addr, int ofst, int len)
 {
-        if (trace_disk) printf("Read sector %d\n", ofst / len);
+        if (trace_disk)
+        {
+                int track;
+                int sector;
+                geom(ofst, len, &track, &sector);
+                printf("Read sector drive=%d, track=%d, sector=%d\n", n, track, sector);
+        }
         if (drive[n].f) {
                 fseek(drive[n].f, ofst, SEEK_SET);
                 fread(addr, len, 1, drive[n].f);
@@ -201,7 +228,13 @@ void putsect(int n, int addr, int sect, int len)
 
 void putsect1(int n, unsigned char *addr, int ofst, int len)
 {
-        if (trace_disk) printf("Write sector %d\n", ofst / len);
+        if (trace_disk)
+        {
+                int track;
+                int sector;
+                geom(ofst, len, &track, &sector);
+                printf("Write sector drive=%d, track=%d, sector=%d\n", n, track, sector);
+        }
         if (drive[n].f) {
                 fseek(drive[n].f, ofst, SEEK_SET);
                 fwrite(addr, len, 1, drive[n].f);
@@ -1220,6 +1253,8 @@ unsigned char exordisk_i_read_dkdic(unsigned short addr)
 
 void exordisk_i_write_dkcod(unsigned short addr, unsigned char data)
 {
+        //if (trace_disk)
+        //        printf("Disk code %x\n", data);
         switch (data)
         {
                 case 0x00: { // Do nothing...
@@ -1229,31 +1264,42 @@ void exordisk_i_write_dkcod(unsigned short addr, unsigned char data)
                                  cur_buf,
                                  (cur_track * drive[cur_drive].sects + (cur_sect - 1)) * drive[cur_drive].bytes,
                                  drive[cur_drive].bytes);
+                        secbuf_idx = 0; // Sometimes we don't read all 128!
                         break;
                 } case 0x04: { // Write sector
                         putsect1(cur_drive,
                                  cur_buf,
                                  (cur_track * drive[cur_drive].sects + (cur_sect - 1)) * drive[cur_drive].bytes,
                                  drive[cur_drive].bytes);
+                        secbuf_idx = 0; // In case we didn't write 128...
                         break;
                 } case 0x06: { // Read for CRC (Verify)
+                        secbuf_idx = 0;
                         break;
                 } case 0x08: { // Seek
+                        secbuf_idx = 0;
                         break;
                 } case 0x0A: { // Clear error flag
+                        secbuf_idx = 0;
                         break;
                 } case 0x0C: { // Restore to track 0
+                        secbuf_idx = 0;
                         cur_track = 0;
                         cur_sect = 1;
                         break;
                 } case 0x0E: { // Write as DD
+                        secbuf_idx = 0;
                         break;
                 } case 0x10: { // Give track
+                        secbuf_idx = 0;
                         // Set track in dkdod
+                        if (trace_disk) printf("Set track 0x%x\n", mem[0xEC06]);
                         cur_track = mem[0xEC06];
                         break;
                 } case 0x20: { // Give unit/sector
+                        secbuf_idx = 0;
                         // Set unit/sector in dkdod
+                        if (trace_disk) printf("Set sector/unit 0x%x\n", mem[0xEC06]);
                         cur_drive = (mem[0xEC06] >> 6);
                         cur_sect = (mem[0xEC06] & 0x3F);
                         break;
@@ -1277,8 +1323,10 @@ void exordisk_i_write_dkcod(unsigned short addr, unsigned char data)
                         secbuf_idx = 0;
                         break;
                 } case 0xFF: { // ?? Reset?
+                        secbuf_idx = 0;
                         break;
                 } default: {
+                        secbuf_idx = 0;
                         printf("Unknown EXORdisk-I command code! %x, %x\n", addr, data);
                         break;
                 }
@@ -1290,6 +1338,16 @@ void add_exordisk_i(unsigned short addr)
         add_reader(0xEC00, 0, exordisk_i_read_dkdid); // PIA data A
         add_reader(0xEC00, 1, exordisk_i_read_dkdic); // PIA control A
         add_writer(0xEC00, 2, exordisk_i_write_dkcod); // PIA data B
+}
+
+int exordisk_i_lpc(unsigned short addr)
+{
+        return 1;
+}
+
+void add_exordisk_i_lpt(unsigned short addr)
+{
+        add_jumper(addr, lpt_list);
 }
 
 void close_drive(int n)
