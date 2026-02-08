@@ -1,3 +1,6 @@
+#ifndef _Isim6800
+#define _Isim6800
+
 /* Controls */
 
 extern int skip;
@@ -50,3 +53,5 @@ void mwrite(unsigned short addr, unsigned char data);
 
 void monitor(void);
 int load_setup(const char *name);
+
+#endif

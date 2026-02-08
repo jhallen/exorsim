@@ -1,13 +1,13 @@
 ; Comment
 
-echo "Hello..."
+echo "Setup file for EXORdisk-I.."
 
 ; Load initial memory
 
 read exbug.bin
 l exordisk.s19
 
-; Mark address ranges with ROMs
+; Mark address ranges that are ROMs
 
 rom e800 ec00
 rom f000 fc00
@@ -19,5 +19,20 @@ device exbug_acia fcf4
 device exbug_pia fcf8
 device exordisk_i e800
 device exordisk_i_lpt eab0
+
+; Default disk images
+; These are overridden by the command line
+
+drive0 edos_images/fortran2_s0E.img
+drive1 edos_images/blank.img
+
+; Default line-printer file
+
+lpt listing.lp
+
+; 'Facts' file
+; These provide symbols and for the dissembler
+
+facts facts
 
 echo "Done."

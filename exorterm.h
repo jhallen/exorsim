@@ -1,3 +1,6 @@
+#ifndef _Iexorterm
+#define _Iexorterm
+
 /* Initialize the EXORterm */
 void izexorterm();
 
@@ -12,3 +15,5 @@ int quick_term_poll(); /* Actual OS poll only occasionally */
 int term_poll();
 void update();
 extern int exorterm; /* Set to enable EXORTerm emulation */
+
+#endif

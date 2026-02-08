@@ -1,6 +1,6 @@
 ; Comment
 
-echo "Hello..."
+echo "EXORdisk-II setup..."
 
 ; Load initial memory
 
@@ -18,5 +18,19 @@ device exbug_acia fcf4
 device exbug_pia fcf8
 device exordisk_ii e800
 device exordisk_ii_lpt e800
+
+; Default disk images
+; These are overridden by the command line
+
+drive0 mdos.dsk
+
+; Default line-printer file
+
+lpt listing.lp
+
+; 'Facts' file
+; These provide symbols and for the dissembler
+
+facts facts
 
 echo "Done."

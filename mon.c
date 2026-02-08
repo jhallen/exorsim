@@ -29,6 +29,7 @@
 #include "asm6800.h"
 #include "sim6800.h"
 #include "exor.h"
+#include "lpt.h"
 #include "exorterm.h"
 
 FILE *mon_out;
@@ -45,14 +46,11 @@ void huh()
         printf("Huh?\n");
 }
 
-extern FILE *lpt_file;
-
 int quit_cmd(char *p)
 {
         printf("\nBye\n");
         restore_termios();
-        if (lpt_file)
-                fclose(lpt_file);
+        close_lpt();
         exit(-1);
         return 0;
 }
@@ -532,19 +530,24 @@ int lpt_cmd(char *p)
 {
         char name[180];
 
-        if (lpt_file)
-        {
-                fclose(lpt_file);
-                lpt_file = 0;
-        }
+        close_lpt();
 
         if (parse_word(&p, name))
         {
-                lpt_file = fopen(name, "w");
-                if (lpt_file)
-                        fprintf(stderr, "Line printer file %s opened\n", name);
-                else
-                        fprintf(stderr, "Couldn't open %s\n", name);
+                open_lpt(name);
+        }
+        return 0;
+}
+
+int lpt_append_cmd(char *p)
+{
+        char name[180];
+
+        close_lpt();
+
+        if (parse_word(&p, name))
+        {
+                append_lpt(name);
         }
         return 0;
 }
@@ -724,6 +727,30 @@ int rom_cmd(char *p)
         return 0;
 }
 
+int facts_cmd(char *p)
+{
+        char name[180];
+
+        if (parse_word(&p, name))
+        {
+                FILE *f;
+                printf("Load facts file '%s'\n", name);
+                f = fopen(name, "r");
+                if (f) {
+                        parse_facts(f);
+                        fclose(f);
+                } else {
+                        printf("Couldn't load '%s'\n", name);
+                }
+        }
+        else
+        {
+                printf("Syntax error\n");
+        }
+
+        return 0;
+}
+
 /* Command table */
 
 struct cmd cmds[]=
@@ -753,7 +780,8 @@ struct cmd cmds[]=
         { "l", l_cmd,		" [file]		Load S19 from file or stdin" },
         { "save", dump_cmd,	" [file [hhhh [nnnn]]]	Save nn bytes of memory starting at hh to file in binary\n" },
         { "read", read_cmd,	" [file [hhhh]]		Read binary file into memory starting at hh\n" },
-        { "lpt", lpt_cmd,       " [file]		Open line printer file\n" },
+        { "lpt", lpt_cmd,       " [file]		Open line printer file, or close it if filename is missing\n" },
+        { "lpt_append", lpt_cmd," [file]		Open line printer file for append, or close it if filename is missing\n" },
         { "device", device_cmd, " name [hhhh]           Install a device at address hhhh\n" },
         { "rom", rom_cmd,       " llll hhhh             Mark range of memory as ROM\n" },
         { "drive0", drive0_cmd, " [file]		Change disk in drive 0\n" },
@@ -764,6 +792,7 @@ struct cmd cmds[]=
         { "pwd", pwd_cmd,       "			Print current directory\n" },
         { "ls", ls_cmd,         " [ls-args]		Print directory\n" },
         { "echo", echo_cmd,     " \"string\"              Echo a string\n" },
+        { "facts", facts_cmd,   " file                  Load facts file\n" },
         { 0, 0, 0 }
 };
 
