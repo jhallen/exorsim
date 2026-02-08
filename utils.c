@@ -22,6 +22,8 @@
 #include <unistd.h>
 #include <termios.h>
 #include <signal.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include "utils.h"
 
 /* Skip over whitespace */
@@ -499,5 +501,107 @@ void sig_termios()
         if (!tcgetattr(fileno(stdin), &attr)) {
                 attr.c_lflag|=ISIG;
                 tcsetattr(fileno(stdin),TCSADRAIN,&attr);
+        }
+}
+
+/* strip directory from path: ~/foo -> foo */
+
+void jbasename(char *dest, char *src)
+{
+        int l = strlen(src);
+        char *s = src + l; /* Point to end */
+        /* Scan backwards for / */
+        while (s != src && s[-1] != '/')
+                --s;
+        /* Copy name to dest */
+        while (*s)
+                *dest++ = *s++;
+        *dest++ = 0;
+}
+
+/* Copy a file by name */
+
+int copyfile(const char *src, const char *dest)
+{
+        FILE *f, *g;
+        printf("Copying %s to %s...\n", src, dest);
+        f = fopen(src, "r");
+        if (f)
+        {
+                g = fopen(dest, "w");
+                if (g)
+                {
+                        char buf[1024];
+                        size_t len;
+                        while ((len = fread(buf, 1, sizeof(buf), f)))
+                                fwrite(buf, 1, len, g);
+                        fclose(g);
+                        fclose(f);
+                        return 0;
+                }
+                else
+                {
+                        fclose(f);
+                        return -1;
+                }
+        }
+        else
+        {
+                return -1;
+        }
+}
+
+/* Find configuration or state file */
+/* If 'copy' set, make a writable copy of the file in the user's home directory */
+
+const char *local_prefix;
+
+const char *choose_config_file(const char *name, int copy)
+{
+        FILE *f;
+        /* Create path $HOME/.exorsim */
+        if (!local_prefix)
+        {
+                char *home = getenv("HOME");
+                char *tmp = malloc(strlen(home) + strlen("/.exorsim") + 1);
+                sprintf(tmp, "%s/.exorsim", home);
+                local_prefix = tmp;
+                mkdir(local_prefix, 0700); /* Create directory in case it doesn't exist */
+        }
+        /* First try current directory */
+        f = fopen(name, "r");
+        if (f)
+        {
+                fclose(f);
+                return name;
+        }
+        else
+        {
+                /* Next, try ~/.exorsim */
+                char *local = malloc(strlen(local_prefix) + 1 + strlen(name) + 1);
+                sprintf(local, "%s/%s", local_prefix, name);
+                f = fopen(local, "r");
+                if (f)
+                {
+                        fclose(f);
+                        return local;
+                }
+                else
+                {
+                        /* Try /usr/local/share/exorsim */
+                        char *sys = malloc(strlen(DATADIR) + strlen(name) + 1);
+                        sprintf(sys, "%s%s", DATADIR, name);
+                        if (copy)
+                        {
+                                /* Make local copy */
+                                copyfile(sys, local);
+                                return local;
+                        }
+                        else
+                        {
+                                /* Otherwise it had better be there */
+                                return sys;
+                        }
+                }
         }
 }

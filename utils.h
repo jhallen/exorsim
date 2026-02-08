@@ -25,3 +25,8 @@ void restore_termios(void);
 void sig_termios(void);
 void nosig_termios(void);
 int jstricmp(char *d, char *s);
+
+void jbasename(char *dest, char *src);
+
+int copyfile(const char *src, const char *dest);
+const char *choose_config_file(const char *name, int copy);

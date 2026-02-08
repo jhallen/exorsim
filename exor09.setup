@@ -1,27 +1,28 @@
 ; Comment
 
-echo "Hello..."
+echo "EXORdisk-II setup..."
 
 ; Load initial memory
 
-read swtbug.bin
+read exbug09.bin
 
 ; Mark address ranges with ROMs
 
-rom e000 e400
+rom e800 ec00
+rom f000 fc00
+rom fcfc fd00
 
 ; Load device drivers
 
-device swtpc_acia 8004
-device swtpc_acia_alias 8006
-device swtpc_1771 8018
-device swtpc_1771_ds 8014
+device exbug_acia fcf4
+device exbug_pia fcf8
+device exordisk_ii e800
+device exordisk_ii_lpt e800
 
 ; Default disk images
 ; These are overridden by the command line
 
-drivetype swtpc
-drive0 flex.dsk
+drive0 mdos09.dsk
 
 ; Default line-printer file
 
@@ -30,6 +31,6 @@ lpt listing.lp
 ; 'Facts' file
 ; These provide symbols and for the dissembler
 
-facts facts
+facts facts09
 
 echo "Done."

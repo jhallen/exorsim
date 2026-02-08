@@ -2,7 +2,7 @@ DATADIR ?= /usr/local/share/exorsim/
 BINDIR ?= /usr/local/bin/
 MANDIR ?= /usr/local/man/man1/
 
-CFLAGS = -g -Wall
+CFLAGS = -g -Wall -DDATADIR=\"$(DATADIR)\"
 
 CC = gcc
 
@@ -43,17 +43,26 @@ install : mdos exor exor09 edos unasm6800 lpf imdx
 	install -D lpf $(BINDIR)lpf
 	install -D imdx $(BINDIR)imdx
 	install -D exor $(BINDIR)exor
+	install -D exor $(BINDIR)exor1
+	install -D exor $(BINDIR)swtpc
 	install -D exor09 $(BINDIR)exor09
 	install -D mdos $(BINDIR)mdos
 	install -D edos $(BINDIR)edos
 	install -D -m 644 facts $(DATADIR)facts
 	install -D -m 644 facts09 $(DATADIR)facts09
 	install -D -m 644 mdos.dsk $(DATADIR)mdos.dsk
+	install -D -m 644 edos.dsk $(DATADIR)edos.dsk
+	install -D -m 644 edos_blank.dsk $(DATADIR)edos_blank.dsk
 	install -D -m 644 flex.dsk $(DATADIR)flex.dsk
 	install -D -m 644 mdos09.dsk $(DATADIR)mdos09.dsk
 	install -D -m 644 exbug.bin $(DATADIR)exbug.bin
+	install -D -m 644 exordisk.s19 $(DATADIR)exordisk.s19
 	install -D -m 644 exbug09.bin $(DATADIR)exbug09.bin
 	install -D -m 644 swtbug.bin $(DATADIR)swtbug.bin
+	install -D -m 644 exor.setup $(DATADIR)exor.setup
+	install -D -m 644 exor1.setup $(DATADIR)exor1.setup
+	install -D -m 644 exor09.setup $(DATADIR)exor09.setup
+	install -D -m 644 swtpc.setup $(DATADIR)swtpc.setup
 
 # include dependancy files if they exist
 -include obj/unasm.d obj/utils.d obj/unasm6800.d obj/mdos.d obj/edos.d obj/imdx.d obj/lpf.d

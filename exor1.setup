@@ -23,8 +23,8 @@ device exordisk_i_lpt eab0
 ; Default disk images
 ; These are overridden by the command line
 
-drive0 edos_images/fortran2_s0E.img
-drive1 edos_images/blank.img
+drive0 edos.dsk
+drive1 edos_blank.dsk
 
 ; Default line-printer file
 

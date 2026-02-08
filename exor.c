@@ -44,94 +44,6 @@ int protect_roms = 1; /* Protect "ROM"s from writing if set */
 /* Memory */
 unsigned char mem[65536];
 
-const char *local_prefix;
-
-/* Copy a file by name */
-
-int copyfile(const char *src, const char *dest)
-{
-        FILE *f, *g;
-        printf("Copying %s to %s...\n", src, dest);
-        f = fopen(src, "r");
-        if (f)
-        {
-                g = fopen(dest, "w");
-                if (g)
-                {
-                        char buf[1024];
-                        size_t len;
-                        while ((len = fread(buf, 1, sizeof(buf), f)))
-                                fwrite(buf, 1, len, g);
-                        fclose(g);
-                        fclose(f);
-                        return 0;
-                }
-                else
-                {
-                        fclose(f);
-                        return -1;
-                }
-        }
-        else
-        {
-                return -1;
-        }
-}
-
-/* Find configuration or state file */
-/* If 'copy' set, make a writable copy of the file in the user's home directory */
-
-const char *choose_config_file(const char *name, int copy)
-{
-        FILE *f;
-        /* Create path $HOME/.exorsim */
-        if (!local_prefix)
-        {
-                char *home = getenv("HOME");
-                char *tmp = malloc(strlen(home) + strlen("/.exorsim") + 1);
-                sprintf(tmp, "%s/.exorsim", home);
-                local_prefix = tmp;
-                mkdir(local_prefix, 0700); /* Create directory in case it doesn't exist */
-        }
-        /* First try current directory */
-        f = fopen(name, "r");
-        if (f)
-        {
-                fclose(f);
-                return name;
-        }
-        else
-        {
-                /* Next, try ~/.exotsim */
-                char *local = malloc(strlen(local_prefix) + 1 + strlen(name) + 1);
-                sprintf(local, "%s/%s", local_prefix, name);
-                f = fopen(local, "r");
-                if (f)
-                {
-                        fclose(f);
-                        return local;
-                }
-                else
-                {
-                        /* Try /usr/local/share/exorsim */
-                        char *sys = malloc(strlen(DATADIR) + strlen(name) + 1);
-                        sprintf(sys, "%s%s", DATADIR, name);
-                        if (copy)
-                        {
-                                /* Make local copy */
-                                copyfile(sys, local);
-                                return local;
-                        }
-                        else
-                        {
-                                /* Otherwise it had better be there */
-                                return sys;
-                        }
-                }
-        }
-}
-
-
 /* All memory reads go through mread */
 
 struct reader
@@ -342,11 +254,18 @@ int main(int argc, char *argv[])
         int gotox = 0;
         mon_out = stdout;
         mon_in = stdin;
-        const char *setup_name = "exor.setup";
+        const char *setup_name = 0;
         const char *facts_name = 0;
         int lpt_append = 1;
         char *disk_name[4] = { 0, 0, 0, 0 };
         char *lpt_name = 0;
+        const char *s;
+
+        /* Default setup file is basename.setup */
+        char basenm[128];
+        char default_setup_name[256];
+        jbasename(basenm, argv[0]);
+        sprintf(default_setup_name, "%s.setup", basenm);
 
         for (x = 1; x != argc; ++x) {
                 if (argv[x][0] == '-') {
@@ -434,8 +353,16 @@ int main(int argc, char *argv[])
 
         /* Load setup file */
 
-        if (load_setup(setup_name))
+        if (setup_name && load_setup((s = choose_config_file(setup_name, 1))))
+        {
+                fprintf(stderr, "Couldn't open setup file %s\n", s);
                 return -1;
+        }
+        else if (load_setup((s = choose_config_file(default_setup_name, 1))))
+        {
+                fprintf(stderr, "Couldn't open setup file %s\n", s);
+                return -1;
+        }
 
         /* Open line printer */
 

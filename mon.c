@@ -341,9 +341,10 @@ int l_cmd(char *p)
         int line = 0;
         if (parse_word(&p, name))
         {
-                f = fopen(name, "r");
+                const char *s = choose_config_file(name, 1);
+                f = fopen(s, "r");
                 if (!f) {
-                        printf("Couldn't open %s\n", name);
+                        printf("Couldn't open %s\n", s);
                         return 0;
                 }
         }
@@ -504,13 +505,17 @@ int read_cmd(char *p)
         int start = 0;
         int size;
         FILE *f;
+        const char *s;
         strcpy(name, "dump");
 
         if (parse_word(&p, name) && skipws(&p))
                 parse_hex(&p, &start);
-        f = fopen(name, "r");
+
+        s = choose_config_file(name, 1);
+
+        f = fopen(s, "r");
         if (!f) {
-                printf("Couldn't open '%s'\n", name);
+                printf("Couldn't open '%s'\n", s);
                 return 0;
         }
         fseek(f, 0, SEEK_END);
@@ -559,8 +564,9 @@ int drive0_cmd(char *p)
 
         if (parse_word(&p, name))
         {
+                const char *s = strdup(name);
                 close_drive(0);
-                set_drive(0, strdup(name));
+                set_drive(0, choose_config_file(s, 1));
                 load_drive(0);
         }
         else
@@ -576,8 +582,9 @@ int drive1_cmd(char *p)
 
         if (parse_word(&p, name))
         {
+                const char *s = strdup(name);
                 close_drive(1);
-                set_drive(1, strdup(name));
+                set_drive(1, choose_config_file(s, 1));
                 load_drive(1);
         }
         else
@@ -593,8 +600,9 @@ int drive2_cmd(char *p)
 
         if (parse_word(&p, name))
         {
+                const char *s = strdup(name);
                 close_drive(2);
-                set_drive(2, strdup(name));
+                set_drive(2, choose_config_file(s, 1));
                 load_drive(2);
         }
         else
@@ -610,8 +618,10 @@ int drive3_cmd(char *p)
 
         if (parse_word(&p, name))
         {
+                const char *s = strdup(name);
                 close_drive(3);
-                set_drive(3, strdup(name));
+
+                set_drive(3, choose_config_file(s, 1));
                 load_drive(3);
         }
         else
@@ -735,13 +745,14 @@ int facts_cmd(char *p)
         if (parse_word(&p, name))
         {
                 FILE *f;
-                printf("Load facts file '%s'\n", name);
-                f = fopen(name, "r");
+                const char *s = choose_config_file(name, 0);
+                printf("Load facts file '%s'\n", s);
+                f = fopen(s, "r");
                 if (f) {
                         parse_facts(f);
                         fclose(f);
                 } else {
-                        printf("Couldn't load '%s'\n", name);
+                        printf("Couldn't load '%s'\n", s);
                 }
         }
         else
@@ -749,6 +760,20 @@ int facts_cmd(char *p)
                 printf("Syntax error\n");
         }
 
+        return 0;
+}
+
+int drivetype_cmd(char *p)
+{
+        if (match_word(&p, "swtpc"))
+        {
+                printf("SWTPC mode\n");
+                swtpc = 1;
+        }
+        else
+        {
+                printf("Syntax error\n");
+        }
         return 0;
 }
 
@@ -789,6 +814,8 @@ struct cmd cmds[]=
         { "drive1", drive1_cmd, " [file]		Change disk in drive 1\n" },
         { "drive2", drive2_cmd, " [file]		Change disk in drive 2\n" },
         { "drive3", drive3_cmd, " [file]		Change disk in drive 3\n" },
+        { "drivetype", drivetype_cmd,
+                                " swtpc                 Drive controller handle SWTPC disks\n" },
         { "cd", cd_cmd,         " path			Change directory\n" },
         { "pwd", pwd_cmd,       "			Print current directory\n" },
         { "ls", ls_cmd,         " [ls-args]		Print directory\n" },
@@ -863,10 +890,10 @@ int load_setup(const char *name)
 {
         char buf[180];
         FILE *f;
-        printf("Loading setup file %s...\n", name);
         f = fopen(name, "r");
         if (f)
         {
+                printf("Loading setup file %s...\n", name);
                 while (fgets(buf, sizeof(buf) - 1, f))
                 {
                         int l = strlen(buf);
@@ -879,7 +906,6 @@ int load_setup(const char *name)
         }
         else
         {
-                perror(name);
                 return -1;
         }
 }
