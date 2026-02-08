@@ -30,6 +30,7 @@
 #include "sim6800.h"
 #include "exor.h"
 #include "lpt.h"
+#include "drive.h"
 #include "exorterm.h"
 
 FILE *mon_out;

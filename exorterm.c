@@ -24,7 +24,19 @@
 #include <unistd.h>
 #include <signal.h>
 #include "utils.h"
+#include "sim6800.h"
+#include "exor.h"
+#include "drive.h"
 #include "exorterm.h"
+
+int lower = 0; /* Allow lower case */
+int echo_flag_addr;
+int exbug_detected = 0;
+int polling = 1; /* Allow ACIA polling */
+int pending_read_ahead = 1;
+unsigned char read_ahead_c;
+static int saved;
+static int count = 10;
 
 /* State of real terminal */
 
@@ -1105,9 +1117,6 @@ void term_out(int c)
 
 /* Check for input */
 
-extern int stop;
-extern int lower;
-
 enum {
 	INIDLE,
 	INESC,
@@ -1366,4 +1375,209 @@ int term_in()
 	}
 
 	return c;
+}
+
+/* Simple ACIA for SWTPC */
+
+unsigned char acia_simple_read_status(unsigned short addr)
+{
+        if (polling) {
+
+                int flags;
+                int rtn;
+
+                if (pending_read_ahead)
+                        return 0x03;
+
+                flags = fcntl(fileno(stdin), F_GETFL);
+                if (flags == -1) {
+                        printf("fcntl error\n");
+                        exit(-1);
+                }
+                fcntl(fileno(stdin), F_SETFL, flags | O_NONBLOCK);
+
+                rtn = read(fileno(stdin), &read_ahead_c, 1);
+
+                fcntl(fileno(stdin), F_SETFL, flags);
+
+                if (rtn == 1) {
+                        count = 0;
+                        pending_read_ahead = 1;
+                        return 0x03;
+                } else {
+                        if (count == 1000)
+                                poll(NULL, 0, 1); /* Don't hog CPU time */
+                        else
+                                ++count;
+                        return 0x02;
+                }
+        } else {
+                /* No polling: return false then true */
+                if (count--)
+                        return 0x00;
+                else {
+                        count = 10;
+                        return 0x03;
+                }
+        }
+}
+
+unsigned char acia_simple_read_data(unsigned short addr)
+{
+        unsigned char c;
+        if (polling) {
+                c = read_ahead_c;
+                pending_read_ahead = 0;
+        } else {
+                int rtn = 0;
+                int flags = fcntl(fileno(stdin), F_GETFL);
+                c = '?';
+                if (flags == -1) {
+                        printf("fcntl error\n");
+                        exit(-1);
+                }
+                while (rtn < 1 && !stop) {
+                        fcntl(fileno(stdin), F_SETFL, flags | O_NONBLOCK);
+                        rtn = read(fileno(stdin), &c, 1);
+                        fcntl(fileno(stdin), F_SETFL, flags);
+                        if (rtn < 1 && !stop) {
+                                poll(NULL, 0, 8); /* Don't hog CPU time */
+                        }
+                }
+        }
+        if (!lower && c >= 'a' && c <= 'z')
+                c += 'A' - 'a';
+        if (swtpc) {
+                if (c == 127)
+                        c = 8;
+        } else {
+                if (c == 8)
+                        c = 127;
+        }
+        saved = c;
+        return c;
+}
+
+void acia_simple_write_data(unsigned short addr, unsigned char data)
+{
+        putchar(data); fflush(stdout);
+}
+
+/* Add simple ACIA driver: SWTPC address is 0x8004 */
+
+void add_acia_simple(unsigned short addr)
+{
+        add_reader(addr, 0, acia_simple_read_status);
+        add_reader(addr, 1, acia_simple_read_data);
+        add_writer(addr, 1, acia_simple_write_data);
+}
+
+/* On SWTPC, this is an alias of the ACIA: it's used to test if this is really an ACIA
+   Just return previous read data */
+
+unsigned char acia_simple_read_alias(unsigned short addr)
+{
+        return saved;
+}
+
+/* Normal address is 0x8006 */
+
+void add_acia_alias(unsigned short addr)
+{
+        add_reader(addr, 1, acia_simple_read_alias);
+}
+
+/* Exorciser console ACIA */
+
+unsigned char acia_read_status(unsigned short addr)
+{
+        // Check serial port status
+        if (quick_term_poll())
+                return 0x03;
+        else
+                return 0x02;
+}
+
+unsigned char acia_read_data(unsigned short addr)
+{
+        // Read from serial port
+        if (quick_term_poll())
+                return term_in();
+        else
+                return 0;
+}
+
+void acia_write_data(unsigned short addr, unsigned char data)
+{
+        /* Write to serial port */
+        term_out(data);
+}
+
+int exbug_inch(unsigned short addr)
+{
+        /* Intercept INCH function */
+        /* Note that we don't intercept output functions, we just emulate the ACIA hardware, see mwrite() */
+        acca = term_in();
+        if (!mem[echo_flag_addr]) { /* Echo flag */
+                term_out(acca);
+                /* putchar(c);
+                fflush(stdout); */
+        } else {
+                mem[echo_flag_addr] = 0;
+        }
+        c_flag = 0; /* No error */
+        return 1;
+}
+
+/* Add exbug console ACIA: address is 0xFCF4 */
+/* Look for EXBUG-1.1 or EXBUG-1.2 in memory: if they are there, intercept INCH function */
+
+void add_acia(unsigned short addr)
+{
+        add_reader(addr, 0, acia_read_status);
+        add_reader(addr, 1, acia_read_data);
+        add_writer(addr, 1, acia_write_data);
+        if (!memcmp(&mem[0xFA8B], "\xb6\xfc\xf4\x47", 4))
+        {
+                printf("  EXBUG-1.1 detected\n");
+                add_jumper(0xFA8B, exbug_inch);
+                echo_flag_addr = 0xFF53;
+                exbug_detected = 1;
+        }
+        else if (!memcmp(&mem[0xFA6B], "\xb6\xfc\xf4\x47", 4))
+        {
+                printf("  EXBUG-1.2 detected\n");
+                add_jumper(0xFA6B, exbug_inch);
+                echo_flag_addr = 0xFF53;
+                exbug_detected = 1;
+        }
+#ifdef M6809
+        else if (!memcmp(&mem[0xF0D2], "\xb6\xfc\xf4\x47", 4))
+        {
+                printf("  EXBUG09-2.1 detected\n");
+                add_jumper(0xF0D2, exbug_inch);
+                echo_flag_addr = 0xFF58;
+                exbug_detected = 1;
+        }
+#endif
+}
+
+
+/* Exbug PIA: just return something to make exbug happy */
+/* Normal address: 0xFCF8 */
+
+unsigned char exbug_pia_read_data(unsigned short addr)
+{
+        return 0x0F;
+}
+
+unsigned char exbug_pia_read_ctrl(unsigned short addr)
+{
+        return 0x80;
+}
+
+void add_exbug_pia(unsigned short addr)
+{
+        add_reader(addr, 0, exbug_pia_read_data);
+        add_reader(addr, 1, exbug_pia_read_ctrl);
 }
