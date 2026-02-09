@@ -347,9 +347,10 @@ int main(int argc, char *argv[])
 
         /* Load setup file */
 
-        if (setup_name && load_setup(setup_name)) // Give precedence to command line
+        if (setup_name) // Give precedence to command line
         {
-                return -1;
+                if (load_setup(setup_name))
+                        return -1;
         }
         else if (load_setup(choose_config_file(default_setup_name))) // Otherwise ~/.exorsim
         {
