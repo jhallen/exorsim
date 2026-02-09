@@ -353,7 +353,33 @@ int l_cmd(char *p)
         }
         while (f ? !!fgets(buf, sizeof(buf), f) : !jgetline(mon_in, buf)) {
                 ++line;
-                if (buf[0] == 'S' && buf[1] == '1') {
+                if (buf[0] == 'S' && buf[1] == '0') { /* Header, module name */
+                        int l;
+                        int addr;
+                        int x;
+                        int data;
+                        int cksum;
+                        int chk;
+                        p = buf + 2;
+                        parse_hex2(&p, &l); /* Length */
+                        chk = l;
+                        parse_hex4(&p, &addr); /* Address */
+                        chk += (addr >> 8);
+                        chk += (addr & 0xFF);
+                        printf("S0: '");
+                        for (x = 0; x < l - 3; ++x) { /* Data */
+                                parse_hex2(&p, &data);
+                                chk += data;
+                                printf("%c", data);
+                                ++count;
+                        }
+                        printf("'\n");
+                        parse_hex2(&p, &cksum);
+                        if (cksum != (~chk & 0xFF)) {
+                                printf("Checksum mismatch on line %d\n", line);
+                                err = 1;
+                        }
+                } else if (buf[0] == 'S' && buf[1] == '1') {
                         int l;
                         int addr;
                         int x;
