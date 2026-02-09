@@ -633,7 +633,11 @@ void add_exordisk_ii(unsigned short addr)
 
 // EXORdisk-I
 
-int secbuf_idx; // Index into cur_buf
+unsigned char dinbuf[128];
+unsigned char doutbuf[128];
+int inbuf_idx;
+int outbuf_idx;
+
 unsigned char dkdid_data;
 
 unsigned char exordisk_i_read_dkdid(unsigned short addr)
@@ -663,43 +667,38 @@ void exordisk_i_write_dkcod(unsigned short addr, unsigned char data)
                         break;
                 } case 0x02: { // Read sector
                         getsect1(cur_drive,
-                                 cur_buf,
+                                 dinbuf,
                                  (cur_track * drive[cur_drive].sects + (cur_sect - 1)) * drive[cur_drive].bytes,
                                  drive[cur_drive].bytes);
-                        secbuf_idx = 0; // Sometimes we don't read all 128!
+                        inbuf_idx = 0;
                         break;
                 } case 0x04: { // Write sector
+                        if (trace_disk)
+                                printf("writing sector, idx is %d\n", outbuf_idx);
                         putsect1(cur_drive,
-                                 cur_buf,
+                                 doutbuf,
                                  (cur_track * drive[cur_drive].sects + (cur_sect - 1)) * drive[cur_drive].bytes,
                                  drive[cur_drive].bytes);
-                        secbuf_idx = 0; // In case we didn't write 128...
+                        outbuf_idx = 0; // In case we didn't write 128...
                         break;
                 } case 0x06: { // Read for CRC (Verify)
-                        secbuf_idx = 0;
                         break;
                 } case 0x08: { // Seek
-                        secbuf_idx = 0;
                         break;
                 } case 0x0A: { // Clear error flag
-                        secbuf_idx = 0;
                         break;
                 } case 0x0C: { // Restore to track 0
-                        secbuf_idx = 0;
                         cur_track = 0;
                         cur_sect = 1;
                         break;
                 } case 0x0E: { // Write as DD
-                        secbuf_idx = 0;
                         break;
                 } case 0x10: { // Give track
-                        secbuf_idx = 0;
                         // Set track in dkdod
                         if (trace_disk) printf("Set track 0x%x\n", mem[0xEC06]);
                         cur_track = mem[0xEC06];
                         break;
                 } case 0x20: { // Give unit/sector
-                        secbuf_idx = 0;
                         // Set unit/sector in dkdod
                         if (trace_disk) printf("Set sector/unit 0x%x\n", mem[0xEC06]);
                         cur_drive = (mem[0xEC06] >> 6);
@@ -707,28 +706,25 @@ void exordisk_i_write_dkcod(unsigned short addr, unsigned char data)
                         break;
                 } case 0x30: { // Write data byte to buffer
                         // Write byte in dkdod to buffer
-                        cur_buf[secbuf_idx++] = mem[0xEC06];
-                        if (secbuf_idx == 128)
-                                secbuf_idx = 0;
+                        doutbuf[outbuf_idx++] = mem[0xEC06];
+                        if (outbuf_idx == 128)
+                                outbuf_idx = 0;
                         break;
                 } case 0x40: { // Read data byte
                         // On rising edge of bit 6 read data byte so that it appears on dkdid
                         if (!(mem[0xEC02] & 0x40))
                         {
                                 // Rising edge
-                                dkdid_data = cur_buf[secbuf_idx++];
-                                if (secbuf_idx == 128)
-                                        secbuf_idx = 0;
+                                dkdid_data = dinbuf[inbuf_idx++];
+                                if (inbuf_idx == 128)
+                                        inbuf_idx = 0;
                         }
                         break;
                 } case 0x80: { // Reset
-                        secbuf_idx = 0;
                         break;
                 } case 0xFF: { // ?? Reset?
-                        secbuf_idx = 0;
                         break;
                 } default: {
-                        secbuf_idx = 0;
                         printf("Unknown EXORdisk-I command code! %x, %x\n", addr, data);
                         break;
                 }
