@@ -3,6 +3,7 @@
 <p>Summary: exor [options] [-0 disk0] [-1 disk1] [-2 disk2] [-3 disk3]</p>
 
 <dl><dt>Options:<dl>
+<dt>--setup name<dd>Load setup file
 <dt>--trace<dd>Produce instruction trace on stderr
 <dt>--dtrace<dd>Produce disk access trace on stderr
 <dt>--skip nnn<dd>Skip first nnn insns in trace
@@ -17,27 +18,72 @@
 <dt>--no_protect<dd>Allow writing to ROMs
 </dl></dl>
 
-<h3>Paths</h3>
+<h3>Setup file</h3>
 
-Disk images are selected as follows:
+When exor starts up, monitor commands are executed from a setup file before
+the simulator starts.  These commands set the personality of the simulator,
+whether it's going to simulate an EXORciser or a SWTPC.
 
-1.  If "-0 path" is given on the command line, then path is the location of the drive 0 disk image.
-2.  Otherwise if the environment variable EXOR_DRIVE0 (for exor) or EXOR09_DRIVE0 (for exor09) is given, it provides the location of the drive 0 disk image.
-3.  Otherwise mdos.dsk, flex.dsk, exor09.dsk or flex09.dsk is the default name, depending on which emulator you are running.
+By default (if --setup option is not given), the name of the setup file is
+the name of the executable with ".setup" appended.  So for example, if you
+are running "exor", the setup file name will be "exor.setup".  Likewise, if
+the executable name is "swtpc", the setup file name will be "swtpc.setup".
 
-It's the same for the drive1 .. drive3, but there is no final default
-built-in name as there is for drive0.
+Currently, these simulators (and their associated setup files) are
+installed:
 
-Initial memory image is selected as follows:
+<dl>
+<dt>exor<dd>Simulate an M6800 EXORciser with an EXORdisk-II running MDOS
+<dt>exor1<dd>Simulate an M6800 EXORciser with an EXORdisk-I running EDOS
+<dt>swtpc<dd>Simulate a SWTPC
+<dt>exor09<dd>Simulate an M6809 EXORciser with an EXORdisk-II running MDOS09
+</dl>
 
-The "--exbug" option supplies the path to the initial memory image.  If it
-not given, then the environment variable EXOR_EXBUG or EXOR09_EXBUG is used. 
-Otherwise the default is "exbug.bin".
+By default (if --setup option is not given), exor searches for the setup
+file in the current directory, and if it is not found there, it looks in
+$HOME/.exorsim/.  $HOME/.exorsim/ is created if it does not yet exist.  If
+the setup file is missing from $HOME/.exorsim/, exor copies it from the
+installation default directory /usr/local/share/exorsim.  The idea is that
+you may customize the setup file in $HOME/.exorsim if you want.
 
-For SWTPC (when the "--swtpc" option is given), "--exbug" supplies the
-path to the initial memory image.  But if it is not set, then the
-environment variable EXOR_SWTBUG or EXOR09_SWTBUG is used.  Otherwise the
-default is "swtbug.bin".
+When exor processes the setup file, it sets the current directory to the
+directory containing the setup file (and restores to the originally
+directory after).  In this way, any files referred to in the setup file are
+located relative to the location of the setup file.
+
+If files referred to by the setup file are missing for $HOME/.exorsim, they
+are copied there from /usr/local/share/exorsim.
+
+Important: after you "make install" a new version of exorsim (which might
+have updated setup files), you should "rm -r ~/.exorsim" so that you get
+local copies of these new files.
+
+<h3>Disk images</h3>
+
+The setup file may mount disk images by using the "drive0" ..  "drive3"
+monitor command.  It usually does mount a default disk on drive 0 so that
+the simulator has on OS to boot.
+
+But these images may be overridden on the command line by using the -0 .. -3
+options.
+
+<h3>Initial memory image</h3>
+
+The setup file usually loads an initial memory image using the "read" or "l"
+monitor commands.  The initial memory image should contain any needed ROMs.
+The "rom" monitor command can then be used to prevent the simulated
+processor from modifying address ranges which are supposed to be ROMs.
+
+The following memory images are included:
+
+<dl>
+<dt>exbug.bin<dd>M6800 EXORciser EXbug and EXORdisk-II ROM
+<dt>exbug09.bin<dd>M6809 EXORciser EXbug and EXORdisk-II ROM
+<dt>swtbug.bin<dd>SWTPC ROM
+<dt>exordisk.s19<dd>EXORdisk-I ROM
+</dl>
+
+<h3>Facts file</h3>
 
 Debug "facts" file is selected as follows:
 
