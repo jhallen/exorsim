@@ -504,18 +504,33 @@ void sig_termios()
         }
 }
 
-/* strip directory from path: ~/foo -> foo */
+/* extract file name from path: /home/joe/foo -> foo, foo -> foo */
 
-void jbasename(char *dest, char *src)
+void jbasename(char *dest, const char *src)
 {
         int l = strlen(src);
-        char *s = src + l; /* Point to end */
+        const char *s = src + l; /* Point to end */
         /* Scan backwards for / */
         while (s != src && s[-1] != '/')
                 --s;
         /* Copy name to dest */
         while (*s)
                 *dest++ = *s++;
+        *dest++ = 0;
+}
+
+/* extract directory from path: /home/joe/foo -> /home/joe/, foo -> "" */
+
+void jdirname(char *dest, const char *src)
+{
+        int l = strlen(src);
+        const char *s = src + l; /* Point to end */
+        /* Scan backwards for / */
+        while (s != src && s[-1] != '/')
+                --s;
+        /* Copy dir to dest */
+        while (src != s)
+                *dest++ = *src++;
         *dest++ = 0;
 }
 
@@ -551,12 +566,12 @@ int copyfile(const char *src, const char *dest)
         }
 }
 
-/* Find configuration or state file */
+/* Find state file */
 /* If 'copy' set, make a writable copy of the file in the user's home directory */
 
 const char *local_prefix;
 
-const char *choose_config_file(const char *name, int copy)
+const char *choose_config_file(const char *name)
 {
         FILE *f;
         /* Create path $HOME/.exorsim */
@@ -568,6 +583,7 @@ const char *choose_config_file(const char *name, int copy)
                 local_prefix = tmp;
                 mkdir(local_prefix, 0700); /* Create directory in case it doesn't exist */
         }
+
         /* First try current directory */
         f = fopen(name, "r");
         if (f)
@@ -588,20 +604,31 @@ const char *choose_config_file(const char *name, int copy)
                 }
                 else
                 {
-                        /* Try /usr/local/share/exorsim */
+                        /* Doesn't exist, try /usr/local/share/exorsim */
                         char *sys = malloc(strlen(DATADIR) + strlen(name) + 1);
                         sprintf(sys, "%s%s", DATADIR, name);
-                        if (copy)
-                        {
-                                /* Make local copy */
-                                copyfile(sys, local);
-                                return local;
-                        }
-                        else
-                        {
-                                /* Otherwise it had better be there */
-                                return sys;
-                        }
+                        /* Try to make local copy */
+                        copyfile(sys, local);
+                        return local;
                 }
+        }
+}
+
+void install_config_file(const char *name)
+{
+        FILE *f = fopen(name, "r");
+        if (f)
+        {
+                fclose(f);
+                return;
+        }
+        else
+        {
+                /* Doesn't exist, try /usr/local/share/exorsim */
+                char *sys = malloc(strlen(DATADIR) + strlen(name) + 1);
+                sprintf(sys, "%s%s", DATADIR, name);
+                /* Try to make local copy */
+                copyfile(sys, name);
+                return;
         }
 }

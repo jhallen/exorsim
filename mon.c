@@ -33,6 +33,8 @@
 #include "drive.h"
 #include "exorterm.h"
 
+int setup_mode; // Set if monitor command is being run from setup file
+
 FILE *mon_out;
 FILE *mon_in;
 
@@ -341,10 +343,11 @@ int l_cmd(char *p)
         int line = 0;
         if (parse_word(&p, name))
         {
-                const char *s = choose_config_file(name, 1);
-                f = fopen(s, "r");
+                if (setup_mode)
+                        install_config_file(name);
+                f = fopen(name, "r");
                 if (!f) {
-                        printf("Couldn't open %s\n", s);
+                        printf("Couldn't open %s\n", name);
                         return 0;
                 }
         }
@@ -505,17 +508,17 @@ int read_cmd(char *p)
         int start = 0;
         int size;
         FILE *f;
-        const char *s;
         strcpy(name, "dump");
 
         if (parse_word(&p, name) && skipws(&p))
                 parse_hex(&p, &start);
 
-        s = choose_config_file(name, 1);
+        if (setup_mode)
+                install_config_file(name);
 
-        f = fopen(s, "r");
+        f = fopen(name, "r");
         if (!f) {
-                printf("Couldn't open '%s'\n", s);
+                printf("Couldn't open %s\n", name);
                 return 0;
         }
         fseek(f, 0, SEEK_END);
@@ -564,9 +567,10 @@ int drive0_cmd(char *p)
 
         if (parse_word(&p, name))
         {
-                const char *s = strdup(name);
+                if (setup_mode)
+                        install_config_file(name);
                 close_drive(0);
-                set_drive(0, choose_config_file(s, 1));
+                set_drive(0, strdup(name));
                 load_drive(0);
         }
         else
@@ -582,9 +586,10 @@ int drive1_cmd(char *p)
 
         if (parse_word(&p, name))
         {
-                const char *s = strdup(name);
+                if (setup_mode)
+                        install_config_file(name);
                 close_drive(1);
-                set_drive(1, choose_config_file(s, 1));
+                set_drive(1, strdup(name));
                 load_drive(1);
         }
         else
@@ -600,9 +605,10 @@ int drive2_cmd(char *p)
 
         if (parse_word(&p, name))
         {
-                const char *s = strdup(name);
+                if (setup_mode)
+                        install_config_file(name);
                 close_drive(2);
-                set_drive(2, choose_config_file(s, 1));
+                set_drive(2, strdup(name));
                 load_drive(2);
         }
         else
@@ -618,10 +624,10 @@ int drive3_cmd(char *p)
 
         if (parse_word(&p, name))
         {
-                const char *s = strdup(name);
+                if (setup_mode)
+                        install_config_file(name);
                 close_drive(3);
-
-                set_drive(3, choose_config_file(s, 1));
+                set_drive(3, strdup(name));
                 load_drive(3);
         }
         else
@@ -745,14 +751,15 @@ int facts_cmd(char *p)
         if (parse_word(&p, name))
         {
                 FILE *f;
-                const char *s = choose_config_file(name, 0);
-                printf("Load facts file '%s'\n", s);
-                f = fopen(s, "r");
+                if (setup_mode)
+                        install_config_file(name);
+                printf("Load facts file '%s'\n", name);
+                f = fopen(name, "r");
                 if (f) {
                         parse_facts(f);
                         fclose(f);
                 } else {
-                        printf("Couldn't load '%s'\n", s);
+                        printf("Couldn't load '%s'\n", name);
                 }
         }
         else
@@ -886,11 +893,36 @@ int process_line(char *buf)
         return rtn;
 }
 
+/* Execute monitor commands from setup file
+
+   We temporarily change directory to the location of the setup file so that
+   paths within the setup file are relative to that file.
+*/
+
 int load_setup(const char *name)
 {
+        int changed = 0;
+        char orgdir[1024];
+        char setupdir[1024];
+        char setupname[1024];
         char buf[180];
         FILE *f;
-        f = fopen(name, "r");
+        int rtn;
+
+        jbasename(setupname, name);
+        jdirname(setupdir, name);
+
+        if (setupdir[0])
+        {
+                getcwd(orgdir, sizeof(orgdir) - 1);
+                printf("Switching to %s\n", setupdir);
+                if (chdir(setupdir))
+                        return -1;
+                changed = 1;
+        }
+
+        setup_mode = 1;
+        f = fopen(setupname, "r");
         if (f)
         {
                 printf("Loading setup file %s...\n", name);
@@ -902,12 +934,24 @@ int load_setup(const char *name)
                         process_line(buf);
                 }
                 fclose(f);
-                return 0;
+                rtn = 0;
         }
         else
         {
-                return -1;
+                fprintf(stderr, "Couldn't open setup file %s\n", name);
+                rtn = -1;
         }
+        setup_mode = 0;
+        if (changed)
+        {
+                printf("Returning to %s\n", orgdir);
+                if (chdir(orgdir))
+                {
+                        fprintf(stderr, "Couldn't return to original directory? %s\n", orgdir);
+                        exit(-1);
+                }
+        }
+        return rtn;
 }
 
 void monitor()

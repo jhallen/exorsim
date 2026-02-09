@@ -250,7 +250,6 @@ void ctrl_c()
 int main(int argc, char *argv[])
 {
         int x;
-        int diskn = 0;
         int gotox = 0;
         mon_out = stdout;
         mon_in = stdin;
@@ -259,7 +258,6 @@ int main(int argc, char *argv[])
         int lpt_append = 1;
         char *disk_name[4] = { 0, 0, 0, 0 };
         char *lpt_name = 0;
-        const char *s;
 
         /* Default setup file is basename.setup */
         char basenm[128];
@@ -342,25 +340,19 @@ int main(int argc, char *argv[])
                                 exit(-1);
                         }
                 } else {
-                        if (diskn == 4) {
-                                printf("Only up to four disks allowed\n");
-                                return -1;
-                        } else {
-                                drive[diskn++].name = argv[x];
-                        }
+                        fprintf(stderr, "Syntax error\n");
+                        exit(-1);
                 }
         }
 
         /* Load setup file */
 
-        if (setup_name && load_setup((s = choose_config_file(setup_name, 1))))
+        if (setup_name && load_setup(setup_name)) // Give precedence to command line
         {
-                fprintf(stderr, "Couldn't open setup file %s\n", s);
                 return -1;
         }
-        else if (load_setup((s = choose_config_file(default_setup_name, 1))))
+        else if (load_setup(choose_config_file(default_setup_name))) // Otherwise ~/.exorsim
         {
-                fprintf(stderr, "Couldn't open setup file %s\n", s);
                 return -1;
         }
 
@@ -374,7 +366,7 @@ int main(int argc, char *argv[])
                         open_lpt(lpt_name);
         }
 
-        /* Mount drives */
+        /* Mount drives given on command line */
 
         for (x = 0; x != 4; ++x) {
                 if (disk_name[x])
