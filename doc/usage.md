@@ -41,10 +41,10 @@ installed:
 
 By default (if --setup option is not given), exor searches for the setup
 file in the current directory, and if it is not found there, it looks in
-$HOME/.exorsim/.  $HOME/.exorsim/ is created if it does not yet exist.  If
-the setup file is missing from $HOME/.exorsim/, exor copies it from the
-installation default directory /usr/local/share/exorsim.  The idea is that
-you may customize the setup file in $HOME/.exorsim if you want.
+~/.exorsim (.exorsim in your home directory).  ~/.exorsim is created if it
+does not yet exist.  If the setup file is missing from ~/.exorsim, exor
+copies it from the installation default directory /usr/local/share/exorsim. 
+The idea is that you may customize the setup file in ~/.exorsim if you want.
 
 When exor processes the setup file, it sets the current directory to the
 directory containing the setup file (and restores to the originally
