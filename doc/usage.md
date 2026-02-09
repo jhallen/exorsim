@@ -47,8 +47,8 @@ copies it from the installation default directory /usr/local/share/exorsim.
 The idea is that you may customize the setup file in ~/.exorsim if you want.
 
 When exor processes the setup file, it sets the current directory to the
-directory containing the setup file (and restores to the originally
-directory after).  In this way, any files referred to in the setup file are
+directory containing the setup file (and restores to the original directory
+afterwards).  In this way, any files referred to in the setup file are
 located relative to the location of the setup file.
 
 If files referred to by the setup file are missing for $HOME/.exorsim, they
@@ -61,7 +61,7 @@ local copies of these new files.
 <h3>Disk images</h3>
 
 The setup file may mount disk images by using the "drive0" ..  "drive3"
-monitor command.  It usually does mount a default disk on drive 0 so that
+monitor commands.  It usually does mount a default disk on drive 0 so that
 the simulator has on OS to boot.
 
 But these images may be overridden on the command line by using the -0 .. -3
@@ -92,7 +92,16 @@ If this option is not provided, then if the environment variable EXOR_FACTS or
 EXOR09_FACTS exists, it provides the path.  Otherwise the default name is
 "facts" or "facts09".
 
+<h3>Startup</h3>
+
+By default, exor tries to start the OS directly.  This is not how the
+original machines worked, instead they normally start their debug monitor. 
+To force exor to start in the debug monitor, give the "-x" option.
+
+In this case, to start the OS use this procedure:
+
 <p>To load MDOS from EXBUG, type MAID followed by E800;G</p>
+
 <p>To load FLEX from SWTBUG, type D</p>
 
 <p>For example, to simulate an EXORciser with exbug.bin and mdos.dsk in the
