@@ -302,7 +302,9 @@ struct { char *insn; int opcode; int type; } table[] =
         { "bhi", 0x22, REL },
         { "bls", 0x23, REL },
         { "bcc", 0x24, REL },
+        { "bhs", 0x24, REL },
         { "bcs", 0x25, REL },
+        { "blo", 0x25, REL },
         { "bne", 0x26, REL },
         { "beq", 0x27, REL },
         { "bvc", 0x28, REL },
@@ -591,10 +593,6 @@ unsigned short assemble(unsigned char *mem, unsigned short addr, char *buf)
                                                 addr++;
                                                 goto done;
                                         } else if (type == FDB) {
-                                                if (!*buf) {
-                                                        printf("Value missing\n");
-                                                        return addr;
-                                                }
                                                 more_fdb:
                                                 if (sy) {
                                                         add_fixup(sy, addr, FIXUP_EXT, operand);

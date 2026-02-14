@@ -24,6 +24,14 @@
 #include <string.h>
 #include <stdlib.h>
 
+/* Options - disable them all to be compatible with original MC6800 assembler */
+#define ALLOW_TABS
+#define ALLOW_SEMI_COMMENTS
+#define ALLOW_TRAILING_QUOTE /* Allow 'A' instead of 'A */
+#define ALLOW_BLANK_LINES
+#define ALLOW_LEADING_WS /* Allow leading whitespace before * or ; comment */
+#define ALLOW_EXTRA_IDENT_CHARS /* Allow ., $ and _ in identifiers */
+
 FILE *infile;
 FILE *outfile;
 FILE *listing;
@@ -54,6 +62,17 @@ int user_number; /* User supplied line number */
 char line_label[32];
 struct insn *line_insn;
 
+/* True for whitespace */
+
+int iswhite(char c)
+{
+#ifdef ALLOW_TABS
+    return c == ' ' || c == '\t';
+#else
+    return c == ' ';
+#endif
+}
+
 /* Print an error */
 
 void error(char *s)
@@ -64,12 +83,12 @@ void error(char *s)
     ++error_count;
 }
 
-/* Fold ASCII character to lower case */
+/* Fold ASCII character to upper case */
 
-char lower(char c)
+char fold(char c)
 {
-    if (c >= 'A' && c <= 'Z')
-        return c + 'a' - 'A';
+    if (c >= 'a' && c <= 'z')
+        return c + 'A' - 'a';
     else
         return c;
 }
@@ -78,7 +97,7 @@ char lower(char c)
 
 int istrcmp(char *l, char *r)
 {
-    while (*l && *r && lower(*l) == lower(*r))
+    while (*l && *r && fold(*l) == fold(*r))
     {
         ++l;
         ++r;
@@ -157,12 +176,13 @@ void list_start()
     fieldcpy(listbuf + 0, buf); // Line number
 }
 
-/* Remove trailing spaces */
+/* Remove trailing spaces and zero-terminate */
+/* Assumes right-most column in never written */
 
 void trim_listbuf()
 {
     int i;
-    for (i = sizeof(listbuf) - 1; i && listbuf[i-1] == ' '; --i);
+    for (i = sizeof(listbuf)-1; i && listbuf[i-1] == ' '; --i);
     listbuf[i] = 0;
 }
 
@@ -427,6 +447,9 @@ struct symbol *lookup_symbol(char *s)
 }
 
 /* Table of instructions */
+/* Within an instruction mnemonic: . means allow whitespace.  ' ' (space)
+   terminates the string.  This is to match what the assembler is going to
+   do */
 
 #define OPBRA 0
 #define OPBYTE 1
@@ -453,124 +476,124 @@ struct insn
     unsigned char opcode;
     unsigned char type;
 } insns[] = {
-    { "aba", 0x1b, OPNONE },
-    { "adc.a", 0x89, OPBYTE },
-    { "adc.b", 0xc9, OPBYTE },
-    { "add.a", 0x8b, OPBYTE },
-    { "add.b", 0xcb, OPBYTE },
-    { "asl.a", 0x48, OPNONE },
-    { "and.a", 0x84, OPBYTE },
-    { "and.b", 0xc4, OPBYTE },
-    { "asl.b", 0x58, OPNONE },
-    { "asl", 0x68, OPRMW },
-    { "asr.a", 0x47, OPNONE },
-    { "asr.b", 0x57, OPNONE },
-    { "asr", 0x67, OPRMW },
-    { "bcc", 0x24, OPBRA },
-    { "bcs", 0x25, OPBRA },
-    { "beq", 0x27, OPBRA },
-    { "bge", 0x2c, OPBRA },
-    { "bgt", 0x2e, OPBRA },
-    { "bhi", 0x22, OPBRA },
-    { "bit.a", 0x85, OPBYTE },
-    { "bit.b", 0xc5, OPBYTE },
-    { "ble", 0x2f, OPBRA },
-    { "bls", 0x23, OPBRA },
-    { "blt", 0x2d, OPBRA },
-    { "bmi", 0x28, OPBRA },
-    { "bne", 0x26, OPBRA },
-    { "bpl", 0x2a, OPBRA },
-    { "bra", 0x20, OPBRA },
-    { "bsr", 0x8d, OPBRA },
-    { "bvc", 0x28, OPBRA },
-    { "bvs", 0x29, OPBRA },
-    { "cba", 0x11, OPNONE },
-    { "clc", 0x0c, OPNONE },
-    { "cli", 0x0e, OPNONE },
-    { "clr.a", 0x4f, OPNONE },
-    { "clr.b", 0x5f, OPNONE },
-    { "clr", 0x6f, OPRMW },
-    { "clv", 0x0a, OPNONE },
-    { "cmp.a", 0x81, OPBYTE },
-    { "cmp.b", 0xc1, OPBYTE },
-    { "com.a", 0x43, OPNONE },
-    { "com.b", 0x53, OPNONE },
-    { "com", 0x63, OPRMW },
-    { "cpx", 0x8c, OPWORD },
-    { "daa", 0x19, OPNONE },
-    { "dec.a", 0x4a, OPNONE },
-    { "dec.b", 0x5a, OPNONE },
-    { "dec", 0x6a, OPRMW },
-    { "des", 0x34, OPNONE },
-    { "dex", 0x09, OPNONE },
-    { "end", 0, OPEND },
-    { "eor.a", 0x88, OPBYTE },
-    { "eor.b", 0xc8, OPBYTE },
-    { "equ", 0, OPEQU },
-    { "fcb", 0, OPFCB },
-    { "fcc", 0, OPFCC },
-    { "fdb", 0, OPFDB },
-    { "inc.a", 0x4c, OPNONE },
-    { "inc.b", 0x5c, OPNONE },
-    { "inc", 0x6c, OPRMW },
-    { "ins", 0x31, OPNONE },
-    { "inx", 0x08, OPNONE },
-    { "jmp", 0x6e, OPJMP },
-    { "jsr", 0xad, OPJMP },
-    { "lda.a", 0x86, OPBYTE },
-    { "lda.b", 0xc6, OPBYTE },
-    { "lds", 0x8e, OPWORD },
-    { "ldx", 0xce, OPWORD },
-    { "lsr.a", 0x44, OPNONE },
-    { "lsr.b", 0x54, OPNONE },
-    { "lsr", 0x64, OPRMW },
-    { "nam", 0, OPNAM },
-    { "neg.a", 0x40, OPNONE },
-    { "neg.b", 0x50, OPNONE },
-    { "neg", 0x60, OPRMW },
-    { "nop", 0x01, OPNONE },
-    { "opt", 0, OPOPT },
-    { "ora.a", 0x8a, OPBYTE },
-    { "ora.b", 0xca, OPBYTE },
-    { "org", 0, OPORG },
-    { "page", 0, OPPAGE },
-    { "psh.a", 0x36, OPNONE },
-    { "psh.b", 0x37, OPNONE },
-    { "pul.a", 0x32, OPNONE },
-    { "pul.b", 0x33, OPNONE },
-    { "rmb", 0, OPRMB },
-    { "rol.a", 0x49, OPNONE },
-    { "rol.b", 0x59, OPNONE },
-    { "rol", 0x69, OPRMW },
-    { "ror.a", 0x46, OPNONE },
-    { "ror.b", 0x56, OPNONE },
-    { "ror", 0x66, OPRMW },
-    { "rti", 0x3b, OPNONE },
-    { "rts", 0x39, OPNONE },
-    { "sba", 0x10, OPNONE },
-    { "sbc.a", 0x82, OPBYTE },
-    { "sbc.b", 0xc2, OPBYTE },
-    { "sec", 0x0d, OPNONE },
-    { "sei", 0x0f, OPNONE },
-    { "sev", 0x08, OPNONE },
-    { "spc", 0, OPSPC },
-    { "sta.a", 0x87, OPSAVE },
-    { "sta.b", 0xc7, OPSAVE },
-    { "sts", 0x9e, OPSAVE },
-    { "stx", 0xde, OPSAVE },
-    { "sub.a", 0x80, OPBYTE },
-    { "sub.b", 0xc0, OPBYTE },
-    { "swi", 0x3f, OPNONE },
-    { "tab", 0x16, OPNONE },
-    { "tap", 0x06, OPNONE },
-    { "tba", 0x17, OPNONE },
-    { "tpa", 0x07, OPNONE },
-    { "tst.a", 0x4d, OPNONE },
-    { "tst.b", 0x5d, OPNONE },
-    { "tst", 0x6d, OPRMW },
-    { "tsx", 0x30, OPNONE },
-    { "txs", 0x35, OPNONE },
-    { "wai", 0x3e, OPNONE },
+    { "ABA ", 0X1B, OPNONE },
+    { "ADC.A ", 0X89, OPBYTE },
+    { "ADC.B ", 0XC9, OPBYTE },
+    { "ADD.A ", 0X8B, OPBYTE },
+    { "ADD.B ", 0XCB, OPBYTE },
+    { "ASL.A ", 0X48, OPNONE },
+    { "AND.A ", 0X84, OPBYTE },
+    { "AND.B ", 0XC4, OPBYTE },
+    { "ASL.B ", 0X58, OPNONE },
+    { "ASL ", 0X68, OPRMW },
+    { "ASR.A ", 0X47, OPNONE },
+    { "ASR.B ", 0X57, OPNONE },
+    { "ASR ", 0X67, OPRMW },
+    { "BCC ", 0X24, OPBRA },
+    { "BCS ", 0X25, OPBRA },
+    { "BEQ ", 0X27, OPBRA },
+    { "BGE ", 0X2C, OPBRA },
+    { "BGT ", 0X2E, OPBRA },
+    { "BHI ", 0X22, OPBRA },
+    { "BIT.A ", 0X85, OPBYTE },
+    { "BIT.B ", 0XC5, OPBYTE },
+    { "BLE ", 0X2F, OPBRA },
+    { "BLS ", 0X23, OPBRA },
+    { "BLT ", 0X2D, OPBRA },
+    { "BMI ", 0X28, OPBRA },
+    { "BNE ", 0X26, OPBRA },
+    { "BPL ", 0X2A, OPBRA },
+    { "BRA ", 0X20, OPBRA },
+    { "BSR ", 0X8D, OPBRA },
+    { "BVC ", 0X28, OPBRA },
+    { "BVS ", 0X29, OPBRA },
+    { "CBA ", 0X11, OPNONE },
+    { "CLC ", 0X0C, OPNONE },
+    { "CLI ", 0X0E, OPNONE },
+    { "CLR.A ", 0X4F, OPNONE },
+    { "CLR.B ", 0X5F, OPNONE },
+    { "CLR ", 0X6F, OPRMW },
+    { "CLV ", 0X0A, OPNONE },
+    { "CMP.A ", 0X81, OPBYTE },
+    { "CMP.B ", 0XC1, OPBYTE },
+    { "COM.A ", 0X43, OPNONE },
+    { "COM.B ", 0X53, OPNONE },
+    { "COM ", 0X63, OPRMW },
+    { "CPX ", 0X8C, OPWORD },
+    { "DAA ", 0X19, OPNONE },
+    { "DEC.A ", 0X4A, OPNONE },
+    { "DEC.B ", 0X5A, OPNONE },
+    { "DEC ", 0X6A, OPRMW },
+    { "DES ", 0X34, OPNONE },
+    { "DEX ", 0X09, OPNONE },
+    { "END ", 0, OPEND },
+    { "EOR.A ", 0X88, OPBYTE },
+    { "EOR.B ", 0XC8, OPBYTE },
+    { "EQU ", 0, OPEQU },
+    { "FCB ", 0, OPFCB },
+    { "FCC ", 0, OPFCC },
+    { "FDB ", 0, OPFDB },
+    { "INC.A ", 0X4C, OPNONE },
+    { "INC.B ", 0X5C, OPNONE },
+    { "INC ", 0X6C, OPRMW },
+    { "INS ", 0X31, OPNONE },
+    { "INX ", 0X08, OPNONE },
+    { "JMP ", 0X6E, OPJMP },
+    { "JSR ", 0XAD, OPJMP },
+    { "LDA.A ", 0X86, OPBYTE },
+    { "LDA.B ", 0XC6, OPBYTE },
+    { "LDS ", 0X8E, OPWORD },
+    { "LDX ", 0XCE, OPWORD },
+    { "LSR.A ", 0X44, OPNONE },
+    { "LSR.B ", 0X54, OPNONE },
+    { "LSR ", 0X64, OPRMW },
+    { "NAM ", 0, OPNAM },
+    { "NEG.A ", 0X40, OPNONE },
+    { "NEG.B ", 0X50, OPNONE },
+    { "NEG ", 0X60, OPRMW },
+    { "NOP ", 0X01, OPNONE },
+    { "OPT ", 0, OPOPT },
+    { "ORA.A ", 0X8A, OPBYTE },
+    { "ORA.B ", 0XCA, OPBYTE },
+    { "ORG ", 0, OPORG },
+    { "PAGE ", 0, OPPAGE },
+    { "PSH.A ", 0X36, OPNONE },
+    { "PSH.B ", 0X37, OPNONE },
+    { "PUL.A ", 0X32, OPNONE },
+    { "PUL.B ", 0X33, OPNONE },
+    { "RMB ", 0, OPRMB },
+    { "ROL.A ", 0X49, OPNONE },
+    { "ROL.B ", 0X59, OPNONE },
+    { "ROL ", 0X69, OPRMW },
+    { "ROR.A ", 0X46, OPNONE },
+    { "ROR.B ", 0X56, OPNONE },
+    { "ROR ", 0X66, OPRMW },
+    { "RTI ", 0X3B, OPNONE },
+    { "RTS ", 0X39, OPNONE },
+    { "SBA ", 0X10, OPNONE },
+    { "SBC.A ", 0X82, OPBYTE },
+    { "SBC.B ", 0XC2, OPBYTE },
+    { "SEC ", 0X0D, OPNONE },
+    { "SEI ", 0X0F, OPNONE },
+    { "SEV ", 0X08, OPNONE },
+    { "SPC ", 0, OPSPC },
+    { "STA.A ", 0X87, OPSAVE },
+    { "STA.B ", 0XC7, OPSAVE },
+    { "STS ", 0X9E, OPSAVE },
+    { "STX ", 0XDE, OPSAVE },
+    { "SUB.A ", 0X80, OPBYTE },
+    { "SUB.B ", 0XC0, OPBYTE },
+    { "SWI ", 0X3F, OPNONE },
+    { "TAB ", 0X16, OPNONE },
+    { "TAP ", 0X06, OPNONE },
+    { "TBA ", 0X17, OPNONE },
+    { "TPA ", 0X07, OPNONE },
+    { "TST.A ", 0X4D, OPNONE },
+    { "TST.B ", 0X5D, OPNONE },
+    { "TST ", 0X6D, OPRMW },
+    { "TSX ", 0X30, OPNONE },
+    { "TXS ", 0X35, OPNONE },
+    { "WAI ", 0X3E, OPNONE },
     { "", 0x00, 0x00 }
 };
 
@@ -578,7 +601,7 @@ struct insn
 
 void skipws()
 {
-    while (*inptr == ' ' || *inptr == '\t')
+    while (iswhite(*inptr))
         ++inptr;
 }
 
@@ -708,6 +731,10 @@ int parse_numeric()
         if (*inptr) {
             val = *(unsigned char *)inptr;
             ++inptr;
+#ifdef ALLOW_TRAILING_QUOTE
+            if (*inptr == '\'')
+                ++inptr;
+#endif
         }
         else
         {
@@ -748,7 +775,7 @@ int parse_numeric()
         }
         else if (*eptr == 'h' || *eptr == 'H')
         {
-            if (parse_binary() && inptr == eptr)
+            if (parse_hex() && inptr == eptr)
             {
                 /* Good */
             }
@@ -788,9 +815,17 @@ int parse_ident()
 {
     int i = 0;
     strval[i] = 0;
-    if (*inptr >= 'a' && *inptr <= 'z' || *inptr >= 'A' && *inptr <= 'Z')
+    if (*inptr >= 'a' && *inptr <= 'z' || *inptr >= 'A' && *inptr <= 'Z'
+#ifdef ALLOW_EXTRA_IDENT_CHARS
+        || *inptr == '.'
+#endif
+       )
     {
-        while (*inptr >= 'a' && *inptr <= 'z' || *inptr >= 'A' && *inptr <= 'Z' || *inptr >= '0' && *inptr <= '9')
+        while (*inptr >= 'a' && *inptr <= 'z' || *inptr >= 'A' && *inptr <= 'Z' || *inptr >= '0' && *inptr <= '9'
+#ifdef ALLOW_EXTRA_IDENT_CHARS
+               || *inptr == '.' || *inptr == '$' || *inptr == '_'
+#endif
+        )
         {
             strval[i++] = *inptr++;
         }
@@ -995,7 +1030,7 @@ struct insn *parse_insn()
         char *l, *r;
         l = i->name;
         r = inptr;
-        while (*l && *r && *l == lower(*r))
+        while (*l != ' ' && *r && *l == fold(*r))
         {
             ++l;
             ++r;
@@ -1004,15 +1039,15 @@ struct insn *parse_insn()
         {
             /* Whitespace is allowed here */
             ++l;
-            while (*r == ' ' || *r == '\t')
+            while (iswhite(*r))
                 ++r;
         }
-        while (*l && *r && *l == lower(*r))
+        while (*l != ' ' && *r && *l == fold(*r))
         {
             ++l;
             ++r;
         }
-        if (!*l && (!*r || (*r == ' ' || *r == '\t')))
+        if (*l == ' ' && (!*r || iswhite(*r)))
         {
             /* We found it! */
             inptr = r;
@@ -1092,6 +1127,7 @@ int parse_line()
     int last = 0;
     char *operand_start;
     char *nhold;
+    char *hold;
 
     ++line_number;
     user_number = line_number;
@@ -1105,7 +1141,7 @@ int parse_line()
         user_number = val;
 
         /* Line number must be followed by a single space */
-        if (!(*inptr == ' ' || *inptr == '\t'))
+        if (!iswhite(*inptr))
         {
             error("Missing space after line number");
             return 0;
@@ -1134,14 +1170,35 @@ int parse_line()
 
     list_start();
 
+#ifdef ALLOW_LEADING_WS
+    hold = inptr;
+    skipws();
+#endif
+
+#ifdef ALLOW_BLANK_LINES
+    if (!*inptr)
+        goto blank_line;
+#endif
+
     /* Maybe we have a comment? */
+#ifdef ALLOW_SEMI_COMMENTS
+    if (*inptr == '*' || *inptr == ';')
+#else
     if (*inptr == '*')
+#endif
     {
+#ifdef ALLOW_LEADING_WS
+        inptr = hold;
+#endif
         /* This is a comment line */
         fieldcpy(listbuf + LIST_LABEL, inptr);
         list_done();
         return 0;
     }
+#ifdef ALLOW_LEADING_WS
+        inptr = hold;
+#endif
+
 
     /* Maybe we have a label? */
     if (parse_ident())
@@ -1701,7 +1758,7 @@ int parse_line()
         inptr = nhold;
     }
 
-    if (*inptr == ' ' || *inptr == '\t')
+    if (iswhite(*inptr))
     {
         skipws();
         // We might have a comment right here.
@@ -1714,6 +1771,7 @@ int parse_line()
         if (*inptr)
             list_comment(inptr);
     }
+    blank_line:
     list_done();
     return last;
 }
