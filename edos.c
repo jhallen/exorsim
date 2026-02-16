@@ -71,10 +71,29 @@ void getsect(unsigned char *buf, int lsn)
         fread((char *)buf, SECTOR_SIZE, 1, disk);
 }
 
+/* Put sector: account for interleave */
+
+void putsect(unsigned char *buf, int lsn)
+{
+        int track = lsn / TRACK_SIZE;
+        int sect = lsn - track * TRACK_SIZE;
+        sect = interleave_table[sect];
+        fseek(disk, (track * TRACK_SIZE + sect) * SECTOR_SIZE, SEEK_SET);
+        fwrite((char *)buf, SECTOR_SIZE, 1, disk);
+}
+
 int lower(int c)
 {
         if (c >= 'A' && c <= 'Z')
                 return c - 'A' + 'a';
+        else
+                return c;
+}
+
+int upper(int c)
+{
+        if (c >= 'a' && c <= 'z')
+                return c - 'a' + 'A';
         else
                 return c;
 }
@@ -188,6 +207,46 @@ int find_file(char *filename, int *size)
         return -1;
 }
 
+/* Print raw directory */
+
+void edos_raw_dir()
+{
+        int free_lsn = 0;
+        unsigned char buf[SECTOR_SIZE];
+        int x;
+        printf("NAME   FLAG TRACK SECT SIZE\n");
+        for (x = SECTOR_DIR; x != SECTOR_DIR + SECTOR_DIR_SIZE; ++x) {
+                int y;
+                getsect(buf, x);
+                for (y = 0; y <= SECTOR_SIZE - ENTRY_SIZE; y += ENTRY_SIZE) {
+                        struct dirent *d = (struct dirent *)(buf + y);
+
+                        int i;
+                        for (i = 0; i != 5; ++i)
+                                printf("%c", d->name[i]);
+                        printf("  %4x %5x %4x %4x\n", d->mark, d->track, d->sect, (d->size_hi * 256) + d->size_lo - 1);
+
+                        if (d->mark == 0xFF)
+                        {
+                                goto done;
+                        }
+                        else
+                        {
+                                int lsn;
+                                int size;
+                                lsn = (d->track * TRACK_SIZE) + d->sect - 1;
+                                size = d->size_hi * 256 + d->size_lo - 1;
+                                free_lsn = lsn + size;
+                        }
+                }
+        }
+        done:;
+        printf("\n");
+        printf("Used = 0x%x sectors\n", free_lsn);
+        printf("Free = 0x%x sectors\n", 77 * TRACK_SIZE - free_lsn);
+}
+
+
 /* Load directory */
 
 void edos_load_dir()
@@ -225,6 +284,282 @@ void edos_load_dir()
         }
         done:
         qsort(names, name_n, sizeof(struct name *), (int (*)(const void *, const void *))comp);
+}
+
+/* True if file already exists */
+
+int edos_exist(char *name)
+{
+        unsigned char buf[SECTOR_SIZE];
+        int x;
+        for (x = SECTOR_DIR; x != SECTOR_DIR + SECTOR_DIR_SIZE; ++x) {
+                int y;
+                getsect(buf, x);
+                for (y = 0; y <= SECTOR_SIZE - ENTRY_SIZE; y += ENTRY_SIZE) {
+                        int i;
+                        struct dirent *d = (struct dirent *)(buf + y);
+                        if (d->mark == 0xFF)
+                        {
+                                goto done;
+                        }
+                        for (i = 0; i != 5 && name[i]; ++i)
+                                if (upper(name[i]) != d->name[i])
+                                        break;
+                        if (i == 5 && !name[i])
+                                goto match;
+                        if (i != 5 && !name[i])
+                        {
+                                /* Check for spaces... */
+                                for (; i != 5; ++i)
+                                        if (d->name[i] != ' ')
+                                                break;
+                                if (i == 5)
+                                        goto match;
+                        }
+                        goto nope;
+                        match:
+                        if (!(d->mark & 0x80))
+                                return 1;
+                        nope:;
+                }
+        }
+        done:
+        return 0;
+}
+
+/* Find file and delete it */
+
+int edos_rm(char *name)
+{
+        unsigned char buf[SECTOR_SIZE];
+        int x;
+        for (x = SECTOR_DIR; x != SECTOR_DIR + SECTOR_DIR_SIZE; ++x) {
+                int y;
+                getsect(buf, x);
+                for (y = 0; y <= SECTOR_SIZE - ENTRY_SIZE; y += ENTRY_SIZE) {
+                        int i;
+                        struct dirent *d = (struct dirent *)(buf + y);
+                        if (d->mark == 0xFF)
+                        {
+                                goto done;
+                        }
+                        for (i = 0; i != 5 && name[i]; ++i)
+                                if (upper(name[i]) != d->name[i])
+                                        break;
+                        if (i == 5 && !name[i])
+                                goto match;
+                        if (i != 5 && !name[i])
+                        {
+                                /* Check for spaces... */
+                                for (; i != 5; ++i)
+                                        if (d->name[i] != ' ')
+                                                break;
+                                if (i == 5)
+                                        goto match;
+                        }
+                        goto nope;
+                        match:
+                        d->mark = 0x80;
+                        putsect(buf, x);
+                        printf("File %s marked for purge\n", name);
+                        return 0;
+                        nope:;
+                }
+        }
+        done:
+        printf("File %s not found\n", name);
+        return -1;
+}
+
+
+/* Find start of free space on disk */
+
+int edos_alloc()
+{
+        int free_lsn = 0;
+        unsigned char buf[SECTOR_SIZE];
+        int x;
+        for (x = SECTOR_DIR; x != SECTOR_DIR + SECTOR_DIR_SIZE; ++x) {
+                int y;
+                getsect(buf, x);
+                for (y = 0; y <= SECTOR_SIZE - ENTRY_SIZE; y += ENTRY_SIZE) {
+                        struct dirent *d = (struct dirent *)(buf + y);
+                        int lsn;
+                        int size;
+                        if (d->mark == 0xFF)
+                                goto done;
+                        lsn = (d->track * TRACK_SIZE) + d->sect - 1;
+                        size = d->size_hi * 256 + d->size_lo - 1;
+                        free_lsn = lsn + size;
+                }
+        }
+        printf("All directory entries used.\n");
+        done:
+        return free_lsn;
+}
+
+/* Append directory entry, set end mark on following one */
+
+void edos_append(struct dirent *new_d)
+{
+        unsigned char buf[SECTOR_SIZE];
+        int x;
+        int dirty = 0;
+        int next = 0;
+        int done = 0;
+        int lsn = new_d->track * TRACK_SIZE + new_d->sect - 1;
+        int size = new_d->size_hi * 256 + new_d->size_lo - 1;
+        int end_lsn = lsn + size;
+        int end_track = end_lsn / TRACK_SIZE;
+        int end_sect = end_lsn % TRACK_SIZE;
+        for (x = SECTOR_DIR; x != SECTOR_DIR + SECTOR_DIR_SIZE; ++x) {
+                int y;
+                getsect(buf, x);
+                for (y = 0; y <= SECTOR_SIZE - ENTRY_SIZE; y += ENTRY_SIZE) {
+                        struct dirent *d = (struct dirent *)(buf + y);
+                        if (next)
+                        {
+                                int i;
+                                for (i = 0; i != 5; ++i)
+                                        d->name[i] = '*';
+                                d->mark = 0xFF;
+                                d->track = end_track;
+                                d->sect = end_sect + 1;
+                                d->size_lo = 1;
+                                d->size_hi = 0;
+                                
+                                dirty = 1;
+                                done = 1;
+                                break;
+                        }
+                        else if (d->mark == 0xFF)
+                        {
+                                memcpy(d, new_d, ENTRY_SIZE);
+                                dirty = 1;
+                                next = 1;
+                        }
+                }
+                if (dirty)
+                {
+                        putsect(buf, x);
+                        dirty = 0;
+                }
+                if (done)
+                        break;
+        }
+}
+
+int put_file(char *local_name, char *mdos_name)
+{
+        FILE *f;
+        int i, x;
+        int alloc = edos_alloc();
+        int free_sects = TRACK_SIZE * 77 - alloc;
+        int start_track = alloc / TRACK_SIZE;
+        int start_sect = alloc % TRACK_SIZE;
+        int size;
+        int up;
+        int up_sects;
+        struct dirent d[1];
+        char c;
+        unsigned char *buf;
+
+        if (strlen(mdos_name) > 5)
+        {
+                printf("File name too long for EDOS\n");
+                return -1;
+        }
+
+        if (edos_exist(mdos_name))
+        {
+                printf("File %s already exists\n", mdos_name);
+                return -1;
+        }
+
+        d->track = start_track;
+        d->sect = start_sect + 1;
+        d->mark = 0;
+        d->unknown = 0;
+        d->size_lo = 0;
+        d->size_hi = 0;
+
+        for (i = 0; i != 5 && mdos_name[i]; ++i)
+                d->name[i] = upper(mdos_name[i]);
+        while (i != 5)
+                d->name[i++] = ' ';
+
+        printf("Starting free sector = %d\n", alloc);
+        printf("Free sectors = %d\n", free_sects);
+        printf("Starting track = 0x%x, sector = 0x%x\n", alloc / TRACK_SIZE, (alloc % TRACK_SIZE) + 1);
+
+        f = fopen(local_name, "r");
+
+        if (!f) {
+                printf("Couldn't open '%s'\n", local_name);
+                return -1;
+        }
+
+        if (fseek(f, 0, SEEK_END)) {
+                printf("Couldn't get file size of '%s'\n", local_name);
+                fclose(f);
+                return -1;
+        }
+        size = ftell(f);
+        if (size < 0)  {
+                printf("Couldn't get file size of '%s'\n", local_name);
+                fclose(f);
+                return -1;
+        }
+        rewind(f);
+        up = ((size + SECTOR_SIZE - 1) & ~(long)(SECTOR_SIZE - 1));
+        buf = (unsigned char *)malloc(up*2);
+
+        /* Read file, convert UNIX or MS-DOS ASCII to MDOS ASCII */
+        x = 0;
+        while ((c = fgetc(f)) != -1)
+        {
+                if (c == '\n') {
+                        /* EDOS line terminator is CR/LF */
+                        buf[x++] = '\r';
+                        buf[x++] = '\n';
+                } else if (c == '\r') {
+                        /* Ignore carriage returns */
+                } else {
+                        buf[x++] = c;
+                }
+        }
+        size = x;
+        fclose(f);
+
+        /* Round up to sector size again */
+        up = ((size + SECTOR_SIZE - 1) & ~(long)(SECTOR_SIZE - 1));
+
+        /* Fill with NULs to end of sector */
+        while (x != up)
+                buf[x++] = 0;
+
+        if (up > free_sects * SECTOR_SIZE)
+        {
+                printf("Not enough room for %s\n", local_name);
+                return -1;
+        }
+
+        /* Write sectors */
+        up_sects = up / SECTOR_SIZE;
+
+        for (i = 0; i != up_sects; ++i)
+        {
+                printf("Write lsn %d (track=%x, sector=%x)\n", alloc+i, (alloc+i)/TRACK_SIZE, 1+((alloc+i)%TRACK_SIZE));
+                putsect(buf + i * SECTOR_SIZE, alloc + i);
+        }
+
+        /* Add directory entry */
+        up_sects = up_sects + 1; // Why?
+        d->size_lo = up_sects % 256;
+        d->size_hi = up_sects / 256;
+        edos_append(d);
+
+        return 0;
 }
 
 /* Directory listing */
@@ -330,11 +665,14 @@ int main(int argc, char *argv[])
                 printf("Syntax: edos path-to-diskette command args\n");
                 printf("\n");
                 printf("  Commands:\n");
-                printf("      ls [-la1A]                    Directory listing\n");
+                printf("      ls [-la1A]                    Directory listing, sorted\n");
                 printf("                  -l for long\n");
                 printf("                  -1 to show a single name per line\n");
+                printf("      dir                           Directory in raw EDOS format\n");
                 printf("      cat edos-name                 Type file to console\n");
                 printf("      get edos-name [local-name]    Copy file from diskette to local-name\n");
+                printf("      put local-name [edos-name]    Copy file to diskette to edos-name\n");
+                printf("      rm edos-name                  Delete a file\n");
                 printf("      x                             Extract all files into current directory\n");
                 printf("\n");
                 return -1;
@@ -369,6 +707,9 @@ int main(int argc, char *argv[])
                 }
 	        edos_dir(full, single);
                 return 0;
+        } else if (!strcmp(argv[x], "dir")) {
+                edos_raw_dir();
+                return 0;
 	} else if (!strcmp(argv[x], "cat")) {
 	        ++x;
 	        if (x == argc) {
@@ -378,6 +719,29 @@ int main(int argc, char *argv[])
 	                cat(argv[x++]);
 	                return 0;
 	        }
+        } else if (!strcmp(argv[x], "rm")) {
+                char *name;
+                ++x;
+                if (x == argc) {
+                        printf("Missing name to delete\n");
+                        return -1;
+                } else {
+                        name = argv[x];
+                }
+                return edos_rm(name);
+        } else if (!strcmp(argv[x], "put")) {
+                char *local_name;
+                char *mdos_name;
+                ++x;
+                if (x == argc) {
+                        printf("Missing file name to get\n");
+                        return -1;
+                }
+                local_name = argv[x];
+                mdos_name = local_name;
+                if (x + 1 != argc)
+                        mdos_name = argv[++x];
+                return put_file(local_name, mdos_name);
 	} else if (!strcmp(argv[x], "get")) {
                 char *local_name;
                 char *mdos_name;

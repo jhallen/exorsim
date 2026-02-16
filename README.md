@@ -286,7 +286,7 @@ A number of utilities are built in addition to "exor":
 
 	mdos	This provides file access to MDOS diskette images
 
-	edos	This provides read-only file access to EDOS-II diskette images
+	edos	This provides file access to EDOS-II diskette images
 
 	unasm	This is a stand-alone 6800 disassember
 

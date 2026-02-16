@@ -416,7 +416,7 @@ void emit_final()
 
 /* Symbol table */
 
-#define SYMTAB_SIZE 512
+#define SYMTAB_SIZE 1024
 #define SET_FIRST 1
 #define SET_SECOND 2
 #define SET (SET_FIRST | SET_SECOND)
