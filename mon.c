@@ -676,7 +676,7 @@ int t_cmd(char *p)
 
 int bt_cmd(char *p)
 {
-        show_traces(128);
+        show_traces(65536);
         return 0;
 }
 
