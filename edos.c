@@ -343,6 +343,10 @@ int edos_rm(char *name)
                         {
                                 goto done;
                         }
+                        if (d->mark & 0x80)
+                        {
+                                goto nope;
+                        }
                         for (i = 0; i != 5 && name[i]; ++i)
                                 if (upper(name[i]) != d->name[i])
                                         break;
@@ -519,9 +523,9 @@ int put_file(char *local_name, char *mdos_name)
         while ((c = fgetc(f)) != -1)
         {
                 if (c == '\n') {
-                        /* EDOS line terminator is CR/LF */
-                        buf[x++] = '\r';
+                        /* EDOS line terminator is LF/CR */
                         buf[x++] = '\n';
+                        buf[x++] = '\r';
                 } else if (c == '\r') {
                         /* Ignore carriage returns */
                 } else {
