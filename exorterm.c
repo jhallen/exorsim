@@ -1150,7 +1150,9 @@ int term_poll()
 	int rtn;
 	unsigned char c;
 	if (fifo_old != fifo_new)
+	{
 		return 1;
+        }
 
 	if (!exorterm)
 		fflush(stdout);
@@ -1357,6 +1359,8 @@ int term_in()
 
 	/* Wait for a character */
 	while (!stop && !term_poll());
+	if (stop)
+	        return 0;
 
 	/* Return it */
 	c = fifo[fifo_old++];
