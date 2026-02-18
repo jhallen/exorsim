@@ -1,4 +1,6 @@
 * Hello
+ OPT O
+ OPT NOM
 FDOS EQU $E800
 XOUTC EQU $F018
  ORG $20
