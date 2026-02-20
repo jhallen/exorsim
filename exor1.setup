@@ -18,7 +18,8 @@ rom fcfc fd00
 device exbug_acia fcf4
 device exbug_pia fcf8
 device exordisk_i e800
-device exordisk_i_lpt eab0
+device exordisk_i_lpt_char eab0
+device exordisk_i_lpt_crlf_line ead5
 
 ; Default disk images
 ; These are overridden by the command line

@@ -96,9 +96,19 @@ void add_exordisk_ii_lpt(unsigned short addr)
         add_jumper(0xebf2, lpt_ldata1);
 }
 
-void add_exordisk_i_lpt(unsigned short addr)
+void add_exordisk_i_lpt_char(unsigned short addr)
 {
         add_jumper(addr, lpt_list);
+}
+
+void add_exordisk_i_lpt_line(unsigned short addr)
+{
+        add_jumper(addr, lpt_ldata1);
+}
+
+void add_exordisk_i_lpt_crlf_line(unsigned short addr)
+{
+        add_jumper(addr, lpt_ldata);
 }
 
 void close_lpt()

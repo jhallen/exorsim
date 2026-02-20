@@ -1,8 +1,10 @@
 
 Exor:
-  write man page
+  support much larger history
+    bt: is should limit to 128 or something
+    bt all: print full trace history
 
-  maybe replace --exbug with something implying that it's the entire memory image
+  write man page
 
   assembler:
     non-motorola mode? (; comments, : after label, allow whitespace ?)
@@ -10,16 +12,6 @@ Exor:
     expression evaluator including Motorola operators
 
   exorterm update(): maybe call it periodically even if there is no input polling
-
-  Generic simulator setup? Something like:
-     device acia 0xfcf4 0xfcf5
-     ram 0x0000 0xe7ff
-     readonly 0xf000 0xfbff
-     readonly 0xe800 0xebff
-     cpu 6809
-     load 0xf000 exor.bin
-     load 0xe800 fdc.bin
-     setword 0xFFFe 0xF000
 
   Step over function (we only have step into now)
   Break key
@@ -42,6 +34,10 @@ Exor:
 
   Direct support of .imd files so that binary extract
   is not necessary?
+
+Edos:
+ add puge command
+ auto delete if you delete last file
 
 Mdos:
 
@@ -75,6 +71,16 @@ HTDOCs:
 
 - - -
 Done:
+  Generic simulator setup? Something like:
+     device acia 0xfcf4 0xfcf5
+     ram 0x0000 0xe7ff
+     readonly 0xf000 0xfbff
+     readonly 0xe800 0xebff
+     cpu 6809
+     load 0xf000 exor.bin
+     load 0xe800 fdc.bin
+     setword 0xFFFe 0xF000
+
   Create Linux version of ImageDisk imdu command.
 
   Exorterm emulation (if we can find docs for it..)
