@@ -71,6 +71,8 @@ char *xdef_type(unsigned char ty)
     else return "*** unknown!";
 }
 
+int first_sym = 0;
+
 void parse_record(int rec_offset, unsigned char *buf, int len)
 {
     if (len < 1)
@@ -107,26 +109,31 @@ void parse_record(int rec_offset, unsigned char *buf, int len)
                     printf("*** Expected record length to be at least 18, but it was %d\n", len);
                 }
                 {
-                    int i;
-                    printf("    ? Header:\n");
-                    hexdump(buf+1, 17);
+                    int i = 1;
+                    if (!first_sym)
+                    {
+                        first_sym = 1;
+                        printf("    ? Header:\n");
+                        hexdump(buf+1, 17);
 
-                    unknown(1, buf[1], 0);
-                    unknown(2, buf[2], 0);
-                    unknown(3, buf[3], 0);
-                    unknown(4, buf[4], 0);
-                    unknown(5, buf[5], 0);
+                        unknown(1, buf[1], 0);
+                        unknown(2, buf[2], 0);
+                        unknown(3, buf[3], 0);
+                        unknown(4, buf[4], 0);
+                        unknown(5, buf[5], 0);
 
-                    expected(6, buf[6], 1);
-                    printf("    Size of section $%2.2x (%s) is %x\n", buf[6], section_name(buf[6]), (buf[7]<<8)+buf[8]);
-                    expected(9, buf[9], 2);
-                    printf("    Size of section $%2.2x (%s) is %x\n", buf[9], section_name(buf[9]), (buf[10]<<8)+buf[11]);
-                    expected(12, buf[12], 3);
-                    printf("    Size of section $%2.2x (%s) is %x\n", buf[12], section_name(buf[12]), (buf[13]<<8)+buf[14]);
-                    expected(15, buf[15], 4);
-                    printf("    Size of section $%2.2x (%s) is %x\n", buf[15], section_name(buf[15]), (buf[16]<<8)+buf[17]);
+                        expected(6, buf[6], 1);
+                        printf("    Size of section $%2.2x (%s) is %x\n", buf[6], section_name(buf[6]), (buf[7]<<8)+buf[8]);
+                        expected(9, buf[9], 2);
+                        printf("    Size of section $%2.2x (%s) is %x\n", buf[9], section_name(buf[9]), (buf[10]<<8)+buf[11]);
+                        expected(12, buf[12], 3);
+                        printf("    Size of section $%2.2x (%s) is %x\n", buf[12], section_name(buf[12]), (buf[13]<<8)+buf[14]);
+                        expected(15, buf[15], 4);
+                        printf("    Size of section $%2.2x (%s) is %x\n", buf[15], section_name(buf[15]), (buf[16]<<8)+buf[17]);
+                        i = 18;
+                    }
 
-                    for (i = 18; i < len;)
+                    while (i < len)
                     {
                         char name[7];
                         if ((buf[i] & 0xF0) == 0x00 && i+5 <= len)

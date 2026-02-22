@@ -123,7 +123,7 @@ The format of \<header> is:
 Where: \<name> is 6 bytes, space padded, \<size> is two bytes and \<offset>
 is two bytes.
 
-All of the symbols are added to a table (except forthe ASCT record which has
+All of the symbols are added to a table (except for the ASCT record which has
 no name) and refered to by index number in the fixup records.  The starting
 index of the first symbol is 5 for some reason (perhaps the built-in symbols
 are used for 0 - 4).
@@ -148,7 +148,26 @@ of its \<payload> is:
     0x00 <offset> <symbol number>    Add XREF word to data at <offset>
     0x04 <offset> <symbol number>    Add XREF byte to data at <offset>
     0x08 <offset> <symbol number>    Subtract address of data from word at <offset>.  <symbol number> is 4.
-    0xC1 <offset> ????                Local fixup.  ???? is at least two bytes that I have not been able to decode.
+    0xC1 <offset> <count> <commands> Apply local fixups starting with byte at <offset>
+
+For fixing up the two offset folling 6809 long branches, there are two
+fixups needed: one of type 0x00 adds the target address to the two bytes and
+one of type 0x08 subtracts word's address to make it relative.
+
+Local fixups (type 0xC1) use a list of commands:
+
+\<count> is one byte holding the number of commands in \<commands>.  It can
+range from 1 to 9.  There are two bits per command, and they fill in the
+bytes that make up \<commands>, MSB first.  So bits 7:6 of the first byte in
+\<commands> has the first command.  Bits 5:4 has the second, and so on. 
+\<commands> is padded with 0s to fill up the last byte.
+
+The command codes are:
+
+    00 Skip one byte
+    01 Fixup byte at current position
+    10
+    11 Fixup word at current position
 
 ## 0x36 (6) End of module
 
