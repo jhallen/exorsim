@@ -1,7 +1,7 @@
 # RLOAD Object File Format
 
 I've been reverse engineering the RLOAD (relocatable linker) object file
-formst.  I have no particular reason to do this, except to overcome the
+format.  I have no particular reason to do this, except to overcome the
 frustration of having lost the official documentation for it.
 
 Around 1985 one of my first programming projects was to make a
@@ -27,7 +27,7 @@ return (0x0D).
 \<size> is one byte which gives the record size.  This size includes the
 \<body> and the \<checksum>.
 
-\<checksum> is the 2s complement of the sum of each byte in \<size> and
+\<checksum> is one byte 2s complement of the sum of each byte in \<size> and
 \<body>.  If you sum all the bytes in \<size>, \<body> and \<checksum>, the
 result is zero.
 
