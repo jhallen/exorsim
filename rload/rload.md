@@ -12,9 +12,6 @@ document, or if it was an appendix to RLOAD or RASM.  In any case, I've not
 been able to find it in any of the available scans of the RLOAD or RASM
 manuals.
 
-The format is mostly straightforward, except there is a compressed format
-for local relocation fixups that I've not yet been able to figure out.
-
 # Intro 
 
 Study the relocatable assembler and RLOAD manuals.  Each module produced by
@@ -38,9 +35,6 @@ size of each of these common sections is the size of the largest one.
 During linking, there are local fixups and external fixups.  Local fixups
 are for JMPs to locations within the same module, where the target symbol is
 not an XDEF.  External fixups are for JMPs to targets in other modules.
-
-Local fixups are more common, there is some kind of compressed format for
-them.
 
 # Records
 
