@@ -67,7 +67,7 @@ are the known types:
 
 ## 0x32 (2) Module header
 
-This is the first record of a module file, and it contains the module name. 
+This is the first record of an object file, and it contains the module name. 
 This is the name provided to the NAM assembly language directive.  The
 format of its \<payload> is:
 
@@ -131,7 +131,7 @@ of its \<payload> is:
 
     0x00 <offset> <symbol number>    Add XREF word to data at <offset>
     0x04 <offset> <symbol number>    Add XREF byte to data at <offset>
-    0x08 <offset> <symbol number>    Subtract XREF word for 6809 long branch
+    0x08 <offset> <symbol number>    Subtract address of data from word at <offset>.  <symbol number> is 4.
     0xC1 <offset> ????                Local fixup.  ???? is at least two bytes that I have not been able to decode.
 
 ## 0x36 (6) End of module
