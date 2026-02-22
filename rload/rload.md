@@ -15,6 +15,33 @@ manuals.
 The format is mostly straightforward, except there is a compressed format
 for local relocation fixups that I've not yet been able to figure out.
 
+# Intro 
+
+Study the relocatable assembler and RLOAD manuals.  Each module produced by
+the assembler has XREFs (external references) and XDEFs (symbols visible by
+other modules).
+
+There are a number of sections where code can be generated:
+
+	ASCT Absolute section, use ORG to specify address
+	BSCT Relocatable section below $100 for direct mode addressing
+	DSCT Relocatable data section
+	PSCT Relocatable code section
+	CSCT FORTRAN blank common section
+	COMM FORTRAN named common section in BSCT, DSCT or PSCT.
+
+The blank and named common sections can not receive object data, you can
+only use RMBs in them.  The starting address within each module for a common
+section of the same name is the same (ones with the same name overlap).  The
+size of each of these common sections is the size of the largest one.
+
+During linking, there are local fixups and external fixups.  Local fixups
+are for JMPs to locations within the same module, where the target symbol is
+not an XDEF.  External fixups are for JMPs to targets in other modules.
+
+Local fixups are more common, there is some kind of compressed format for
+them.
+
 # Records
 
 Object files are composed of binary records.  Each record looks like this:
@@ -51,7 +78,7 @@ format of its \<payload> is:
 
 ## 0x33 (3) Symbols
 
-The record provides external symbol names and types.  The format of its
+This record provides external symbol names and types.  The format of its
 \<payload> is as follows:
 
     0x00 (unknown)
@@ -110,7 +137,7 @@ of its \<payload> is:
 ## 0x36 (6) End of module
 
 This is the last record of the object file.  Its payload is 3 bytes. 
-Normall all three bytes are zeros.  But if a start address was provided to
+Normally all three bytes are zeros.  But if a start address was provided to
 the END assembly language directive, then this provides it:
 
     <section> <offset>
