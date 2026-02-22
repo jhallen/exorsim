@@ -81,6 +81,14 @@ format of its \<payload> is:
 This record provides external symbol names and types.  The format of its
 \<payload> is as follows:
 
+    <header>
+    <symbols>
+
+The \<header> is present only on the first symbols record in the object
+file.  Subsequent symbol records only have \<symbols>
+
+The format of \<header> is:
+
     0x00 (unknown)
     0x00 (unknown)
     0x00 (unknown)
@@ -92,7 +100,7 @@ This record provides external symbol names and types.  The format of its
     0x04 <size>     Two byte size of PSCT
     <symbols>       List of symbols
 
-\<symbols> is a list of symbols.  There a several types of them:
+\<symbols> is a list of symbols.  There are a bunch of types of them:
 
     0x00 <size> <offset>      If present, it's the first "symbol".  It gives the size and offset of ASCT.
     0x30 <name>                XREF type "any" with 6-byte space padded name.
@@ -107,10 +115,13 @@ This record provides external symbol names and types.  The format of its
     0x13 <name> <size>        Named common block in DSCT
     0x14 <name> <size>        Named common block in PSCT
 
+Where: \<name> is 6 bytes, space padded, \<size> is two bytes and \<offset>
+is two bytes.
+
 All of the symbols are added to a table (except forthe ASCT record which has
-no name).  The index into this table is used in the fixup records.  The
-starting index of the first symbol is 5 for some reason (perhaps the
-built-in symbols are used for 0 - 4).
+no name) and refered to by index number in the fixup records.  The starting
+index of the first symbol is 5 for some reason (perhaps the built-in symbols
+are used for 0 - 4).
 
 If the ASCT "symbol" is present, it is the first one in the list.
 
