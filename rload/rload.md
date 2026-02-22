@@ -71,10 +71,15 @@ This is the first record of an object file, and it contains the module name.
 This is the name provided to the NAM assembly language directive.  The
 format of its \<payload> is:
 
-    0x00 (unknown)
+    <info>
     <name>  6-byte module name, space padded
     0x4F (unknown)
     0x42 (unknown)
+
+\<info> seems to indicate the source language:
+
+* 0x00: Assembly language
+* 0x04: FORTRAN
 
 ## 0x33 (3) Symbols
 
