@@ -12,6 +12,9 @@ document, or if it was an appendix to RLOAD or RASM.  In any case, I've not
 been able to find it in any of the available scans of the RLOAD or RASM
 manuals.
 
+relobj.c is a program which parses RLOAD object files.  When it runs into
+unknown things, it prints "***".
+
 # Intro 
 
 Study the relocatable assembler and RLOAD manuals.  Each module produced by
@@ -40,10 +43,13 @@ not an XDEF.  External fixups are for JMPs to targets in other modules.
 
 Object files are composed of binary records.  Each record looks like this:
 
-'D' \<size> \<body> \<checksum> 0x0D
+'D' \<size> \<body> \<checksum> 0x0D [0x0A] [NUL]*
 
 Each record begins with an ASCII D character (0x44) and ends with a carriage
 return (0x0D).
+
+In EDOS, each record ends with CR-LF.  Also, any number of NULs may exist
+between records.
 
 \<size> is one byte which gives the record size.  This size includes the
 \<body> and the \<checksum>.
@@ -142,26 +148,37 @@ of its \<payload> is:
     0x00 <offset> <symbol number>    Add XREF word to data at <offset>
     0x04 <offset> <symbol number>    Add XREF byte to data at <offset>
     0x08 <offset> <symbol number>    Subtract address of data from word at <offset>.  <symbol number> is 4.
-    0xC1 <offset> <count> <commands> Apply local fixups starting with byte at <offset>
+    0xC1 - 0xDF <offset> <count> <commands> [<skip> <count> <commands>]* Apply local fixups starting with byte at <offset>
+    0xE1 - 0xFF <offset> <count> <commands> [<skip> <count> <commands>]* Apply local fixups starting with byte at <offset>
+    0x8x                             Not sure.. but Fortran compiler uses this type
 
-For fixing up the two offset folling 6809 long branches, there are two
+For fixing up the two byte offset folling 6809 long branches, there are two
 fixups needed: one of type 0x00 adds the target address to the two bytes and
-one of type 0x08 subtracts word's address to make it relative.
+one of type 0x08 subtracts the offset's own address to make it relative.
 
-Local fixups (type 0xC1) use a list of commands:
+Local fixups (types beginning with 0xC1 and 0xE1) use a list of commands:
 
-\<count> is one byte holding the number of commands in \<commands>.  It can
-range from 1 to 9.  There are two bits per command, and they fill in the
-bytes that make up \<commands>, MSB first.  So bits 7:6 of the first byte in
-\<commands> has the first command.  Bits 5:4 has the second, and so on. 
-\<commands> is padded with 0s to fill up the last byte.
+Not sure the difference between 0xC1 and 0xE1.  0xC1 and 0xE1 fixups can
+have extentions, where there is a large gap between command groups.  The
+number of extensions is encoded in bits 4:1 of the fixup type code (so
+number of extensions is ((fixup_type >> 1) & 0x1F);
+
+\<count> is one byte holding the number of commands in \<commands>.  There
+are two bits per command, and they fill in the bytes that make up
+\<commands>, MSB first.  So bits 7:6 of the first byte in \<commands> has
+the first command.  Bits 5:4 has the second, and so on.  \<commands> is
+padded with 0s to fill up the last byte.
 
 The command codes are:
 
     00 Skip one byte
     01 Fixup byte at current position
-    10
+    10 Not sure, Fortan compiler uses it.. maybe same as fixup word.
     11 Fixup word at current position
+
+If there are extensions, \<skip> is a single byte whose lower 7 bits (?)
+indicate the number of data bytes to skip before the extension applies. 
+Bit 7 of this byte is always set.
 
 ## 0x36 (6) End of module
 

@@ -71,6 +71,13 @@ char *xdef_type(unsigned char ty)
     else return "*** unknown!";
 }
 
+char *source_name(unsigned char source)
+{
+    if (source == 0) return "RASM";
+    else if (source == 4) return "FORTRAN";
+    else return "*** unknown!";
+}
+
 int first_sym = 0;
 
 void parse_record(int rec_offset, unsigned char *buf, int len)
@@ -82,11 +89,12 @@ void parse_record(int rec_offset, unsigned char *buf, int len)
     }
     else
     {
-        printf("Record type code $%2.2x at offset %d:\n", buf[0], rec_offset);
+        printf("Record type code $%2.2x at offset 0x%x:\n", buf[0], rec_offset);
         switch (buf[0])
         {
             case 0x32: // Start, module name
             {
+                unsigned source;
                 char modname[7];
                 printf("  Type = Start, module name\n");
                 if (len != 10)
@@ -94,7 +102,8 @@ void parse_record(int rec_offset, unsigned char *buf, int len)
                     printf("*** Expected record length to be 10, but it was %d\n", len);
                     return;
                 }
-                unknown(1, buf[1], 0);
+                source = buf[1];
+                printf("    Source language $%2.2x (%s)\n", source, source_name(source));
                 field(modname, buf+2, 6);
                 printf("    Module name '%s'\n", modname);
                 unknown(8, buf[8], 0x4f);
@@ -104,14 +113,15 @@ void parse_record(int rec_offset, unsigned char *buf, int len)
             case 0x33: // Symbol table
             {
                 printf("  Type = Symbols\n");
-                if (len < 18)
-                {
-                    printf("*** Expected record length to be at least 18, but it was %d\n", len);
-                }
                 {
                     int i = 1;
+                    hexdump(buf, len);
                     if (!first_sym)
                     {
+                        if (len < 18)
+                        {
+                            printf("*** Expected record length to be at least 18, but it was %d\n", len);
+                        }
                         first_sym = 1;
                         printf("    ? Header:\n");
                         hexdump(buf+1, 17);
@@ -199,16 +209,89 @@ void parse_record(int rec_offset, unsigned char *buf, int len)
                 int i;
                 printf("  Type = Fixups\n");
                 hexdump(buf, len);
-                for (i = 1; i < len; i += 5)
+                i = 1;
+                while (i < len)
                 {
                     unsigned char fixup_type = buf[i];
                     unsigned short fixup_offset = (buf[i+1]<<8) + buf[i+2];
-                    unsigned short symbol = (buf[i+3]<<8) + buf[i+4];
-                    printf("    Fixup type=$%2.2x (%s), offset=$%4.4x, symbol=%d\n", fixup_type, fixup_type_name(fixup_type), fixup_offset, symbol);
-                }
-                if (i != len)
-                {
-                    printf("*** Fixup payload not a multiple of 5?\n");
+                    if (fixup_type == 0x00 || fixup_type == 0x04 || fixup_type == 0x08)
+                    {
+                        unsigned short symbol;
+                        i += 3;
+                        symbol = (buf[i+0]<<8) + buf[i+1];
+                        i += 2;
+                        printf("    Fixup type=$%2.2x (%s), offset=$%4.4x, symbol=%d\n", fixup_type, fixup_type_name(fixup_type), fixup_offset, symbol);
+                    }
+                    else if ((fixup_type & 0xC1) == 0xC1) // We get E1 here also, what's the difference?
+                    {
+                        int nextras = ((fixup_type & 0x1E) >> 1);
+                        int ncommands;
+                        int cbyte;
+                        int cbyten;
+                        i += 3;
+                        printf("    Local fixup type = $%2.2x, offset = $%4.4x, nsegments=%d\n", fixup_type, fixup_offset, nextras+1);
+
+                        more:
+                        ncommands = buf[i];
+                        cbyten = 0;
+                        ++i;
+                        printf("      Segment size %d:\n", ncommands);
+                        while (ncommands)
+                        {
+                            int command;
+                            if (!cbyten)
+                            {
+                                cbyten = 4;
+                                cbyte = buf[i];
+                                ++i;
+                            }
+                            command = (3 & (cbyte >> 6));
+                            cbyten--;
+                            cbyte <<= 2;
+                            if (command == 3)
+                            {
+                                printf("        $%4.4x: fixup word\n", fixup_offset);
+                                fixup_offset += 2;
+                            }
+                            else if (command == 1)
+                            {
+                                printf("        $%4.4x: fixup byte\n", fixup_offset);
+                                fixup_offset += 1;
+                            }
+                            else if (command == 2)
+                            {
+                                printf("        $%4.4x: unknown command 2\n", fixup_offset);
+                            }
+                            else
+                            {
+                                printf("        $%4.4x: skip a byte\n", fixup_offset);
+                                fixup_offset += 1;
+                            }
+                            --ncommands;
+                        }
+                        if (nextras)
+                        {
+                            if (!(buf[i] & 0x80))
+                            {
+                                printf("*** Expected bit 7 set on extension header\n");
+                                hexdump(buf + i, len - i);
+                            }
+                            else
+                            {
+                                int nskip = (buf[i++] & 0x7F);
+                                printf("      Skipping %d bytes\n", nskip);
+                                fixup_offset += nskip;
+                                --nextras;
+                                goto more;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        printf("*** Unknown fixup type == 0x%2.2x, remains of fixup record:\n", fixup_type);
+                        hexdump(buf + i, len - i);
+                        i = len;
+                    }
                 }
                 break;
             }
@@ -297,6 +380,30 @@ void parse_objf(FILE *f)
             else
             {
                 ++foffset;
+                c = fgetc(f);
+                if (c == 10)
+                {
+                    /* EDOS has CR-LF */
+                    ++foffset;
+                    /* And it can have many NULs after each record */
+                    for (;;)
+                    {
+                        c = fgetc(f);
+                        if (c != 0 && c != -1)
+                        {
+                            ungetc(c, f);
+                            break;
+                        }
+                        else if (c == -1)
+                            break;
+                        else
+                            ++foffset;
+                    }
+                }
+                else if (c != -1)
+                {
+                    ungetc(c, f);
+                }
                 /* We have a good record! */
                 parse_record(rec_offset, buf, len - 1);
             }
