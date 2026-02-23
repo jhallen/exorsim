@@ -78,6 +78,15 @@ char *source_name(unsigned char source)
     else return "*** unknown!";
 }
 
+char *secname(unsigned short idx)
+{
+    if (idx == 0) return "ASCT";
+    else if (idx == 1) return "BSCT";
+    else if (idx == 2) return "CSCT";
+    else if (idx == 3) return "PSCT";
+    else return "named common";
+}
+
 int first_sym = 0;
 
 void parse_record(int rec_offset, unsigned char *buf, int len)
@@ -96,6 +105,7 @@ void parse_record(int rec_offset, unsigned char *buf, int len)
             {
                 unsigned source;
                 char modname[7];
+                first_sym = 0;
                 printf("  Type = Start, module name\n");
                 if (len != 10)
                 {
@@ -222,14 +232,24 @@ void parse_record(int rec_offset, unsigned char *buf, int len)
                         i += 2;
                         printf("    Fixup type=$%2.2x (%s), offset=$%4.4x, symbol=%d\n", fixup_type, fixup_type_name(fixup_type), fixup_offset, symbol);
                     }
-                    else if ((fixup_type & 0xC1) == 0xC1) // We get E1 here also, what's the difference?
+                    else if ((fixup_type & 0x81) == 0x81)
                     {
                         int nextras = ((fixup_type & 0x1E) >> 1);
+                        int defaults = !!(fixup_type & 0x40);
                         int ncommands;
                         int cbyte;
                         int cbyten;
+                        int codes[4] = { 0, 1, 3, 4 }; // Default section assignments
                         i += 3;
-                        printf("    Local fixup type = $%2.2x, offset = $%4.4x, nsegments=%d\n", fixup_type, fixup_offset, nextras+1);
+                        printf("    Local fixup commands = $%2.2x, offset = $%4.4x, nsegments=%d\n", fixup_type, fixup_offset, nextras+1);
+                        if (!defaults)
+                        {
+                            codes[1] = (buf[i+0] << 8) + buf[i+1];
+                            codes[2] = (buf[i+2] << 8) + buf[i+3];
+                            codes[3] = (buf[i+4] << 8) + buf[i+5];
+                            i += 6;
+                            printf("    ... using custom section assignments: %x, %x, %x\n", codes[1], codes[2], codes[3]);
+                        }
 
                         more:
                         ncommands = buf[i];
@@ -248,24 +268,18 @@ void parse_record(int rec_offset, unsigned char *buf, int len)
                             command = (3 & (cbyte >> 6));
                             cbyten--;
                             cbyte <<= 2;
-                            if (command == 3)
-                            {
-                                printf("        $%4.4x: fixup word\n", fixup_offset);
-                                fixup_offset += 2;
-                            }
-                            else if (command == 1)
-                            {
-                                printf("        $%4.4x: fixup byte\n", fixup_offset);
-                                fixup_offset += 1;
-                            }
-                            else if (command == 2)
-                            {
-                                printf("        $%4.4x: unknown command 2\n", fixup_offset);
-                            }
-                            else
+                            if (!command)
                             {
                                 printf("        $%4.4x: skip a byte\n", fixup_offset);
                                 fixup_offset += 1;
+                            }
+                            else
+                            {
+                                printf("        $%4.4x: fixup for section $%x (%s)\n", fixup_offset, codes[command], secname(codes[command]));
+                                if (codes[command] == 1) // Not correct, we have to look up the named common section
+                                    fixup_offset += 1; // it could be in bsct..
+                                else
+                                    fixup_offset += 2;
                             }
                             --ncommands;
                         }
@@ -298,6 +312,7 @@ void parse_record(int rec_offset, unsigned char *buf, int len)
             case 0x36: // End
             {
                 printf("  Type = End record\n");
+                first_sym = 0;
                 if (len != 4)
                 {
                     printf("Expected record length to be 4 but it was %d\n", len);
@@ -385,24 +400,24 @@ void parse_objf(FILE *f)
                 {
                     /* EDOS has CR-LF */
                     ++foffset;
-                    /* And it can have many NULs after each record */
-                    for (;;)
-                    {
-                        c = fgetc(f);
-                        if (c != 0 && c != -1)
-                        {
-                            ungetc(c, f);
-                            break;
-                        }
-                        else if (c == -1)
-                            break;
-                        else
-                            ++foffset;
-                    }
                 }
                 else if (c != -1)
                 {
                     ungetc(c, f);
+                }
+                /* And it can have many NULs after each record */
+                for (;;)
+                {
+                    c = fgetc(f);
+                    if (c != 0 && c != -1)
+                    {
+                        ungetc(c, f);
+                        break;
+                    }
+                    else if (c == -1)
+                        break;
+                    else
+                        ++foffset;
                 }
                 /* We have a good record! */
                 parse_record(rec_offset, buf, len - 1);

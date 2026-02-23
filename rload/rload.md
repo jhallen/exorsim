@@ -124,9 +124,18 @@ Where: \<name> is 6 bytes, space padded, \<size> is two bytes and \<offset>
 is two bytes.
 
 All of the symbols are added to a table (except for the ASCT record which has
-no name) and refered to by index number in the fixup records.  The starting
-index of the first symbol is 5 for some reason (perhaps the built-in symbols
-are used for 0 - 4).
+no name) and refered to by index number in the fixup records.
+
+Note that there are three types of symbols: section names (from the COMM
+directive), XREFs and XDEFs.
+
+The starting index of the first symbol is 5.  This is because 1 - 4 are used
+for the built-in section names:
+
+* 0001 is BSCT
+* 0002 is CSCT
+* 0003 is DSCT
+* 0004 is PSCT
 
 If the ASCT "symbol" is present, it is the first one in the list.
 
@@ -148,37 +157,48 @@ of its \<payload> is:
     0x00 <offset> <symbol number>    Add XREF word to data at <offset>
     0x04 <offset> <symbol number>    Add XREF byte to data at <offset>
     0x08 <offset> <symbol number>    Subtract address of data from word at <offset>.  <symbol number> is 4.
-    0xC1 - 0xDF <offset> <count> <commands> [<skip> <count> <commands>]* Apply local fixups starting with byte at <offset>
-    0xE1 - 0xFF <offset> <count> <commands> [<skip> <count> <commands>]* Apply local fixups starting with byte at <offset>
-    0x8x                             Not sure.. but Fortran compiler uses this type
+    0x81 - 0xFF <offset> [<sect1> <sect2> <sect3>] <count> <commands> [<skip> <count> <commands>]*
+                                     Apply local fixups starting with byte at <offset>
 
 For fixing up the two byte offset folling 6809 long branches, there are two
 fixups needed: one of type 0x00 adds the target address to the two bytes and
 one of type 0x08 subtracts the offset's own address to make it relative.
 
-Local fixups (types beginning with 0xC1 and 0xE1) use a list of commands:
+Local fixups (types beginning with 0x81 - 0xFF) use a list of commands.  The
+type code itself is further encoded in this case:
 
-Not sure the difference between 0xC1 and 0xE1.  0xC1 and 0xE1 fixups can
-have extentions, where there is a large gap between command groups.  The
-number of extensions is encoded in bits 4:1 of the fixup type code (so
-number of extensions is ((fixup_type >> 1) & 0x1F);
+* Bit 7     Always set
+* Bit 6     Use default command code assignments
+* Bit 5     Not sure
+* Bits 4:1  This is the number of extensions
+* Bit 0     Always set
 
-\<count> is one byte holding the number of commands in \<commands>.  There
-are two bits per command, and they fill in the bytes that make up
-\<commands>, MSB first.  So bits 7:6 of the first byte in \<commands> has
-the first command.  Bits 5:4 has the second, and so on.  \<commands> is
-padded with 0s to fill up the last byte.
+If bit 6 is clear, then \<sect1> \<sect2> and \<sect3> are present.  These
+are two byte indices to the symbol representing a section or the COMM block
+symbol to be used for a particular command code, see below.
+
+Usually bit 6 is set so that defaults are used, but it will be clear for
+CSCT and COMM local fixups.
+
+\<count> is one byte holding the number of commands in the subsequent
+\<commands>.  There are two bits per command, and they fill in the bytes
+that make up \<commands>, MSB first.  So bits 7:6 of the first byte in
+\<commands> has the first command.  Bits 5:4 has the second, and so on. 
+\<commands> is padded with 0s to fill up the last byte.
 
 The command codes are:
 
     00 Skip one byte
-    01 Fixup byte at current position
-    10 Not sure, Fortan compiler uses it.. maybe same as fixup word.
-    11 Fixup word at current position
+    01 Fixup with <sect1> or BSCT if bit 6 is set
+    10 Fixup with <sect2> or DSCT if bit 6 is set
+    11 Fixup with <sect3> or PSCT if bit 6 is set
 
-If there are extensions, \<skip> is a single byte whose lower 7 bits (?)
-indicate the number of data bytes to skip before the extension applies. 
-Bit 7 of this byte is always set.
+If bits 4:1 are non-zero, then there are extensions, so \<skip> \<count>
+\<commands> is present.
+    
+\<skip> is a single byte whose lower 7 bits (?) indicate the number of data
+bytes to skip before the extension applies.  Bit 7 of this byte is always
+set.
 
 ## 0x36 (6) End of module
 
