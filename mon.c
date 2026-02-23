@@ -676,7 +676,19 @@ int t_cmd(char *p)
 
 int bt_cmd(char *p)
 {
-        show_traces(65536);
+        int val;
+        if (match_word(&p, "all"))
+        {
+                show_traces(TRACESIZE);
+        }
+        else if (parse_dec(&p, &val))
+        {
+                show_traces(val);
+        }
+        else
+        {
+                show_traces(128);
+        }
         return 0;
 }
 
@@ -821,7 +833,7 @@ struct cmd cmds[]=
         { "q", quit_cmd,	"			Exit simulator" },
         { "quit", quit_cmd,	"			Exit simulator" },
         { "t", t_cmd,		" [on|off]		Turn tracing on / off" },
-        { "bt", bt_cmd,		"			Show most recent 128 instructions" },
+        { "bt", bt_cmd,		" [nnn|all]		Show traceback: 128, nnn or all instructions" },
         { "poll", poll_cmd,	" [on|off]		Turn ACIA polling on / off" },
         { "c", c_cmd,		" [hhhh]		Continue simulating [jump to address]" },
         { "s", s_cmd,		" [hhhh]		Step one instruction [jump to address]" },

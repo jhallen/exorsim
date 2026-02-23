@@ -249,6 +249,9 @@ executed if you step or continue.</p>
 <dt>abort<dd>Abort (send NMI) to processor
 <dt>t on<dd>Turn tracing on
 <dt>t off<dd>Turn tracing off
+<dt>bt<dd>Show traceback, 128 instructions
+<dt>bt nnn<dd>Show traceback, nnn instructions
+<dt>bt all<dd>Show traceback, all instructions (65536)
 <dt>c<dd>Continue execution with current PC address
 <dt>c hhhh<dd>Continue execution, but with new PC address hhhh
 <dt>s<dd>Execute one instruction and return to monitor

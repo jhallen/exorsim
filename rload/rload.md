@@ -217,3 +217,8 @@ the END assembly language directive, then this provides it:
 \<section> is one byte indicating the section of the starting address.
 \<offset> is two bytes giving the starting address relative that specified
 section.
+
+# RLOAD/RASM notes
+
+If you put an ORG in a PSCT, it is converted into an ASCT.
+

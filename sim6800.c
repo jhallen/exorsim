@@ -53,8 +53,6 @@ unsigned short brk_addr;
 
 int trace_idx;
 
-#define TRACESIZE 65536
-
 struct trace_entry
 {
 	unsigned short ix;

@@ -1,9 +1,5 @@
 
 Exor:
-  support much larger history
-    bt: is should limit to 128 or something
-    bt all: print full trace history
-
   write man page
 
   assembler:
@@ -71,6 +67,12 @@ HTDOCs:
 
 - - -
 Done:
+  support much larger history
+    bt: is should limit to 128 or something
+    bt all: print full trace history
+
+
+
   Generic simulator setup? Something like:
      device acia 0xfcf4 0xfcf5
      ram 0x0000 0xe7ff

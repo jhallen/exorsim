@@ -96,8 +96,6 @@ void write_flags(unsigned char f)
 
 int trace_idx;
 
-#define TRACESIZE 128
-
 /* Machine state before this instruction */
 
 struct trace_entry

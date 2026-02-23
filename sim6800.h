@@ -1,6 +1,9 @@
 #ifndef _Isim6800
 #define _Isim6800
 
+/* Trace buffer size */
+#define TRACESIZE 65536
+
 /* Controls */
 
 extern int skip;
