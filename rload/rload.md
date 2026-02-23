@@ -48,8 +48,11 @@ Object files are composed of binary records.  Each record looks like this:
 Each record begins with an ASCII D character (0x44) and ends with a carriage
 return (0x0D).
 
-In EDOS, each record ends with CR-LF.  Also, any number of NULs may exist
-between records.
+In EDOS, each record ends with CR-LF.
+
+Any number of NULs may exist between records, even in MDOS.  Sometimes there
+are NULs to the next sector boundary for libraries (a library is just a
+bunch of object files concatenated together).
 
 \<size> is one byte which gives the record size.  This size includes the
 \<body> and the \<checksum>.
@@ -160,7 +163,7 @@ of its \<payload> is:
     0x81 - 0xFF <offset> [<sect1> <sect2> <sect3>] <count> <commands> [<skip> <count> <commands>]*
                                      Apply local fixups starting with byte at <offset>
 
-For fixing up the two byte offset folling 6809 long branches, there are two
+For fixing up the two byte offset following 6809 long branches, there are two
 fixups needed: one of type 0x00 adds the target address to the two bytes and
 one of type 0x08 subtracts the offset's own address to make it relative.
 
@@ -192,6 +195,9 @@ The command codes are:
     01 Fixup with <sect1> or BSCT if bit 6 is set
     10 Fixup with <sect2> or DSCT if bit 6 is set
     11 Fixup with <sect3> or PSCT if bit 6 is set
+
+DSCT and PSCT fixups assume extended addressing (a two byte fixup).  BSCT
+fixups assume direct addressing (a one byte fixup).
 
 If bits 4:1 are non-zero, then there are extensions, so \<skip> \<count>
 \<commands> is present.
