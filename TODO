@@ -1,4 +1,3 @@
-
 Exor:
   write man page
 
@@ -8,10 +7,6 @@ Exor:
     expression evaluator including Motorola operators
 
   exorterm update(): maybe call it periodically even if there is no input polling
-
-  Step over function (we only have step into now)
-  Break key
-  More breakpoints
 
   Ctrl-C twice sends Ctrl-C to program?  It exists now.. or some way to send Ctrl-C to program.
 
@@ -67,11 +62,15 @@ HTDOCs:
 
 - - -
 Done:
+
+  Step over function (we only have step into now)
+  Break key
+  More breakpoints
+
+
   support much larger history
     bt: is should limit to 128 or something
     bt all: print full trace history
-
-
 
   Generic simulator setup? Something like:
      device acia 0xfcf4 0xfcf5
