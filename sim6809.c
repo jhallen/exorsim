@@ -32,9 +32,65 @@ int reset; /* User hit reset */
 int abrt; /* User hit abort */
 int sp_stop;
 
+int insn_size(unsigned short addr)
+{
+	if (mem[addr] == 0xBD) return 3; // JSR
+	else if (mem[addr] == 0x8D) return 2; // BSR
+	else if (mem[addr] == 0x17) return 3; // LBSR
+	else return 0;
+}
+
 /* Breakpoint */
 int mybrk;
-unsigned short brk_addr;
+unsigned short brk_addr[NBREAKS];
+int step_over_enable;
+unsigned short step_over;
+
+int break_match(unsigned short addr)
+{
+	int x;
+	if (step_over_enable && step_over == addr)
+	{
+		step_over_enable = 0;
+		return 1;
+	}
+	for (x = 0; x != mybrk; ++x)
+		if (brk_addr[x] == addr)
+			return 1;
+	return 0;
+}
+
+void set_break(unsigned short addr)
+{
+	int x;
+	for (x = 0; x != mybrk; ++x)
+		 if (brk_addr[x] == addr)
+		 	break;
+	if (x == mybrk)
+	{
+		// Add breakpoint
+		if (mybrk == NBREAKS)
+			printf("Too many breakpoints!\n");
+		else {
+			brk_addr[mybrk++] = addr;
+			printf("Breakpoint added %4.4x\n", addr);
+		}
+	}
+	else
+	{
+		// Remove breakpoint
+		memmove(brk_addr + x, brk_addr + x + 1, (mybrk - x - 1) * sizeof(brk_addr[0]));
+		--mybrk;
+		printf("Breakpoint removed %4.4x\n", addr);
+	}
+}
+
+void list_breaks(void)
+{
+	int x;
+	for (x = 0; x != mybrk; ++x)
+		printf(" %4.4x\n", brk_addr[x]);
+}
 
 /* CPU registers */
 unsigned char acca;
@@ -1418,8 +1474,8 @@ void sim(void)
 		/* Record state at start of instruction */
 		record_trace(t);
 
-		if ((mybrk && (brk_addr == pc)) || stop) {
-			if (mybrk && brk_addr == pc)
+		if ((mybrk && break_match(pc)) || stop) {
+			if (mybrk && break_match(pc))
 				printf("\r\nBreakpoint!\n");
 			monitor();
 			record_trace(t);

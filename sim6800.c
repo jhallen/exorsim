@@ -45,9 +45,67 @@ unsigned char n_flag;
 unsigned char i_flag; /* 1=masked, 0=enabled */
 unsigned char h_flag;
 
+/* Return size of jsr or bsr or return 0 */
+
+int insn_size(unsigned short addr)
+{
+	if (mem[addr] == 0xBD) return 3;
+	else if (mem[addr] == 0xAD) return 2;
+	else if (mem[addr] == 0x8D) return 2;
+	else return 0;
+}
+
 /* Breakpoint */
 int mybrk;
-unsigned short brk_addr;
+unsigned short brk_addr[NBREAKS];
+int step_over_enable;
+unsigned short step_over;
+
+int break_match(unsigned short addr)
+{
+	int x;
+	if (step_over_enable && step_over == addr)
+	{
+		step_over_enable = 0;
+		return 1;
+	}
+	for (x = 0; x != mybrk; ++x)
+		if (brk_addr[x] == addr)
+			return 1;
+	return 0;
+}
+
+void set_break(unsigned short addr)
+{
+	int x;
+	for (x = 0; x != mybrk; ++x)
+		 if (brk_addr[x] == addr)
+		 	break;
+	if (x == mybrk)
+	{
+		// Add breakpoint
+		if (mybrk == NBREAKS)
+			printf("Too many breakpoints!\n");
+		else {
+			brk_addr[mybrk++] = addr;
+			printf("Breakpoint added %4.4x\n", addr);
+		}
+	}
+	else
+	{
+		// Remove breakpoint
+		memmove(brk_addr + x, brk_addr + x + 1, (mybrk - x - 1) * sizeof(brk_addr[0]));
+		--mybrk;
+		printf("Breakpoint removed %4.4x\n", addr);
+	}
+}
+
+void list_breaks(void)
+{
+	int x;
+	for (x = 0; x != mybrk; ++x)
+		printf(" %4.4x\n", brk_addr[x]);
+}
 
 /* Trace buffer */
 
@@ -688,8 +746,8 @@ void sim(void)
 		t->ea = 0;
 		t->data = 0;
 
-		if ((mybrk && (brk_addr == pc)) || stop) {
-		        if (mybrk && brk_addr == pc)
+		if (break_match(pc) || stop) {
+		        if (break_match(pc))
         		        printf("\r\nBreakpoint!\n");
 		        monitor();
                         t->pc = pc;

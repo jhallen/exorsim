@@ -4,6 +4,9 @@
 /* Trace buffer size */
 #define TRACESIZE 65536
 
+/* Max no. of breakpoints */
+#define NBREAKS 5
+
 /* Controls */
 
 extern int skip;
@@ -13,8 +16,14 @@ extern int reset;
 extern int abrt;
 extern int sp_stop;
 
-extern int mybrk;
-extern unsigned short brk_addr;
+/* Return size of instruction at specified address */
+
+int insn_size(unsigned short addr);
+
+extern unsigned short step_over;
+extern int step_over_enable;
+void set_break(unsigned short addr);
+void list_breaks(void);
 
 /* CPU registers */
 

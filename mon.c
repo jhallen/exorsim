@@ -247,6 +247,26 @@ int s_cmd(char *p)
         return 0;
 }
 
+int v_cmd(char *p)
+{
+        if (!*p) {
+                int size = insn_size(pc);
+                if (!size) {
+                        /* Same as s command */
+                        return s_cmd("");
+                } else {
+                        /* Skip over subroutine call */
+                        step_over = pc + size;
+                        step_over_enable = 1;
+                        stop = 0;
+                        return 1;
+                }
+        } else {
+                huh();
+        }
+        return 0;
+}
+
 int clr_cmd(char *p)
 {
         clr_syms();
@@ -266,12 +286,10 @@ int b_cmd(char *p)
 {
         int val;
         if (!*p) {
-                mybrk = 0;
-                printf("Breakpoint cleared\n");
+                printf("Breakpoints:\n");
+                list_breaks();
         } else if (parse_hex(&p, &val)) {
-                brk_addr = val;
-                mybrk = 1;
-                printf("Breakpoint set at %4.4X\n", brk_addr);
+                set_break(val);
         } else
                 huh();
         return 0;
@@ -837,6 +855,7 @@ struct cmd cmds[]=
         { "poll", poll_cmd,	" [on|off]		Turn ACIA polling on / off" },
         { "c", c_cmd,		" [hhhh]		Continue simulating [jump to address]" },
         { "s", s_cmd,		" [hhhh]		Step one instruction [jump to address]" },
+        { "v", v_cmd,           "                       Step over one instruction" },
         { "b", b_cmd,		" [hhhh]		Set/Clear breakpoint" },
         { "r", regs_cmd,	" [reg hhhh]		Show regs, set reg" },
         { "x", call_cmd,	" hhhh			Call subroutine, return to monitor when done" },
