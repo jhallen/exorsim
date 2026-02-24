@@ -8,7 +8,7 @@ Exor:
 
   exorterm update(): maybe call it periodically even if there is no input polling
 
-  Ctrl-C twice sends Ctrl-C to program?  It exists now.. or some way to send Ctrl-C to program.
+  Ctrl-C twice sends Ctrl-C to program?  It exits now.. or some way to send Ctrl-C to program.
 
   6800 simulator: add 6801, 6811, 6816 support
   6809 simulator: add 6309 support

@@ -30,7 +30,8 @@ int trace = 0; /* Enable instruction trace */
 int stop; /* Stop flag */
 int reset; /* User hit reset */
 int abrt; /* User hit abort */
-int sp_stop;
+int sp_stop = -1;
+int sp_over = -1;
 
 /* CPU registers */
 unsigned char acca;
@@ -49,26 +50,20 @@ unsigned char h_flag;
 
 int insn_size(unsigned short addr)
 {
-	if (mem[addr] == 0xBD) return 3;
-	else if (mem[addr] == 0xAD) return 2;
-	else if (mem[addr] == 0x8D) return 2;
+	if (mem[addr] == 0xBD) return 3; /* JSR extended */
+	else if (mem[addr] == 0xAD) return 2; /* JSR indexed */
+	else if (mem[addr] == 0x8D) return 2; /* BSR */
+	else if (mem[addr] == 0x3F) return 1; /* SWI */
 	else return 0;
 }
 
 /* Breakpoint */
 int mybrk;
 unsigned short brk_addr[NBREAKS];
-int step_over_enable;
-unsigned short step_over;
 
 int break_match(unsigned short addr)
 {
 	int x;
-	if (step_over_enable && step_over == addr)
-	{
-		step_over_enable = 0;
-		return 1;
-	}
 	for (x = 0; x != mybrk; ++x)
 		if (brk_addr[x] == addr)
 			return 1;
@@ -1331,17 +1326,35 @@ void sim(void)
 					break;
 				} case 0x39: /* RTS */ {
 				        if (sp == sp_stop) {
+				        	/* For monitor 'x' (call) command */
+				        	/* In this case, the rts is ignored */
 				                stop = 1;
 				                sp_stop = -1;
-				        } else
-        					jump(pull2());
+				        } else {
+				        	unsigned short jaddr = pull2();
+				        	if (sp == sp_over) {
+				        		/* For monitor 'v' (skip over) command */
+				        		/* In this case, the rts is executed, but we stop */
+				        		stop = 1;
+				        		sp_over = -1;
+				        	}
+        					jump(jaddr);
+					}
 					break;
 				} case 0x3B: /* RTI */ {
+					unsigned short jaddr;
 					write_flags(pull());
 					accb = pull();
 					acca = pull();
 					ix = pull2();
-					jump(pull2());
+					jaddr = pull2();
+					if (sp == sp_over) {
+						stop = 1;
+						sp_over = -1;
+			        		/* For monitor 'v' (skip over) command */
+			        		/* In this case, the rti is executed, but we stop */
+					}
+					jump(jaddr);
 					break;
 				} case 0x3E: /* WAI */ {
 				        printf("WAI encountered...\n");

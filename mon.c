@@ -40,7 +40,7 @@ FILE *mon_in;
 
 int last;
 unsigned short last_u;
-int step;
+int step; // Set for case where we enter monitor from step
 
 struct cmd { char *name; int (*func)(char *); char *help; } cmds[];
 
@@ -256,9 +256,9 @@ int v_cmd(char *p)
                         return s_cmd("");
                 } else {
                         /* Skip over subroutine call */
-                        step_over = pc + size;
-                        step_over_enable = 1;
+                        step = 1;
                         stop = 0;
+                        sp_over = sp;
                         return 1;
                 }
         } else {
@@ -1030,6 +1030,14 @@ void monitor()
         /* system("stty -isig"); */
         nosig_termios();
 
+        if (!step) {
+#ifdef M6809
+                printf("\n6809 Monitor: Ctrl-C to exit, 'c' to continue, or type 'help'\n");
+#else
+                printf("\n6800 Monitor: Ctrl-C to exit, 'c' to continue, or type 'help'\n");
+#endif
+        }
+
         if (step) {
                 if (trace)
                         show_traces(1);
@@ -1042,12 +1050,6 @@ void monitor()
                 else
                         show_traces(2);
         }
-
-#ifdef M6809
-        printf("\n6809 Monitor: Ctrl-C to exit, 'c' to continue, or type 'help'\n");
-#else
-        printf("\n6800 Monitor: Ctrl-C to exit, 'c' to continue, or type 'help'\n");
-#endif
 
         for (;;) {
                 char buf[180];

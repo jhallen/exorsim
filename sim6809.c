@@ -30,30 +30,27 @@ int trace = 0; /* Enable instruction trace */
 int stop; /* Stop flag */
 int reset; /* User hit reset */
 int abrt; /* User hit abort */
-int sp_stop;
+int sp_stop = -1;
+int sp_over = -1;
 
 int insn_size(unsigned short addr)
 {
 	if (mem[addr] == 0xBD) return 3; // JSR
 	else if (mem[addr] == 0x8D) return 2; // BSR
 	else if (mem[addr] == 0x17) return 3; // LBSR
+	else if (mem[addr] == 0x3F) return 1; // SWI
+	else if (mem[addr] == 0x10 || mem[addr+1] == 0x3F) return 2; // SWI2
+	else if (mem[addr] == 0x11 || mem[addr+1] == 0x3F) return 2; // SWI3
 	else return 0;
 }
 
 /* Breakpoint */
 int mybrk;
 unsigned short brk_addr[NBREAKS];
-int step_over_enable;
-unsigned short step_over;
 
 int break_match(unsigned short addr)
 {
 	int x;
-	if (step_over_enable && step_over == addr)
-	{
-		step_over_enable = 0;
-		return 1;
-	}
 	for (x = 0; x != mybrk; ++x)
 		if (brk_addr[x] == addr)
 			return 1;
@@ -2084,16 +2081,26 @@ void sim(void)
                 		} case 0x39: { /* RTS */
                 			do_rts:
 				        if (sp == sp_stop) {
-				        	/* Monitor call stop: in this case, the RTS is skipped */
+				        	/* For monitor 'x' (call) command */
+				        	/* In this case the rts is ignored */
 				                stop = 1;
 				                sp_stop = -1;
-				        } else
-        					jump(pull2());
+				        } else {
+				        	unsigned short jaddr = pull2();
+				        	if (sp == sp_over) {
+				        		/* For monitor 'v'  (skip over) command */
+				        		/* In this case, the rts is executed, but we stop */
+				        		stop = 1;
+				        		sp_over = -1;
+				        	}
+        					jump(jaddr);
+					}
 					break;
                 		} case 0x3A: { /* ABX */
                 			ix += accb;
                 			break;
                 		} case 0x3B: { /* RTI */
+                			unsigned short jaddr;
 					write_flags(pull());
 					if (e_flag) {
 						acca = pull();
@@ -2103,7 +2110,14 @@ void sim(void)
 						iy = pull2();
 						up = pull2();
 					}
-					jump(pull2());
+					jaddr = pull2();
+					if (sp == sp_over) {
+						/* For monitor 'v' (skip over) command */
+						/* In this case, the rti is executed, but we stop */
+						stop = 1;
+						sp_over = -1;
+					}
+					jump(jaddr);
 					break;
                 		} case 0x3C: { /* CWAI */
                 			write_flags(read_flags() & fetch());

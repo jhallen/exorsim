@@ -15,8 +15,9 @@ extern int stop;
 extern int reset;
 extern int abrt;
 extern int sp_stop;
+extern int sp_over;
 
-/* Return size of instruction at specified address */
+/* Return true if instruction at address is jump to subroutine or SWI */
 
 int insn_size(unsigned short addr);
 
