@@ -1030,14 +1030,6 @@ void monitor()
         /* system("stty -isig"); */
         nosig_termios();
 
-        if (!step) {
-#ifdef M6809
-                printf("\n6809 Monitor: Ctrl-C to exit, 'c' to continue, or type 'help'\n");
-#else
-                printf("\n6800 Monitor: Ctrl-C to exit, 'c' to continue, or type 'help'\n");
-#endif
-        }
-
         if (step) {
                 if (trace)
                         show_traces(1);

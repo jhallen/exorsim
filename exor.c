@@ -243,8 +243,13 @@ void jump(unsigned short addr)
 
 void ctrl_c()
 {
-        printf("Interrupt!\n");
+        printf("\nInterrupt!\n");
         stop = 1;
+#ifdef M6809
+        printf("Entering 6809 Monitor: Ctrl-C to exit, 'c' to continue, or type 'help'\n\n");
+#else
+        printf("Entering 6800 Monitor: Ctrl-C to exit, 'c' to continue, or type 'help'\n\n");
+#endif
 }
 
 int main(int argc, char *argv[])
