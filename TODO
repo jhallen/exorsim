@@ -1,4 +1,8 @@
 Exor:
+  clean up entry/exit to monitor so that screen doesn't jump so much.  Maybe don't update when in scroll mode.
+
+  mode where we open an xterm.. could be better for debugging sometimes
+
   write man page
 
   assembler:

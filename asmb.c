@@ -27,7 +27,7 @@
 /* Options - disable them all to be compatible with original MC6800 assembler */
 #define ALLOW_TABS
 #define ALLOW_SEMI_COMMENTS
-#define ALLOW_TRAILING_QUOTE /* Allow 'A' instead of 'A */
+#define ALLOW_TRAILING_QUOTE /* Ignore trailing single quote in 'A' */
 #define ALLOW_BLANK_LINES
 #define ALLOW_LEADING_WS /* Allow leading whitespace before * or ; comment */
 #define ALLOW_EXTRA_IDENT_CHARS /* Allow ., $ and _ in identifiers */
@@ -871,16 +871,21 @@ int parse_string()
 
 /* Parse module name */
 
-int parse_module_name()
+int parse_text(int len)
 {
-    if (*inptr && *inptr != ' ' && *inptr != '\t')
+    int i;
+    for (i = 0; len && *inptr; ++i)
     {
-        int i;
-        for (i = 0; *inptr && *inptr != ' ' && *inptr != '\t'; ++i)
-            strval[i] = *inptr++;
-        strval[i] = 0;
-        return 1;
+        strval[i] = *inptr++;
+        --len;
     }
+    while (len)
+    {
+        strval[i++] = ' ';
+        --len;
+    }
+    strval[i] = 0;
+    return 1;
     return 0;
 }
 
@@ -950,12 +955,12 @@ int parse_expr()
         char *hold;
         more:
         hold = inptr;
-        skipws();
+        // skipws(); // No whitespace in expressions!
         if (*inptr == '-')
         {
             int tmp = val;
             ++inptr;
-            skipws();
+            // skipws(); // No whitespace in expressions!
             if (parse_term())
             {
                 val = tmp - val;
@@ -970,7 +975,7 @@ int parse_expr()
         {
             int tmp = val;
             ++inptr;
-            skipws();
+            // skipws();
             if (parse_term())
             {
                 val = tmp + val;
@@ -985,7 +990,7 @@ int parse_expr()
         {
             int tmp = val;
             ++inptr;
-            skipws();
+            // skipws();
             if (parse_term())
             {
                 val = tmp * val;
@@ -1000,7 +1005,7 @@ int parse_expr()
         {
             int tmp = val;
             ++inptr;
-            skipws();
+            // skipws();
             if (parse_term())
             {
                 val = tmp / val;
@@ -1079,13 +1084,13 @@ int parse_mode()
     {
         // Indexed or direct
         char *hold = inptr;
-        skipws();
+        // skipws(); // No whitespace in expressions!
         if (*inptr == ',')
         {
             // Indexed
             ++inptr;
             hold = inptr;
-            skipws();
+            // skipws();
             if (!match_ident("x"))
             {
                 inptr = hold;
@@ -1104,7 +1109,7 @@ int parse_mode()
         // Maybe 0 indexed
         known = 1;
         ++inptr;
-        skipws();
+        // skipws();
         if (!match_ident("x"))
         {
             error("Missing index register");
@@ -1364,9 +1369,9 @@ int parse_line()
         case OPFCB:
         {
             char *hold;
+            skipws();
             fcb_more:
             hold = inptr;
-            skipws();
             if (!parse_expr())
             {
                 inptr = hold;
@@ -1378,7 +1383,7 @@ int parse_line()
             }
             emit(val);
             hold = inptr;
-            skipws();
+            //skipws();
             if (*inptr == ',')
             {
                 ++inptr;
@@ -1395,26 +1400,22 @@ int parse_line()
             skipws();
             if (parse_decimal())
             {
-                skipws();
+                //skipws();
                 if (*inptr == ',')
                 {
                     ++inptr;
-                    skipws();
-                    if (parse_string())
+                    //skipws();
+                    if (parse_text(val))
                     {
                         int i;
-                        for (i = 0; i < val && strval[i]; ++i)
+                        for (i = 0; i < val; ++i)
                         {
                             emit(strval[i]);
                         }
-                        if (strval[i])
+                        /* After string: we allow whitespace or nothing */
+                        if (!(*inptr == 0 || iswhite(*inptr)))
                         {
                             error("String is too long");
-                        }
-                        while (i < val)
-                        {
-                            emit(' ');
-                            ++i;
                         }
                     }
                     else
@@ -1454,9 +1455,9 @@ int parse_line()
         case OPFDB:
         {
             char *hold;
+            skipws();
             fdb_more:
             hold = inptr;
-            skipws();
             if (!parse_expr())
             {
                 inptr = hold;
@@ -1465,7 +1466,7 @@ int parse_line()
             emit(val >> 8);
             emit(val);
             hold = inptr;
-            skipws();
+            // skipws();
             if (*inptr == ',')
             {
                 ++inptr;
@@ -1519,9 +1520,14 @@ int parse_line()
             else
             {
                 skipws();
-                if (parse_module_name())
+                if (parse_text(6))
                 {
                     emits0(strval);
+                    /* After string: we allow whitespace or nothing */
+                    if (!(*inptr == 0 || iswhite(*inptr)))
+                    {
+                        error("Module name is too long");
+                    }
                 }
                 else
                 {
@@ -1537,8 +1543,8 @@ int parse_line()
         }
         case OPOPT:
         {
-            more_opt:
             skipws();
+            more_opt:
             if  (parse_ident())
             {
                 if (!strcmp(strval, "L"))
@@ -1576,7 +1582,7 @@ int parse_line()
                 {
                     error("Unknown option");
                 }
-                skipws();
+                //skipws();
                 if (*inptr == ',')
                 {
                     ++inptr;
