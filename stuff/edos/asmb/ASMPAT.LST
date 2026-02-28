@@ -1,0 +1,72 @@
+0001                            * Patches to ASM from the Astral-2000 to run on the Motorola Exorciser
+0002                            *
+0003                            * 011E : 7E EE EA	"~  "		jmp	crLfStr		$F024
+0004                            * 0121 : 7E EE EC	"~  "		jmp	dispStr		$F027
+0005                            * 0124 : 7E EE F9	"~  "		jmp	crLf		$F021
+0006                            * 0130 : 7E E8 21	"~ !"		jmp	MONITOR		$F000
+0007                            * 0157 : BD E8 00	"   "		jsr	charIn		$F015
+0008                            * 0177 : BD E8 03	"   "		jsr	charOut		$F018
+0009                            *
+0010                            * 01D3 : BD F1 AD	"   "		jsr	diskWrt		$E80c
+0011                            * 0282 : BD F1 35	"  5"		jsr	diskRd		$E809
+0012                            * 094F : BD F0 3B	"  ;"		jsr	RESTORE		$E82D
+0013                            * 0956 : 7E F0 23	"~ #"		jmp	UPDATE		$E80F
+0014                            *
+0015                            * 0020 : FE E0 14	"   "		ldx	XE014		$FF00 (max RAM stored here)
+0016                            * 0946 : 8E E0 B8	"   "		lds	#$E0B8  	$FF8A top of stack
+0017                            *
+0018                            * 13CB : 2A 1D		"* "		bpl	L13EA		bug, should be bcc $24
+0019                            
+0020 e800                       PROMLOC	equ	$E800			EDOS Resident PROM
+0021 f000                       EXBUG	equ	$F000			I/O jump vector table in EXBUG
+0022                            
+0023                            * These are offsets from PROMLOC
+0024                            
+0025 0009                       DISKRD	equ	$09			offset to disk read byte
+0026 000c                       DISKWRT	equ	$0C			offset to disk write byte
+0027 000f                       UPDATE	equ	$0F			offset to UPDATE vector
+0028 002d                       RESTORE	equ	$2D			offset to restore file pointers
+0029                            
+0030                            * These are offsets into the jump table in EXBUG
+0031                            
+0032 0000                       MONITOR	equ	$00			offset to MONITOR jump vector
+0033 0015                       CONIN	equ	$15			offset to CONIN jump vector
+0034 0018                       CONOUT	equ	$18			offset to CONOUT jump vector
+0035 0021                       CRLF	equ	$21			offset to send CR/LF
+0036 0024                       CRLFSTR	equ	$24			offset to display string with leader CR/LF
+0037 0027                       DISPSTR	equ	$27			offset to display string
+0038                            
+0039                            * Patches
+0040                            
+0041 011f                       	org	$011F
+0042 011f f0 24                 	fdb	EXBUG+CRLFSTR
+0043 0122                       	org	$0122
+0044 0122 f0 27                 	fdb	EXBUG+DISPSTR
+0045 0125                       	org	$0125
+0046 0125 f0 21                 	fdb	EXBUG+CRLF
+0047 0131                       	org	$0131
+0048 0131 f0 00                 	fdb	EXBUG+MONITOR
+0049 0158                       	org	$0158
+0050 0158 f0 15                 	fdb	EXBUG+CONIN
+0051 0178                       	org	$0178
+0052 0178 f0 18                 	fdb	EXBUG+CONOUT
+0053                            
+0054 01d4                       	org	$01D4
+0055 01d4 e8 0c                 	fdb	PROMLOC+DISKWRT
+0056 0283                       	org	$0283
+0057 0283 e8 09                 	fdb	PROMLOC+DISKRD
+0058 0950                       	org	$0950
+0059 0950 e8 2d                 	fdb	PROMLOC+RESTORE
+0060 0957                       	org	$0957
+0061 0957 e8 0f                 	fdb	PROMLOC+UPDATE
+0062                            
+0063 0021                       	org	$0021
+0064 0021 ff 00                 	fdb	$FF00			EXBUG keeps top of RAM in $FF00
+0065 0947                       	org	$0947
+0066 0947 ff 8a                 	fdb	$FF8A			EXBUG top of stack
+0067                            
+0068 13cb                       	org	$13cb
+0069 13cb 24                    	fcb	$24			BCC, not BPL
+0070                            
+0071                            	end
+0072                            
