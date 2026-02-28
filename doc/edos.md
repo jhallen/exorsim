@@ -137,8 +137,8 @@ A manual for EDIT is here:
 
 ### ASM
 
-ASM is the absolute assembler, meaning it generate S19 files directly but
-can not generate relocatable object file that work with RLOAD.
+ASM is the absolute assembler, meaning it generates S19 files directly but
+can not generate relocatable object files that work with RLOAD.
 
 Mike Douglas (aka "Deramp") ported this from the Astral-2000.
 
