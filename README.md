@@ -264,10 +264,12 @@ You can get FLEX2 disk images here:
 
 2. (Linux)
 
+	cd exorsim
 	sudo make install
 
 2. (Cygwin) "run as administrator" the Cygwin terminal, then:
 
+	cd exorsim
 	make install
 
 This will install the binaries in /usr/local/bin and install the data files
@@ -316,4 +318,4 @@ A number of utilities are built in addition to "exor":
 <br>
 [EXORterm info](doc/exorterm.md)
 <br>
-[Notes](doc/notes.md)
+[Notes](adoc/notes.md)
