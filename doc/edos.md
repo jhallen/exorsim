@@ -36,10 +36,11 @@ The PROM has subroutines which can:
 * Read a byte from an already open input file
 * Rewind the input file back to the beginning for another pass
 * Write a byte to an already open output file
-* "Update"- this means load and run EXEC, but with a flag set to that the first thing it does is close the output file.
+* "Update"- this means Boot EDOS EXEC, but with a flag set so that the first thing it does is close the output file.
+* If the program wants to discard the output file, it should call the normal "Boot EDOS" function ($E800;G).
 
 These PROM subroutines are the only parts of EDOS which are available to
-used programs.
+user programs.
 
 The PROM uses RAM between $00 and $0F.  The rest of the memory is free for
 use by the user's program, even if that program is reading and writing
@@ -49,8 +50,8 @@ Sector buffers are required for floppy access.  These buffers are located in
 the controller itself: one 128 byte buffer for input file reading and one
 128 byte buffer for output file writing.
 
-Each file on the disk is in stored in one contiguous segment: all you need
-for reading is the starting track and sector numbers, plus the file size. 
+Each file on the disk is stored in one contiguous segment: all you need for
+reading is the starting track and sector numbers, plus the file size. 
 Multiple files are packed contiguously together starting at the beginning. 
 The one output file you may have open for writing can use the remaining
 contiguous space.
