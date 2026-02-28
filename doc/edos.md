@@ -97,7 +97,14 @@ Here are programs that are available on "edos.dsk".
 ### FORT
 
 FORT is the MC6800 FORTRAN 1.0 compiler.  We have this from an original
-Motorola FORTRAN language disk.  The manual for it is here:
+Motorola FORTRAN language disk.
+
+An ad for it here:
+
+[Resident FORTRAN Compiler](https://www.bitsavers.org/components/motorola/_catalogs/1979_Microcomputer_Development_Systems.pdf#page=157)
+
+The manual for it is here:
+
 
 FORTRAN 1.0 is an earlier version than documented in the 1976 and 1977 manuals.
 One area in which v1.0 differs is in the optional numeric parameter that can
@@ -165,6 +172,8 @@ The Astral-2000 manual for it is here:
 
 It's unclear if this is exactly the same as Motorola's BASIC, but Motorola
 definitely sold a version of BASIC for EDOS, there are ads for it:
+
+[Resident BASIC Interpreter](https://www.bitsavers.org/components/motorola/_catalogs/1979_Microcomputer_Development_Systems.pdf#page=153)
 
 S19 for it is here: [../stuff/edos/basic](../stuff/edos/basic)
 
