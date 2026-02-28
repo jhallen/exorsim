@@ -56,10 +56,15 @@ EXORdisk-I,-II, or -III.  In this case, there were a number of available operati
 * MDOS   (CP/M-like OS with 8 character file names with two character extensions, for EXORdisk-II/-III)
 * MDOS09  (same as MDOS, but for 6809-based EXORcisers)
 
-EDOS-I and EDOS-II are direct 6800 ports of FDOS-I and FDOS-II.  FDOS was an
-operating system developed by iCOM Microperipherals (later iCOM-Pertec) in
-1975 for their disk drives.  The EXORdisk-I was an iCOM drive.  See
-[https://bitsavers.trailing-edge.com/pdf/icom/FDOS-II_Manual_197610.pdf](https://bitsavers.trailing-edge.com/pdf/icom/FDOS-II_Manual_197610.pdf).
+Information about EDOS can be found here: [EDOS](edos.md).
+
+Information about MDOS can be found here:
+
+[MDOS quick start](doc/mdos-intro.md)
+<br>
+[MDOS reference](doc/mdos-ref.md)
+<br>
+[MDOS technical information](doc/mdos-tech.md)
 
 There was an all-in-one follow-on system called [EXORset](https://www.retrotechnology.com/restore/exorset.html)
 available in the early 1980s.  This system had a built-in terminal, used 5 1/4" mini-floppies and 
@@ -306,12 +311,6 @@ A number of utilities are built in addition to "exor":
 
 ### Links
 
-[MDOS quick start](doc/mdos-intro.md)
-<br>
-[MDOS reference](doc/mdos-ref.md)
-<br>
-[MDOS technical information](doc/mdos-tech.md)
-<br>
 [EXORsim usage guide](doc/usage.md)
 <br>
 [MPL language](mpl/readme.md)
