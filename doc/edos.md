@@ -149,6 +149,8 @@ A manual for ASM is here:
 
 [M6800_Co-Resident_Assembler_Reference_Manual_1976](https://www.bitsavers.org/components/motorola/6800/exorciser/M6800_Co-Resident_Assembler_Reference_Manual_1976.pdf)
 
+Patch notes are here: [../stuff/edos/asmb](../stuff/edos/asmb)
+
 ### BASIC
 
 This is the pre-MDOS version of BASIC (MDOS BASIC starts with version 2.0). 
@@ -164,6 +166,8 @@ The Astral-2000 manual for it is here:
 It's unclear if this is exactly the same as Motorola's BASIC, but Motorola
 definitely sold a version of BASIC for EDOS, there are ads for it:
 
+S19 for it is here: [../stuff/edos/basic](../stuff/edos/basic)
+
 ### Missing
 
 One important program we are missing is the EDOS-II version of RASM (the
@@ -174,9 +178,9 @@ assembly language programs with FORTRAN.
 ## Source code
 
 Mike Douglas entered the EDOS PROM source code by hand from the EXORdisk-I
-user manual. It's here:
+user manual. It's here: [../stuff/edos/exordisk1](../stuff/edos/exordisk1)
 
-EDOS-II EXEC source code is available here.  It's not clear where this is
+EDOS-II EXEC source code is available here: [../stuff/edos/exec](../stuff/edos/exec)  It's not clear where this is
 from, but it has the comment: "THIS PROGRAM WAS COMMENTED BY AUSTRALIAN 6800
 USER'S GROUP"
 
