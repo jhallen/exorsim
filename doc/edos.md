@@ -32,7 +32,7 @@ which is the main command-line user interface which is booted from a floppy.
 
 EXEC and other programs are stored in S19 format on the floppy.  S19 is not
 very space efficient, but is versatile in that it can load any number of
-segments of the file to any address.
+segments of the file, each to any address.
 
 The PROM has a number of entry points:
 
@@ -63,10 +63,10 @@ The PROM uses RAM between $00 and $0F.  The rest of the RAM is free for use
 by the user's program, even if that program is reading and writing files.
 
 Sector buffers are required for floppy access.  These buffers are located in
-the controller itself: one 128 byte buffer for input file reading and one
-128 byte buffer for output file writing.
+the controller in the FD360 itself: one 128 byte buffer for input file
+reading and one 128 byte buffer for output file writing.
 
-Each file on the disk is stored in one contiguous segment: all you need for
+Each file on the disk is stored in one contiguous extent: all you need for
 reading is the starting track and sector numbers, plus the file size. 
 Multiple files are packed contiguously together starting at the beginning. 
 The one output file you may have open for writing can use the remaining
@@ -137,10 +137,11 @@ A manual for EDIT is here:
 
 [M6800_Co-Resident_Editor_Reference_Manual_1977](https://www.bitsavers.org/components/motorola/6800/exorciser/M6800_Co-Resident_Editor_Reference_Manual_1977.pdf)
 
-### ASM
+### ASM (file ASMB)
 
-ASM is the absolute assembler, meaning it generates S19 files directly but
-can not generate relocatable object files that work with RLOAD.
+ASM is the absolute assembler, meaning it generates S19 files directly (or
+assembles directly to memory) but can not generate relocatable object files
+that work with RLOAD.
 
 Mike Douglas (aka "Deramp") ported this from the Astral-2000.
 
@@ -178,3 +179,41 @@ user manual. It's here:
 EDOS-II EXEC source code is available here.  It's not clear where this is
 from, but it has the comment: "THIS PROGRAM WAS COMMENTED BY AUSTRALIAN 6800
 USER'S GROUP"
+
+## Disk Format
+
+EDOS and EDOS-II use IBM format single sided, single density floppy disks:
+
+* Tracks 77 (0 - 76)
+* Sectors per track: 26 (1 - 26)
+* Sector size: 128 bytes
+* Interleave factor: 9 sectors
+* Size: 256,256 bytes
+
+Like CP/M, EDOS interleaves the sectors in software (vs. interleaved
+formatting).
+
+Track 0 holds the 6-sector directory.  It's in sectors 3 - 8. 
+Directory entries are 11 bytes, and each directory sector has 11 entries.
+Directory entries look like this:
+
+~~~
+struct dirent {
+    unsigned char name[5]; /* 5 '*'s if deleted */
+    unsigned char mark; /* 0xFF means end of directory, 0x80 means file was deleted */
+    unsigned char track; /* Starting track number of file */
+    unsigned char sect; /* Starting sector number of file (1 based) */
+    unsigned char size_hi; /* Size high byte */
+    unsigned char size_lo; /* Size low byte: size is one larger than actual size */
+    unsigned char extra; /* This is observed to have 0xFF, 0x02 or 0x00 */
+};
+~~~
+
+Tracks 1 - 4 hold the EDOS executive in S19 format.  The PROM is hard-coded
+to load 78 sectors from tracks 1 - 3, but EDOS-II is larger than this- 89
+sectors.  During the load, there is an S1 record that overwrites the file
+size to 0x83 (it is written to address 0x04).. this would go into track 5,
+but the load stops when the S9 record is encountered.
+
+Tracks 5 - 76 is the normal files area, each file referred to by a directory
+entry.
