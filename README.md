@@ -58,7 +58,7 @@ EXORdisk-I,-II, or -III.  In this case, there were a number of available operati
 
 Information about EDOS can be found here:
 
-[EDOS](edos.md)
+[EDOS](doc/edos.md)
 
 Information about MDOS can be found here:
 
