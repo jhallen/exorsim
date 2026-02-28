@@ -56,7 +56,9 @@ EXORdisk-I,-II, or -III.  In this case, there were a number of available operati
 * MDOS   (CP/M-like OS with 8 character file names with two character extensions, for EXORdisk-II/-III)
 * MDOS09  (same as MDOS, but for 6809-based EXORcisers)
 
-Information about EDOS can be found here: [EDOS](edos.md).
+Information about EDOS can be found here:
+
+[EDOS](edos.md)
 
 Information about MDOS can be found here:
 
