@@ -68,16 +68,25 @@ Multiple files are packed contiguously together starting at the beginning.
 The one output file you may have open for writing can use the remaining
 contiguous space.
 
-EDOS-I refers to files by number, it's very primitive.
+## Command Syntax
+
+EDOS-I refers to files by number, it's very primitive.  The documentation
+for this is in the EXORdisk-I manual.  We do not have any EDOS-I boot disks.
 
 EDOS-II has a conventional directory and allows you to refer to files by
-name, but the name size is only 5 characters.
+name, but the name size is only 5 characters.  Unfortunately, we do not have
+Motorola documentation for it.  However, EDOS is actually a 6800 port of
+FDOS, which was the first disk operating system available for 8080-based
+systems, like the Altair 8800.
 
-## FDOS
-
-EDOS is actually a 6800 port of FDOS, which was the first disk operating
-system available for 8080-based systems, like the Altair 8800.
-
-We do not have the EDOS-II manual, but the FDOS-II manual is here:
+The FDOS-II manual is here:
 
 [https://bitsavers.trailing-edge.com/pdf/icom/FDOS-II_Manual_197610.pdf](https://bitsavers.trailing-edge.com/pdf/icom/FDOS-II_Manual_197610.pdf).
+
+But EDOS-II doesn't quite match FDOS-II, so here is a quick summary of the
+available commands:
+
+[EDOS-II Commands](https://deramp.com/downloads/altair/software/icom_floppy/Exorciser/EDOS-II%20Commands.pdf)
+
+## Programs
+
