@@ -29,18 +29,30 @@ EXEC and other programs are stored in S19 format on the floppy.  S19 is not
 very space efficient, but is versatile in that it can load any number of
 segments of the file to any address.
 
-The PROM has subroutines which can:
+The PROM has a number of entry points:
 
-* Boot EDOS EXEC from the floppy and jump to it (E800;G)
-* Load some other file and jump to it or jump to EXBUG
-* Read a byte from an already open input file
-* Rewind the input file back to the beginning for another pass
-* Write a byte to an already open output file
-* "Update"- this means Boot EDOS EXEC, but with a flag set so that the first thing it does is close the output file.
+* E800: Boot EDOS EXEC from the floppy and jump to it
+* E815: Load S19 from already open input file and jump to EXBUG
+* E81B: Load S19 from already open input file, restore and jump to $0400
+* E824: Load S19 from already open input file, restore and jump to $0020
+* E809: Read a byte from an already open input file
+* E82D: Restore: reset input file
+* E80C: Write a byte to an already open output file
+* E80F: "Update"- this means Boot EDOS EXEC, but with a flag set so that the first thing it does is close the output file.
 * If the program wants to discard the output file, it should call the normal "Boot EDOS" function ($E800;G).
 
+"Restore" resets the input file.  This means that it overwrites the input
+file pointer from a temporary file pointer.  The temporary file pointer is
+initialized to the start of the user specified input file, so "Restore"
+effectively rewinds the input file.
+
 These PROM subroutines are the only parts of EDOS which are available to
-user programs.
+user programs.  For console I/O, the user's program should use the routines
+provided by EXBUG.  For line printer output, the EXORdisk-I PROM provides a
+few more entry points:
+
+* EAB0: Print one character to the line printer
+* EAD6: Print a line to the line printer, including added CR-LF sequence
 
 The PROM uses RAM between $00 and $0F.  The rest of the memory is free for
 use by the user's program, even if that program is reading and writing
