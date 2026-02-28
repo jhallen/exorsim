@@ -18,7 +18,9 @@ relatively simple parallel interface board within the EXORciser.  This board
 has a 1K PROM at address $E800 with some low level interface routines. 
 
 iCOM developed FDOS to go along with FD360, for use with the 8080-based
-Intellec and MITS Altair computers.  EDOS is a 6800 port of FDOS.
+Intellec and MITS Altair computers.  [FDOS was the first microprocessor disk
+operating system](https://www.youtube.com/watch?v=TpHKygZ7OHY).
+EDOS is a 6800 port of FDOS.
 
 ## How EDOS works
 
@@ -163,7 +165,16 @@ definitely sold a version of BASIC for EDOS, there are ads for it:
 
 ### Missing
 
-One program we are missing is the EDOS-II version of RASM (the file name is
-RSMB).  This is the relocatable assembler that can generate object files
-that can be linked with RLOAD.  If we had this, we could link assembly
-language programs with FORTRAN.
+One important program we are missing is the EDOS-II version of RASM (the
+file name is RSMB).  This is the relocatable assembler that can generate
+object files that can be linked with RLOAD.  If we had this, we could link
+assembly language programs with FORTRAN.
+
+## Source code
+
+Mike Douglas entered the EDOS PROM source code by hand from the EXORdisk-I
+user manual. It's here:
+
+EDOS-II EXEC source code is available here.  It's not clear where this is
+from, but it has the comment: "THIS PROGRAM WAS COMMENTED BY AUSTRALIAN 6800
+USER'S GROUP"
