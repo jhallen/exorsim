@@ -168,6 +168,111 @@ meaning of the optional numeric parameter 'x' is different.
 Any other digit displays '?' like it wants additional input to continue.
 I have not yet investigated what the expected input is.
 
+There is an example FORTRAN program on the edos.dsk.  You compile and run it
+like this:
+
+<pre style="font-family: Andale Mono, Lucida Console, Monaco, fixed,
+monospace; color: #000000; background-color: #eee;font-size: 12px;border:
+1px dashed #999999;line-height: 14px;padding: 5px; overflow: auto; width:
+100%"><code>
+
+!<b>FORT,,OUTF,SORT</b>     Compile SORT, generating object file OUTF
+
+
+M6800 RESIDENT FORTRAN 1.0
+COPYRIGHT BY MOTOROLA 1976
+
+
+!<b>RLOAD</b>    Link
+
+M6800 LINKING LOADER REV 1.1A
+COPYRIGHT BY MOTOROLA 1976
+?<b>IDON</b>       Display modules
+?<b>LOAD=OUTF</b>  Load object file
+  MAIN
+  SORT
+?<b>LIB=FORLB</b>  Load library
+  RUN  *
+  RXIO
+  OPENS
+  CIO     TEMPORARY COMMON I/O
+  POWER
+  EXP
+  ALOG
+  SIN
+  COS
+  COSIN
+  ATAN
+  SQRT
+  MOD
+  ABS
+  ERRLIB
+  IANDS
+  IORS
+  IEORS
+  ISHFT
+?<b>BO=OUTO</b>    Specify output file
+?<b>ABSP</b>       2nd pass
+?<b>LOAD=OUTF</b>  Load object file again
+  MAIN
+  SORT
+?<b>LIB=FORLB</b>  Load library again
+  RUN  *
+  RXIO
+  OPENS
+  CIO     TEMPORARY COMMON I/O
+  POWER
+  EXP
+  ALOG
+  SIN
+  COS
+  COSIN
+  ATAN
+  SQRT
+  MOD
+  ABS
+  ERRLIB
+  IANDS
+  IORS
+  IEORS
+  ISHFT
+?<b>MAPF</b>       Show map
+  NO UNDEFINED SYMBOLS
+MAP
+ S SIZE  STR  END COMN
+ A 0014 0020 0033
+ A 0014 0020 0033
+ B 0000 0000 FFFF 0000
+ C 0014 0034 0047 0014
+ D 0060 0048 00A7 0000
+ P 1527 00A8 15CE 0000
+MODULE NAME BSCT DSCT PSCT
+  MAIN      0000 0048 00A8
+  SORT      0000 0086 0139
+  RUN  *    0000 00A8 01F4
+  RXIO      0000 00A8 0AD8
+DEFINED SYMBOLS
+ NAME  S  STR  NAME  S  STR  NAME  S  STR  NAME  S  STR  NAME  S  STR
+RUN    P 023B MAIN   P 00A8 SORT   P 0139 ENDFRW P 10FC IO1    P 0BD5
+IO2    P 0CBA IO3    P 109A LPUSED P 0BC0 SAVED  P 0724 XHSPCL P 0ADE
+BUF    P 0B21
+?<b>EXIT</b>       All done
+
+!<b>LOAD,OUTO</b>  Run program
+:9
+EXBUG 1.1 <b>MAID</b>
+*<b>20;G</b>
+ENTER TEN INTERGERS AT ?
+
+?<b>10,9,8,7,6,5,4,3,2,1</b>
+SORTED ARAAY IS
+      1      2      3      4      5      6      7      8      9     10
+ENTER TEN INTERGERS AT ?
+
+?
+
+</code></pre>
+
 ### RLOAD
 
 RLOAD is the linker.  We have this from an original Motorola FORTRAN
@@ -328,7 +433,7 @@ monospace; color: #000000; background-color: #eee;font-size: 12px;border:
 
 READY
 :<b>10 PRINT "HELLO, WORLD!"</b>
-:<b>RUN
+:<b>RUN</b>
 HELLO, WORLD!
 
 READY
