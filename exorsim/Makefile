@@ -4,12 +4,39 @@ MANDIR ?= /usr/local/man/man1/
 
 CFLAGS = -g -Wall -DDATADIR=\"$(DATADIR)\"
 
-CC = gcc
+BIN_MDOS = mdos
+OBJS_MDOS = mdos.o utils.o
 
-all : mdos exor exor09 unasm6800 edos lpf imdx
+BIN_UNASM6800 = unasm6800
+OBJS_UNASM6800 = unasm.o utils.o unasm6800.o
 
-unasm6800 : obj/unasm.o obj/utils.o obj/unasm6800.o
-	$(CC) -o unasm6800 obj/unasm.o obj/utils.o obj/unasm6800.o
+BIN_EDOS = edos
+OBJS_EDOS = edos.o
+
+BIN_LPF = lpf
+OBJS_LPF = lpf.o
+
+BIN_IMDX = imdx
+OBJS_IMDX = imdx.o
+
+BINS	=	$(BIN_MDOS) \
+		exor \
+		exor09 \
+		$(BIN_UNASM6800) \
+		$(BIN_EDOS) \
+		$(BIN_LPF) \
+		$(BIN_IMDX)
+
+OBJS	=	$(OBJS_MDOS) \
+		$(OBJS_UNASM6800) \
+		$(OBJS_EDOS) \
+		$(OBJS_LPF) \
+		$(OBJS_IMDX)
+
+all : $(BINS)
+
+$(BIN_UNASM6800) : $(OBJS_UNASM6800)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $(BIN_UNASM6800) $(OBJS_UNASM6800)
 
 .PHONY: exor
 exor :
@@ -19,35 +46,35 @@ exor :
 exor09 :
 	make -f Makefile.09 DATADIR=$(DATADIR)
 
-mdos : obj/mdos.o obj/utils.o
-	$(CC) -o mdos obj/mdos.o obj/utils.o
+$(BIN_MDOS) : $(OBJS_MDOS)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $(BIN_MDOS) $(OBJS_MDOS)
 
-edos : obj/edos.o
-	$(CC) -o edos obj/edos.o
+$(BIN_EDOS) : $(OBJS_EDOS)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $(BIN_EDOS) $(OBJS_EDOS)
 
-imdx : obj/imdx.o
-	$(CC) -o imdx obj/imdx.o
+$(BIN_IMDX) : $(OBJS_IMDX)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $(BIN_IMDX) $(OBJS_IMDX)
 
-lpf : obj/lpf.o
-	$(CC) -o lpf obj/lpf.o
+$(BIN_LPF) : $(OBJS_LPF)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $(BIN_LPF) $(OBJS_LPF)
 
 .PHONY: clean
 clean :
-	rm -rf obj
+	rm -rf $(OBJS) $(BINS)
 	make -f Makefile.00 clean
 	make -f Makefile.09 clean
 
 .PHONY: install
-install : mdos exor exor09 edos unasm6800 lpf imdx
-	install -D unasm6800 $(BINDIR)unasm6800
-	install -D lpf $(BINDIR)lpf
-	install -D imdx $(BINDIR)imdx
+install : $(BINS)
+	install -D $(BIN_UNASM6800) $(BINDIR)$(BIN_UNASM6800)
+	install -D $(BIN_LPF) $(BINDIR)$(BIN_LPF)
+	install -D $(BIN_IMDX) $(BINDIR)$(BIN_IMDX)
 	install -D exor $(BINDIR)exor
 	install -D exor $(BINDIR)exor1
 	install -D exor $(BINDIR)swtpc
 	install -D exor09 $(BINDIR)exor09
-	install -D mdos $(BINDIR)mdos
-	install -D edos $(BINDIR)edos
+	install -D $(BIN_MDOS) $(BINDIR)$(BIN_MDOS)
+	install -D $(BIN_EDOS) $(BINDIR)$(BIN_EDOS)
 	install -D -m 644 facts $(DATADIR)facts
 	install -D -m 644 facts09 $(DATADIR)facts09
 	install -D -m 644 mdos.dsk $(DATADIR)mdos.dsk
@@ -63,12 +90,3 @@ install : mdos exor exor09 edos unasm6800 lpf imdx
 	install -D -m 644 exor1.setup $(DATADIR)exor1.setup
 	install -D -m 644 exor09.setup $(DATADIR)exor09.setup
 	install -D -m 644 swtpc.setup $(DATADIR)swtpc.setup
-
-# include dependancy files if they exist
--include obj/unasm.d obj/utils.d obj/unasm6800.d obj/mdos.d obj/edos.d obj/imdx.d obj/lpf.d
-
-# compile and generate dependency info
-obj/%.o: %.c
-	@echo
-	@mkdir -p obj/$(shell dirname $*)
-	$(CC) -c $(CFLAGS) -MT $@ -MMD -MP -MF obj/$*.d $*.c -o obj/$*.o
