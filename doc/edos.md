@@ -31,8 +31,10 @@ EDOS-II boot disk in drive 0.  '!' is the EDOS-II command prompt:
 monospace; color: #000000; background-color: #eee;font-size: 12px;border:
 1px dashed #999999;line-height: 14px;padding: 5px; overflow: auto; width:
 100%"><code>
-$ <b>exor1</b>
-
+$ <b>exor1 -x</b>
+:9
+EXBUG 1.1 <b>MAID</b>
+*<b>E800;G</b>
 M6800 EDOS VER 2.6
 
 !<b>CDIR</b>
@@ -199,6 +201,105 @@ A manual for ASM is here:
 
 Patch notes are here: [../stuff/edos/asmb](../stuff/edos/asmb)
 
+There is an assembly language "Hello, world!" program on edos.dsk.  You can
+try it like this:
+
+<pre style="font-family: Andale Mono, Lucida Console, Monaco, fixed,
+monospace; color: #000000; background-color: #eee;font-size: 12px;border:
+1px dashed #999999;line-height: 14px;padding: 5px; overflow: auto; width:
+100%"><code>
+
+!<b>ASM,2,,OUT,HELLO</b>
+
+M6800 ASSEMBLER VERSION 1.2
+
+00001              * Hello
+00002                     OPT    O
+00003                     OPT    NOM
+00004      E800    FDOS   EQU    $E800
+00005      F018    XOUTC  EQU    $F018
+00006 0020                ORG    $20
+00007 0020 7E 0112        JMP    PRINTIT
+00008 0100                ORG    $100
+00009      0100    HELLO  EQU    *
+00010 0100 0D             FCB    13
+00011 0101 0A             FCB    $0A
+00012 0102 48             FCC    'HELLO, WORLD!'
+      0103 45
+      0104 4C
+      0105 4C
+      0106 4F
+      0107 2C
+      0108 20
+      0109 57
+      010A 4F
+      010B 52
+      010C 4C
+      010D 44
+      010E 21
+00013 010F 0D             FCB    $0D
+00014 0110 0A             FCB    $0A
+00015 0111 00             FCB    $00
+00016 0112 CE 0100 PRINTI LDX    #HELLO
+00017 0115 8D 03          BSR    PUTS
+00018 0117 7E E800        JMP    FDOS
+00019 011A A6 00   PUTS   LDA A  0,X
+00020 011C 27 0C          BEQ    DONE
+00021 011E FF 012B        STX    TMP
+00022 0121 BD F018        JSR    XOUTC
+00023 0124 FE 012B        LDX    TMP
+00024 0127 08             INX
+00025 0128 20 F0          BRA    PUTS
+00026 012A 39      DONE   RTS
+00027 012B 0000    TMP    FDB    0
+00028                     END
+
+TOTAL ERRORS 00000
+
+!<b>CDIR</b>
+
+NAME   ATTR TRAK SCTR  SIZE
+
+FORT    01   05   01   00C7
+SORT    01   0C   12   0006
+FORLB   01   0C   18   007A
+RLOAD   01   11   10   00B4
+EDIT    01   18   0E   0031
+SORO1   00   1A   0B   000A
+SORTL   00   1A   15   0066
+MESS5   00   1E   13   000B
+WAVS1   00   1F   04   0017
+WAVS2   00   20   01   000F
+INT1    00   20   10   0069
+RTL1    00   24   11   009E
+INT2    00   2A   13   0069
+RTL2    00   2E   14   009E
+CONTB   00   34   16   0002
+NASMB   00   34   18   006F
+ASMB    00   39   05   0079
+HELLO   00   3D   16   0003
+BASIC   00   3D   19   00DA
+OUT     00   46   09   0002
+
+!<b>CLIST,OUT</b>
+S00B00002020202020202020F4
+S10600207E011248
+S11E01000D0A48454C4C4F2C20574F524C44210D0A00CE01008D037EE800A6DE
+S115011B00270CFF012BBDF018FE012B0820F039000030
+S9030000FC
+
+!<b>LOAD,OUT</b>
+:9
+EXBUG 1.1 <b>MAID</b>
+*<b>20;G</b>
+HELLO, WORLD!
+
+M6800 EDOS VER 2.6
+
+!
+</code></pre>
+
+
 ### BASIC
 
 This is the pre-MDOS version of BASIC (MDOS BASIC starts with version 2.0). 
@@ -217,6 +318,27 @@ definitely sold a version of BASIC for EDOS, there are ads for it:
 [Resident BASIC Interpreter](https://www.bitsavers.org/components/motorola/_catalogs/1979_Microcomputer_Development_Systems.pdf#page=153)
 
 S19 for it is here: [../stuff/edos/basic](../stuff/edos/basic)
+
+<pre style="font-family: Andale Mono, Lucida Console, Monaco, fixed,
+monospace; color: #000000; background-color: #eee;font-size: 12px;border:
+1px dashed #999999;line-height: 14px;padding: 5px; overflow: auto; width:
+100%"><code>
+
+!<b>BASIC,,OUT</b>
+
+READY
+:<b>10 PRINT "HELLO, WORLD!"</b>
+:<b>RUN
+HELLO, WORLD!
+
+READY
+:<b>EDOS</b>
+
+M6800 EDOS VER 2.6
+
+!
+</code></pre>
+
 
 ### Missing
 
