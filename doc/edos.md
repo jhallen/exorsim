@@ -1,5 +1,10 @@
 # EDOS
 
+In 2026 Mike Douglas ("deramp") contacted me about reviving EDOS, for the
+purpose of porting it for use on his MIPS Altair 680 computer.  Between some
+disk images recovered by Tony Furse (for the EXORciser) and Ben Zotto (for
+the Astral-2000), and the available scanned manuals, we have had success.
+
 EDOS and EDOS-II were the first disk operating systems available for the
 EXORciser.  These operating systems were specifically for the EXORdisk-I
 which was a re-badged iCOM FD360.
@@ -8,14 +13,19 @@ Here is Motorola's manual for this disk drive:
 
 [M68FD3601-3604_EXORdisk_Floppy_Disk_System_Users_Guide_1975](https://www.bitsavers.org/components/motorola/6800/exorciser/M68FD3601-3604_EXORdisk_Floppy_Disk_System_Users_Guide_1975.pdf)
 
+Here is a Motorola ad for the the EXORdisk:
+
+[EXORcisor_Brochure_Jul76:EXORdisk](https://www.bitsavers.org/components/motorola/6800/exorciser/EXORcisor_Brochure_Jul76.pdf#page=43)
+
 iCOM's manuals can be found here:
 
 [iCOM FD360](https://deramp.com/downloads/mfe_archive/020-Disk%20Drives/iCom/iCOM%20FD360/)
 
-The iCOM FD360 was a dual 8-inch disk drive with a built-in controller made
-from a large number of TTL ICs.  It was attached via ribbon cables to a
-relatively simple parallel interface board within the EXORciser.  This board
-has a 1K PROM at address $E800 with some low level interface routines. 
+The iCOM FD360 was an 8-inch floppy disk drive system with a built-in
+controller made from a large number of TTL ICs.  It was attached via ribbon
+cables to a relatively simple parallel interface board within the EXORciser. 
+This board has a 1K PROM at address $E800 with some low level interface
+routines.
 
 iCOM developed FDOS to go along with FD360, for use with the 8080-based
 Intellec and MITS Altair computers.  [FDOS was the first microprocessor disk
@@ -125,8 +135,10 @@ contiguous space.
 
 ## Command Syntax
 
-EDOS-I refers to files by number, it's very primitive.  The documentation
-for this is in the EXORdisk-I manual.  We do not have any EDOS-I boot disks.
+In EDOS-I, the user refers to files by number, not name.  The documentation
+for this is in the EXORdisk-I manual.  Unfortunately, we do not have any
+EDOS-I boot disks.  This seems primitive, but it is still an advancement to
+use floppy disks with numbered files over paper tape.
 
 EDOS-II has a conventional directory and allows you to refer to files by
 name, but the name size is only 5 characters.  Unfortunately, we do not have
@@ -140,6 +152,10 @@ Unfortunately, EDOS-II doesn't quite match FDOS-II, so here is a quick
 summary of the available EDOS-II commands:
 
 [EDOS-II Commands](https://deramp.com/downloads/altair/software/icom_floppy/Exorciser/EDOS-II%20Commands.pdf)
+
+Also, this ad for EDOS-II lists the commands:
+
+[EXORcisor_Brochure_Jul76:M6800 EXORdisk](https://www.bitsavers.org/components/motorola/6800/exorciser/EXORcisor_Brochure_Jul76.pdf#page=44)
 
 ## Programs
 
