@@ -284,18 +284,6 @@ M6800 ASSEMBLER VERSION 1.2
 00010 0100 0D             FCB    13
 00011 0101 0A             FCB    $0A
 00012 0102 48             FCC    'HELLO, WORLD!'
-      0103 45
-      0104 4C
-      0105 4C
-      0106 4F
-      0107 2C
-      0108 20
-      0109 57
-      010A 4F
-      010B 52
-      010C 4C
-      010D 44
-      010E 21
 00013 010F 0D             FCB    $0D
 00014 0110 0A             FCB    $0A
 00015 0111 00             FCB    $00
@@ -314,31 +302,6 @@ M6800 ASSEMBLER VERSION 1.2
 00028                     END
 
 TOTAL ERRORS 00000
-
-!<b>CDIR</b>
-
-NAME   ATTR TRAK SCTR  SIZE
-
-FORT    01   05   01   00C7
-SORT    01   0C   12   0006
-FORLB   01   0C   18   007A
-RLOAD   01   11   10   00B4
-EDIT    01   18   0E   0031
-SORO1   00   1A   0B   000A
-SORTL   00   1A   15   0066
-MESS5   00   1E   13   000B
-WAVS1   00   1F   04   0017
-WAVS2   00   20   01   000F
-INT1    00   20   10   0069
-RTL1    00   24   11   009E
-INT2    00   2A   13   0069
-RTL2    00   2E   14   009E
-CONTB   00   34   16   0002
-NASMB   00   34   18   006F
-ASMB    00   39   05   0079
-HELLO   00   3D   16   0003
-BASIC   00   3D   19   00DA
-OUT     00   46   09   0002
 
 !<b>CLIST,OUT</b>
 S00B00002020202020202020F4
