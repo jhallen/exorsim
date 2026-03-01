@@ -89,6 +89,14 @@ The PROM has a number of entry points:
 * E80F: "Update"- this means Boot EDOS EXEC, but with a flag set so that the first thing it does is close the output file.
 * If the program wants to discard the output file, it should call the normal "Boot EDOS" function ($E800;G).
 
+All of the functions which read S19 including "Boot EDOS" operate as
+follows: They ignore all characters outside of S1 records- in particular,
+they ignore the S0 and the S9 records.  It's possible to merge S19 files
+together, then these functions will load the S1 records from all of them. 
+These functions stop reading when they run out of the requested number of
+sectors, or when they see a special S record: 'S' followed by ESC.  It's
+common that there are many NULs for padding or between the S19 records.
+
 "Restore" resets the input file.  This means that it overwrites the input
 file pointer from a temporary file pointer.  The temporary file pointer is
 initialized to the start of the user specified input file, so "Restore"
@@ -252,7 +260,8 @@ ASM is the absolute assembler, meaning it generates S19 files directly (or
 assembles directly to memory) but can not generate relocatable object files
 that work with RLOAD.
 
-Mike Douglas (aka "Deramp") ported this from the Astral-2000.
+Mike Douglas (aka "Deramp") ported this from the Astral-2000 disk images
+provided by Ben Zotto.
 
 A manual for ASM is here:
 
@@ -328,7 +337,8 @@ This is the pre-MDOS version of BASIC (MDOS BASIC starts with version 2.0).
 It has similar language features to early 1970s Dartmouth and HP-2000 BASIC,
 except no matrix functions.
 
-Mike Douglas ported this "Astral disk BASIC" from the Astral-2000.
+Mike Douglas ported this "Astral disk BASIC" from the Astral-2000 disk
+images provided by Ben Zotto.
 
 The Astral-2000 manual for it is here:
 
@@ -409,8 +419,9 @@ struct dirent {
 
 Tracks 1 - 4 hold the EDOS executive in S19 format.  The PROM is hard-coded
 to load 78 sectors from tracks 1 - 3, but EDOS-II is larger than this- 89
-sectors.  During the load, there is an S1 record that overwrites the file
-size to 0x68 (it is written to address 0x04).
+sectors.  During the load, there is an S1 record that overwrites the
+remaining file size counter to 0x68 (this counter is located at address
+$0004).
 
 Tracks 5 - 76 is the space for file data.  It is broken in to two parts:
 allocated space followed by free space.  When you create a new file, it is
@@ -420,3 +431,9 @@ Files can not be directly deleted.  Instead, you mark them for deletion by
 using the "ATTR,filename,80" command.  Then you use the PURGE command to
 delete the names from the directory and delete the gaps in the allocated
 space.
+
+Most files are text files: in EDOS-II, each line of text is terminated with
+a CR-LF sequence.  Often there are padding NULs between lines.  The last
+sector of text files is padded with NULs.  There is no end of file mark,
+except that when the EDOS PROM loads S19 files, it will stop reading when it
+encounters a special S record: S ESC ($53 $1B).
