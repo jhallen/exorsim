@@ -168,75 +168,30 @@ meaning of the optional numeric parameter 'x' is different.
 Any other digit displays '?' like it wants additional input to continue.
 I have not yet investigated what the expected input is.
 
-There is an example FORTRAN program on the edos.dsk.  You compile and run it
-like this:
+There is an example FORTRAN program on the edos.dsk.  You compile, link and
+run it like this:
 
 <pre style="font-family: Andale Mono, Lucida Console, Monaco, fixed,
 monospace; color: #000000; background-color: #eee;font-size: 12px;border:
 1px dashed #999999;line-height: 14px;padding: 5px; overflow: auto; width:
 100%"><code>
 
-!<b>FORT,,OUTF,SORT</b>     Compile SORT, generating object file OUTF
-
+!<b>FORT,,OUTF,SORT</b>     <i>Compile SORT, generating object file OUTF</i>
 
 M6800 RESIDENT FORTRAN 1.0
 COPYRIGHT BY MOTOROLA 1976
 
-
-!<b>RLOAD</b>    Link
+!<b>RLOAD</b>      <i>Link</i>
 
 M6800 LINKING LOADER REV 1.1A
 COPYRIGHT BY MOTOROLA 1976
-?<b>IDON</b>       Display modules
-?<b>LOAD=OUTF</b>  Load object file
-  MAIN
-  SORT
-?<b>LIB=FORLB</b>  Load library
-  RUN  *
-  RXIO
-  OPENS
-  CIO     TEMPORARY COMMON I/O
-  POWER
-  EXP
-  ALOG
-  SIN
-  COS
-  COSIN
-  ATAN
-  SQRT
-  MOD
-  ABS
-  ERRLIB
-  IANDS
-  IORS
-  IEORS
-  ISHFT
-?<b>BO=OUTO</b>    Specify output file
-?<b>ABSP</b>       2nd pass
-?<b>LOAD=OUTF</b>  Load object file again
-  MAIN
-  SORT
-?<b>LIB=FORLB</b>  Load library again
-  RUN  *
-  RXIO
-  OPENS
-  CIO     TEMPORARY COMMON I/O
-  POWER
-  EXP
-  ALOG
-  SIN
-  COS
-  COSIN
-  ATAN
-  SQRT
-  MOD
-  ABS
-  ERRLIB
-  IANDS
-  IORS
-  IEORS
-  ISHFT
-?<b>MAPF</b>       Show map
+?<b>LOAD=OUTF</b>  <i>Load object file, first pass</i>
+?<b>LIB=FORLB</b>  <i>Load library, first pass</i>
+?<b>BO=OUTO</b>    <i>Specify output file</i>
+?<b>ABSP</b>       <i>Start 2nd pass</i>
+?<b>LOAD=OUTF</b>  <i>Load object file, 2nd pass</i>
+?<b>LIB=FORLB</b>  <i>Load library, 2nd pass</i>
+?<b>MAPF</b>       <i>Show map</i>
   NO UNDEFINED SYMBOLS
 MAP
  S SIZE  STR  END COMN
@@ -256,9 +211,9 @@ DEFINED SYMBOLS
 RUN    P 023B MAIN   P 00A8 SORT   P 0139 ENDFRW P 10FC IO1    P 0BD5
 IO2    P 0CBA IO3    P 109A LPUSED P 0BC0 SAVED  P 0724 XHSPCL P 0ADE
 BUF    P 0B21
-?<b>EXIT</b>       All done
+?<b>EXIT</b>       <i>All done</i>
 
-!<b>LOAD,OUTO</b>  Run program
+!<b>LOAD,OUTO</b>  <i>Run program</i>
 :9
 EXBUG 1.1 <b>MAID</b>
 *<b>20;G</b>
@@ -270,7 +225,6 @@ SORTED ARAAY IS
 ENTER TEN INTERGERS AT ?
 
 ?
-
 </code></pre>
 
 ### RLOAD
