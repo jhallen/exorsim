@@ -258,6 +258,8 @@ language disk.  The manual for it is here:
 
 [M6800_Linking_Loader](https://www.bitsavers.org/components/motorola/6800/exorciser/M6800_Linking_Loader.pdf)
 
+Here is some information about the [relocatable object file format](../stuff/rload/rload.md). 
+
 ### EDIT
 
 <p>EDIT is a much simplified <a href="http://en.wikipedia.org/wiki/Text_Editor_and_Corrector">TECO</a>
