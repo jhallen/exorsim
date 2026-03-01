@@ -9,13 +9,13 @@ EDOS and EDOS-II were the first disk operating systems available for the
 EXORciser.  These operating systems were specifically for the EXORdisk-I
 which was a re-badged iCOM FD360.
 
-Here is Motorola's manual for this disk drive:
+Here is an ad for the the EXORdisk, mentioning EDOS-II:
+
+[EXORcisor_Brochure_Jul76:M6800 EXORdisk](https://www.bitsavers.org/components/motorola/6800/exorciser/EXORcisor_Brochure_Jul76.pdf#page=43)
+
+Here is Motorola's manual for this disk drive, prior to EDOS-II:
 
 [M68FD3601-3604_EXORdisk_Floppy_Disk_System_Users_Guide_1975](https://www.bitsavers.org/components/motorola/6800/exorciser/M68FD3601-3604_EXORdisk_Floppy_Disk_System_Users_Guide_1975.pdf)
-
-Here is a Motorola ad for the the EXORdisk:
-
-[EXORcisor_Brochure_Jul76:EXORdisk](https://www.bitsavers.org/components/motorola/6800/exorciser/EXORcisor_Brochure_Jul76.pdf#page=43)
 
 iCOM's manuals can be found here:
 
@@ -135,10 +135,10 @@ contiguous space.
 
 ## Command Syntax
 
-In EDOS-I, the user refers to files by number, not name.  The documentation
-for this is in the EXORdisk-I manual.  Unfortunately, we do not have any
-EDOS-I boot disks.  This seems primitive, but it is still an advancement to
-use floppy disks with numbered files over paper tape.
+In EDOS-I, the user refers to files by number, not name.  This seems
+primitive, but it is still an advancement to use floppy disks with numbered
+files over paper tape.  The documentation for this is in the EXORdisk-I
+manual.  Unfortunately, we do not have any EDOS-I boot disks.
 
 EDOS-II has a conventional directory and allows you to refer to files by
 name, but the name size is only 5 characters.  Unfortunately, we do not have
