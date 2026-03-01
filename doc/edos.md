@@ -225,8 +225,13 @@ struct dirent {
 Tracks 1 - 4 hold the EDOS executive in S19 format.  The PROM is hard-coded
 to load 78 sectors from tracks 1 - 3, but EDOS-II is larger than this- 89
 sectors.  During the load, there is an S1 record that overwrites the file
-size to 0x83 (it is written to address 0x04).. this would go into track 5,
-but the load stops when the S9 record is encountered.
+size to 0x68 (it is written to address 0x04).
 
-Tracks 5 - 76 is the normal files area, each file referred to by a directory
-entry.
+Tracks 5 - 76 is the space for file data.  It is broken in to two parts:
+allocated space followed by free space.  When you create a new file, it is
+written to the beginning of the free space.
+
+Files can not be directly deleted.  Instead, you mark them for deletion by
+using the "ATTR,filename,80" command.  Then you use the PURGE command to
+delete the names from the directory and delete the gaps in the allocated
+space.
