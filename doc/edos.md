@@ -451,7 +451,7 @@ delete the names from the directory and delete the gaps in the allocated
 space.
 
 Most files are text files: in EDOS-II, each line of text is terminated with
-a CR-LF sequence.  Often there are padding NULs between lines.  The last
-sector of text files is padded with NULs.  There is no end of file mark,
-except that when the EDOS PROM loads S19 files, it will stop reading when it
-encounters a special S record: S ESC ($53 $1B).
+a CR-LF or LF-CR sequence.  Often there are padding NULs between lines.  The
+last sector of text files is padded with NULs.  There is no end of file
+mark, except that when the EDOS PROM loads S19 files, it will stop reading
+when it encounters a special S record: S ESC ($53 $1B).

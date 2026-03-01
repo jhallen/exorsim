@@ -119,7 +119,7 @@ int comp(struct name **l, struct name **r)
 
 int force_convert;
 
-void read_file(int lsn, int size, FILE *f, int raw)
+void read_file(int lsn, int size, FILE *f, char raw, char crlf)
 {
         unsigned char buf[SECTOR_SIZE];
         int x;
@@ -130,49 +130,45 @@ void read_file(int lsn, int size, FILE *f, int raw)
 
                 if (raw)
                 {
+                        /* No conversions */
                         fwrite(buf, SECTOR_SIZE, 1, f);
                 }
                 else
                 {
+                        int ends;
+                        int n;
+
+                        /* Try to guess object files */
                         if (x == lsn && buf[0] == 'D')
                                 guess_type = 1; /* Object file- don't delete NULs */
 
+                        /* On last sector, delete trailing NULs */
+                        ends = SECTOR_SIZE;
+                        if (x + 1 == lsn + size)
+                        {
+                                /* Last sector, delete trailing NULs */
+                                while (ends && buf[ends-1] == 0) --ends;
+                        }
                         if (guess_type)
                         {
-                                /* Not ASCII! */
-                                if (x + 1 == lsn + size)
-                                {
-                                        int y;
-                                        /* Last sector of file- delete trailing NULs */
-                                        for (y = SECTOR_SIZE - 1; y && !buf[y]; --y);
-                                        if (y)
-                                                fwrite(buf, y + 1, 1, f);
-                                }
-                                else
-                                {
-                                        fwrite(buf, SECTOR_SIZE, 1, f);
-                                }
+                                /* Object files: we only trim trailing NULs in last sector */
+                                fwrite(buf, ends, 1, f);
                         }
                         else
                         {
-                                /* ASCII */
-                                int ends = SECTOR_SIZE;
-                                int n;
-                                if (x + 1 == lsn + size)
-                                {
-                                        /* Last sector, delete trailing NULs */
-                                        while (ends && buf[ends-1] == 0) --ends;
-                                }
+                                /* ASCII files: trim all NULs, fix line ending */
                                 for (n = 0; n != ends; ++n) {
                                         int c = buf[n];
-                                        if (c == 13) {
+                                        if (c == 10) {
                                                 /* Convert to MS-DOS */
-                                                fputc('\r', f);
+                                                if (crlf) {
+                                                        fputc('\r', f);
+                                                }
                                                 fputc('\n', f);
-                                        } else if (c == 10) {
-                                                /* Delete Line Feeds */
+                                        } else if (c == 13) {
+                                                /* Delete CRs */
                                         } else if (c == 0) {
-                                                /* Delete NULs- not sure this is a good idea */
+                                                /* Delete NULs */
                                         } else {
                                                 fputc(c, f);
                                         }
@@ -461,7 +457,7 @@ void edos_append(struct dirent *new_d)
 
 /* Write file starting at lsn.  Returns -1 for errors, or number of sectors written */
 
-int put_file_lsn(int lsn, char *local_name, int free_sects, int all)
+int put_file_lsn(int lsn, char *local_name, int free_sects, char sys, char rawmode)
 {
         FILE *f;
         int size;
@@ -494,19 +490,28 @@ int put_file_lsn(int lsn, char *local_name, int free_sects, int all)
         up = ((size + SECTOR_SIZE - 1) & ~(long)(SECTOR_SIZE - 1));
         buf = (unsigned char *)malloc(up*2);
 
-        /* Read file, convert UNIX or MS-DOS ASCII to MDOS ASCII */
+        /* Read file, convert UNIX or MS-DOS ASCII to EDOS ASCII (unless rawmode is set) */
         x = 0;
         while ((c = fgetc(f)) != -1)
         {
-                if (c == '\n') {
-                        /* EDOS line terminator is LF/CR */
+                if (rawmode) {
+                        buf[x++] = c;
+                } else if (c == '\n') {
+                        /* EDOS line terminator is LF */
                         buf[x++] = '\n';
-                        buf[x++] = '\r';
                 } else if (c == '\r') {
                         /* Ignore carriage returns */
                 } else {
                         buf[x++] = c;
                 }
+        }
+        if (sys && !rawmode)
+        {
+                /* Append EDOS PROM terminator */
+                /* Not doing this since we don't strip the S ESC during reads
+                buf[x++] = 'S';
+                buf[x++] = 0x1b;
+                */
         }
         size = x;
         fclose(f);
@@ -534,9 +539,9 @@ int put_file_lsn(int lsn, char *local_name, int free_sects, int all)
         }
 
         /* Pad out to entire given size */
-        if (all)
+        if (sys)
         {
-                memset(buf, 0, SECTOR_SIZE);
+                memset(buf, 0xe5, SECTOR_SIZE);
 
                 for (; i < free_sects; ++i)
                 {
@@ -549,7 +554,7 @@ int put_file_lsn(int lsn, char *local_name, int free_sects, int all)
         return up_sects;
 }
 
-int put_file(char *local_name, char *mdos_name)
+int put_file(char *local_name, char *mdos_name, char rawmode)
 {
         int i;
         int alloc = edos_alloc();
@@ -587,7 +592,7 @@ int put_file(char *local_name, char *mdos_name)
         printf("Free sectors = %d\n", free_sects);
         printf("Starting track = 0x%x, sector = 0x%x\n", alloc / TRACK_SIZE, (alloc % TRACK_SIZE) + 1);
 
-        up_sects = put_file_lsn(alloc, local_name, free_sects, 0);
+        up_sects = put_file_lsn(alloc, local_name, free_sects, 0, rawmode);
         if (up_sects < 0)
         {
                 return -1;
@@ -649,7 +654,7 @@ void edos_dir(int full, int single)
 
 /* cat a file */
 
-void cat(char *name)
+void cat(char *name, char rawmode, char crlfmode)
 {
         int size;
         int lsn = find_file(name, &size);
@@ -657,20 +662,20 @@ void cat(char *name)
                 printf("File '%s' not found\n", name);
                 exit(-1);
         } else {
-                read_file(lsn, size, stdout, 0);
+                read_file(lsn, size, stdout, rawmode, crlfmode);
         }
 }
 
 /* get a file from the disk */
 
-int get_file_lsn(int lsn, int size, char *local_name, int raw)
+int get_file_lsn(int lsn, int size, char *local_name, char rawmode, char crlfmode)
 {
         FILE *f = fopen(local_name, "w");
         if (!f) {
                 printf("Couldn't open local file '%s'\n", local_name);
                 return -1;
         }
-        read_file(lsn, size, f, raw);
+        read_file(lsn, size, f, rawmode, crlfmode);
         if (fclose(f)) {
                 printf("Couldn't close local file '%s'\n", local_name);
                 return -1;
@@ -678,7 +683,7 @@ int get_file_lsn(int lsn, int size, char *local_name, int raw)
         return 0;
 }
 
-int get_file(char *mdos_name, char *local_name)
+int get_file(char *mdos_name, char *local_name, char rawmode, char crlfmode)
 {
         int size;
         int lsn = find_file(mdos_name, &size);
@@ -686,7 +691,7 @@ int get_file(char *mdos_name, char *local_name)
                 fprintf(stderr, "File '%s' not found\n", mdos_name);
                 return -1;
         } else {
-                return get_file_lsn(lsn, size, local_name, 0);
+                return get_file_lsn(lsn, size, local_name, rawmode, crlfmode);
         }
 }
 
@@ -705,24 +710,30 @@ int main(int argc, char *argv[])
                 printf("Syntax: edos path-to-diskette command args\n");
                 printf("\n");
                 printf("  Commands:\n");
-                printf("      ls [-la1A]                    Directory listing, sorted\n");
+                printf("      ls [-la1A]                     Directory listing, sorted\n");
                 printf("                  -l for long\n");
                 printf("                  -1 to show a single name per line\n");
-                printf("      dir                           Directory in raw EDOS format\n");
-                printf("      cat edos-name                 Type file to console\n");
-                printf("      get edos-name [local-name]    Copy file from diskette to local-name\n");
-                printf("      getexec local-name            Copy EXEC from diskette to local-name\n");
-                printf("      put local-name [edos-name]    Copy file to diskette to edos-name\n");
-                printf("      putexec local-name            Copy local-name to EXEC area of diskette\n");
-                printf("      rm edos-name                  Delete a file\n");
-                printf("      x                             Extract all files into current directory\n");
+                printf("      dir                            Directory in raw EDOS format\n");
+                printf("      cat edos-name [--raw] [--crlf] Type file to console\n");
+                printf("      get edos-name [local-name] [--raw] [--crlf]\n");
+                printf("                                     Copy file from diskette to local-name\n");
+                printf("      getexec local-name [--raw] [--crlf]\n");
+                printf("                                     Copy EXEC from diskette to local-name\n");
+                printf("      put local-name [edos-name] [--raw]\n");
+                printf("                                     Copy file to diskette to edos-name\n");
+                printf("      putexec local-name [--raw]     Copy local-name to EXEC area of diskette\n");
+                printf("      rm edos-name                   Delete a file\n");
+                printf("      x [--raw] [--crlf]             Extract all files into current directory\n");
                 printf("\n");
-                return -1;
+                printf("      --crlf  use CR-LF (MSDOS) line endings instead of UNIX\n");
+                printf("      --raw   no ASCII conversion (otherwise fixes line endings and deletes NULs)\n");
+                printf("\n");
+                return 0;
 	}
 	disk_name = argv[x++];
 	disk = fopen(disk_name, "r+");
 	if (!disk) {
-	        printf("Couldn't open '%s'\n", disk_name);
+	        fprintf(stderr, "Couldn't open '%s'\n", disk_name);
 	        return -1;
 	}
 
@@ -742,7 +753,7 @@ int main(int argc, char *argv[])
                                 switch (opt) {
                                         case 'l': full = 1; break;
                                         case '1': single = 1; break;
-                                        default: printf("Unknown option '%c'\n", opt); return -1;
+                                        default: fprintf(stderr, "Unknown option '%c'\n", opt); return -1;
                                 }
                         }
                         ++x;
@@ -753,73 +764,234 @@ int main(int argc, char *argv[])
                 edos_raw_dir();
                 return 0;
 	} else if (!strcmp(argv[x], "cat")) {
-	        ++x;
-	        if (x == argc) {
-	                printf("Missing file name to cat\n");
+	        char *name = 0;
+	        char rawmode = 0;
+	        char crlfmode = 0;
+
+                /* File read options */
+                for (++x; argv[x]; ++x)
+                {
+                        if (!strcmp(argv[x], "--raw"))
+                        {
+                                rawmode = 1;
+                        }
+                        else if (!strcmp(argv[x], "--crlf"))
+                        {
+                                crlfmode = 1;
+                        }
+                        else if (argv[x][0] == '-')
+                        {
+                                fprintf(stderr, "Unknown option %s\n", argv[x]);
+                                return -1;
+                        }
+                        else if (name)
+                        {
+                                fprintf(stderr, "Syntax error\n");
+                                return -1;
+                        }
+                        else
+                        {
+                                name = argv[x];
+                        }
+                }
+
+                if (!name) {
+	                fprintf(stderr, "Missing file name to cat\n");
 	                return -1;
 	        } else {
-	                cat(argv[x++]);
+	                cat(name, rawmode, crlfmode);
 	                return 0;
 	        }
         } else if (!strcmp(argv[x], "rm")) {
                 char *name;
                 ++x;
                 if (x == argc) {
-                        printf("Missing name to delete\n");
+                        fprintf(stderr, "Missing name to delete\n");
                         return -1;
                 } else {
                         name = argv[x];
                 }
                 return edos_rm(name);
         } else if (!strcmp(argv[x], "put")) {
-                char *local_name;
-                char *mdos_name;
-                ++x;
-                if (x == argc) {
-                        printf("Missing file name to put\n");
+                char *local_name = 0;
+                char *mdos_name = 0;
+	        char rawmode = 0;
+
+                /* File write options */
+                for (++x; argv[x]; ++x)
+                {
+                        if (!strcmp(argv[x], "--raw"))
+                        {
+                                rawmode = 1;
+                        }
+                        else if (argv[x][0] == '-')
+                        {
+                                fprintf(stderr, "Unknown option %s\n", argv[x]);
+                                return -1;
+                        }
+                        else if (!mdos_name)
+                        {
+                                mdos_name = argv[x];
+                        }
+                        else if (!local_name)
+                        {
+                                local_name = argv[x];
+                        }
+                        else
+                        {
+                                fprintf(stderr, "Syntax error\n");
+                                return -1;
+                        }
+                }
+                if (!local_name) {
+                        fprintf(stderr, "Missing file name to put\n");
                         return -1;
                 }
-                local_name = argv[x];
-                mdos_name = local_name;
-                if (x + 1 != argc)
-                        mdos_name = argv[++x];
-                return put_file(local_name, mdos_name);
+                if (!mdos_name)
+                        mdos_name = local_name;
+                return put_file(local_name, mdos_name, rawmode);
         } else if (!strcmp(argv[x], "putexec")) {
-                char *local_name;
-                ++x;
-                if (x == argc) {
-                        printf("Missing file name to put\n");
+                char *local_name = 0;
+	        char rawmode = 0;
+
+                /* File write options */
+                for (++x; argv[x]; ++x)
+                {
+                        if (!strcmp(argv[x], "--raw"))
+                        {
+                                rawmode = 1;
+                        }
+                        else if (argv[x][0] == '-')
+                        {
+                                fprintf(stderr, "Unknown option %s\n", argv[x]);
+                                return -1;
+                        }
+                        else if (!local_name)
+                        {
+                                local_name = argv[x];
+                        }
+                        else
+                        {
+                                fprintf(stderr, "Syntax error\n");
+                                return -1;
+                        }
+                }
+                if (!local_name) {
+                        fprintf(stderr, "Missing file name to put\n");
                         return -1;
                 }
-                local_name = argv[x];
-                return put_file_lsn(26, local_name, 4 * TRACK_SIZE, 1); /* Write up to 4 tracks */
+                return put_file_lsn(26, local_name, 4 * TRACK_SIZE, 1, rawmode); /* Write up to 4 tracks */
 	} else if (!strcmp(argv[x], "get")) {
-                char *local_name;
-                char *mdos_name;
-                ++x;
-                if (x == argc) {
-                        printf("Missing file name to get\n");
+	        char *mdos_name = 0;
+	        char *local_name = 0;
+	        char rawmode = 0;
+	        char crlfmode = 0;
+
+                /* File read options */
+                for (++x; argv[x]; ++x)
+                {
+                        if (!strcmp(argv[x], "--raw"))
+                        {
+                                rawmode = 1;
+                        }
+                        else if (!strcmp(argv[x], "--crlf"))
+                        {
+                                crlfmode = 1;
+                        }
+                        else if (argv[x][0] == '-')
+                        {
+                                fprintf(stderr, "Unknown option %s\n", argv[x]);
+                                return -1;
+                        }
+                        else if (!mdos_name)
+                        {
+                                mdos_name = argv[x];
+                        }
+                        else if (!local_name)
+                        {
+                                local_name = argv[x];
+                        }
+                        else
+                        {
+                                fprintf(stderr, "Syntax error\n");
+                                return -1;
+                        }
+                }
+
+                if (!mdos_name) {
+                        fprintf(stderr, "Missing file name to get\n");
                         return -1;
                 }
-                mdos_name = argv[x];
-                local_name = mdos_name;
-                if (x + 1 != argc)
-                        local_name = argv[++x];
-                return get_file(mdos_name, local_name);
+                if (!local_name)
+                        local_name = mdos_name;
+                return get_file(mdos_name, local_name, rawmode, crlfmode);
 	} else if (!strcmp(argv[x], "getexec")) {
-                char *local_name;
-                ++x;
-                if (x == argc) {
-                        printf("Missing file name to get\n");
+	        char *name = 0;
+	        char rawmode = 0;
+	        char crlfmode = 0;
+
+                /* File read options */
+                for (++x; argv[x]; ++x)
+                {
+                        if (!strcmp(argv[x], "--raw"))
+                        {
+                                rawmode = 1;
+                        }
+                        else if (!strcmp(argv[x], "--crlf"))
+                        {
+                                crlfmode = 1;
+                        }
+                        else if (argv[x][0] == '-')
+                        {
+                                fprintf(stderr, "Unknown option %s\n", argv[x]);
+                                return -1;
+                        }
+                        else if (!name)
+                        {
+                                name = argv[x];
+                        }
+                        else
+                        {
+                                fprintf(stderr, "Syntax error\n");
+                                return -1;
+                        }
+                }
+                if (!name) {
+                        fprintf(stderr, "Missing file name to get\n");
                         return -1;
                 }
-                local_name = argv[x];
-                return get_file_lsn(26, 104, local_name, 1);
+                return get_file_lsn(26, 104, name, rawmode, crlfmode);
         } else if (!strcmp(argv[x], "x")) {
                 char local_name[80];
-                edos_load_dir();
-                int x;
+                char rawmode = 0;
+                char crlfmode = 0;
                 int sta = 0;
+
+                /* File read options */
+                for (++x; argv[x]; ++x)
+                {
+                        if (!strcmp(argv[x], "--raw"))
+                        {
+                                rawmode = 1;
+                        }
+                        else if (!strcmp(argv[x], "--crlf"))
+                        {
+                                crlfmode = 1;
+                        }
+                        else if (argv[x][0] == '-')
+                        {
+                                fprintf(stderr, "Unknown option %s\n", argv[x]);
+                                return -1;
+                        }
+                        else
+                        {
+                                fprintf(stderr, "Syntax error\n");
+                                return -1;
+                        }
+                }
+
+                edos_load_dir();
+
                 for (x = 0; x != name_n; ++x)
                 {
                         int n;
@@ -844,7 +1016,7 @@ int main(int argc, char *argv[])
                         {
                                 printf("File already exists, renamed to %s\n", local_name);
                         }
-                        if (get_file_lsn(names[x]->lsn, names[x]->size, local_name, 0))
+                        if (get_file_lsn(names[x]->lsn, names[x]->size, local_name, rawmode, crlfmode))
                         {
                                 sta = -1;
                                 printf("  failed reading file.\n");
@@ -852,7 +1024,7 @@ int main(int argc, char *argv[])
                 }
                 return sta;
 	} else {
-	        printf("Unknown command '%s'\n", argv[x]);
+	        fprintf(stderr, "Unknown command '%s'\n", argv[x]);
 	        return -1;
 	}
 	return 0;
