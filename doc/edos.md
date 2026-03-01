@@ -22,6 +22,47 @@ Intellec and MITS Altair computers.  [FDOS was the first microprocessor disk
 operating system](https://www.youtube.com/watch?v=TpHKygZ7OHY).
 EDOS is a 6800 port of FDOS.
 
+## Running EDOS-II from exorsim
+
+Just type "exor1" to simulate an EXORciser with an EXORdisk-I with an
+EDOS-II boot disk in drive 0.  '!' is the EDOS-II command prompt:
+
+<pre style="font-family: Andale Mono, Lucida Console, Monaco, fixed,
+monospace; color: #000000; background-color: #eee;font-size: 12px;border:
+1px dashed #999999;line-height: 14px;padding: 5px; overflow: auto; width:
+100%"><code>
+$ <b>exor1</b>
+
+M6800 EDOS VER 2.6
+
+!<b>CDIR</b>
+
+NAME   ATTR TRAK SCTR  SIZE
+
+FORT    01   05   01   00C7
+SORT    01   0C   12   0006
+FORLB   01   0C   18   007A
+RLOAD   01   11   10   00B4
+EDIT    01   18   0E   0031
+SORO1   00   1A   0B   000A
+SORTL   00   1A   15   0066
+MESS5   00   1E   13   000B
+WAVS1   00   1F   04   0017
+WAVS2   00   20   01   000F
+INT1    00   20   10   0069
+RTL1    00   24   11   009E
+INT2    00   2A   13   0069
+RTL2    00   2E   14   009E
+CONTB   00   34   16   0002
+NASMB   00   34   18   006F
+ASMB    00   39   05   0079
+HELLO   00   3D   16   0003
+BASIC   00   3D   19   00DA
+
+
+!
+</code></pre>
+
 ## How EDOS works
 
 EDOS is an interesting operating system- it is designed to use an absolute
