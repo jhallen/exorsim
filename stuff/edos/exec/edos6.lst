@@ -1,0 +1,2681 @@
+    1                         NAM    EDOS26
+    2                         OPT    O,S
+    3                         OPT    NOG
+    4                         OPT    CREF,LLEN=120
+    5                  *
+    6                  * TRICK PROM INTO READING ENTIRE THING
+    7                  *
+    8 0004                    ORG    4
+    9 0004 00 68              FDB    $68
+   10                  *
+   11                  *ASCII CHARACTER DEFINITIONS
+   12                  *
+   13      000D        CR     EQU    $0D              ASCII CARRIAGE RETURN <CR>
+   14      000A        LF     EQU    $0A              ASCII LINE FEED <LF>
+   15      0010        DLE    EQU    $10              ASCII DLE
+   16      0020        SPC    EQU    $20              ASCII SPACE
+   17      001B        ESC    EQU    $1B              ASCII ESCAPE
+   18      001A        ASUB   EQU    $1A              ASCII SUBSTITUTE CHAR
+   19      0012        DC2    EQU    $12              ASCII DEVICE CONTROL #2
+   20      0014        DC4    EQU    $14              ASCII DEVICE CONTROL #4
+   21      00FF        RUB    EQU    $FF              ASCII RUBOUT CHARACTER
+   22                  *
+   23                  *DEFINITION OF CONSTANTS
+   24                  *
+   25      0001        LBYT   EQU    $1               DISPLACEMENT TO LOWER BYTE OF 2-BYTE VALUE
+   26      0100        HBYT   EQU    $100             DIVISOR TO GENERATE SINGLE UPPER BYTE OF 2-BYTE VALUE
+   27                  *
+   28      0082        SYSSZ  EQU    130              EDOS IS PERMANENTLY ALLOCATED 130 SECTORS (SYSTEM AREA)
+   29      FFFF        TIMAX  EQU    $FFFF            MAXIMUM TIMER COUNT-DOWN PERIOD
+   30                  *
+   31                  *EXTERNAL ROUTINE ADDRESS DEFINITIONS
+   32                  *
+   33      E806        INTIO  EQU    $E806            EDOS ROM DISK I/F INITIALIZATION ROUTINE
+   34      E809        XRI    EQU    $E809            EDOS ROM DISK BYTE READ ROUTINE
+   35      E80C        XWRT   EQU    $E80C            EDOS ROM DISK WRITE ROUTINE
+   36      E815        PROG   EQU    $E815            EDOS ROM LOAD A PROGRAM & GO TO EXBUG
+   37      E824        EDITR  EQU    $E824            EDOS ROM LOAD A PROGRAM, START IT @ 20 HEX
+   38      EA03        XUS    EQU    $EA03            EDOS ROM TRANSMIT UNIT/SECTOR(TRANSLATED) TO DISK
+   39      EA22        XUSP   EQU    $EA22            EDOS ROM TRANSMIT UNIT/ PHYSICAL SECTOR TO DISK
+   40      EA2B        SEEK   EQU    $EA2B            EDOS ROM SEEK SELECTED UNIT TO TRACK IN A
+   41      EA38        RFLAG  EQU    $EA38            EDOS ROM RESET ERROR FLAG
+   42      EA3E        LOOP   EQU    $EA3E            EDOS ROM ISSUE COMMAND TO DISK (LOOP ON BUSY)
+   43      EAB0        LPTC   EQU    $EAB0            EDOS ROM LINE PRINTER PRINT 1 CHARACTER
+   44      EB04        INITR  EQU    $EB04            EDOS ROM INITIALIZE H/S P/T READER
+   45      EB02        RDRIN  EQU    $EB02            EDOS ROM PAPER TAPE READER INPUT
+   46                  *
+   47      F018        PRINC  EQU    $F018            EXBUG PRINT SINGLE CHARACTER (ON CONSOLE)
+   48      F9CF        OCHAR  EQU    $F9CF            EXBUG OUTPUT CHARACTER (NO NULLS)
+   49      FF02        SPEED  EQU    $FF02            EXBUG SPEED FLAG 0 = 10, 1 = 30, FF = 120
+   50      FF62        EXPUN  EQU    $FF62            EXBUG PUNCH FLAG
+   51      FF8A        EXBST  EQU    $FF8A            EXBUG STACK ALLOCATION START ADDRESS
+   52      F564        EXBUG  EQU    $F564            EXBUG NORMAL ENTRY POINT
+   53                         PAGE                    THIS PROGRAM WAS COMMENTED BY THE AUSTRALIAN 6800 USER'S GROUP
+   54                  *PERIPHERAL INTERFACE ADDRESS DEFINITIONS
+   55                  *
+   56      EC00        DKDID  EQU    $EC00            INPUT DATA FROM DISK
+   57      EC01        DKDIC  EQU    $EC01            INPUT DATA CONTROL
+   58      EC02        DKCOD  EQU    $EC02            OUTPUT COMMANDS TO DISK
+   59      EC03        DKCOC  EQU    $EC03            OUTPUT COMMAND CONTROL
+   60      EC04        PTDAT  EQU    $EC04            PAPER TAPE READER/PUNCH DATA
+   61      EC05        PTCTL  EQU    $EC05            PAPER TAPE READER/PUNCH CONTROL & STATUS
+   62      EC06        DKDOD  EQU    $EC06            OUTPUT DATA TO DISK
+   63      EC07        DKDOC  EQU    $EC07            OUTPUT DATA CONTROL
+   64                  *
+   65      FCF4        ACIAS  EQU    $FCF4            ACIA STATUS REGISTER
+   66      FCF4        ACIAC  EQU    $FCF4            ACIA CONTROL REGISTER
+   67      FCF5        ACIAR  EQU    $FCF5            ACIA RX DATA BUFFER
+   68      FCF5        ACIAT  EQU    $FCF5            ACIA TX DATA BUFFER
+   69      FCFD        SBITC  EQU    $FCFD            STOP BIT CONTROL FOR ACIA
+   70                         PAGE                    THIS PROGRAM WAS COMMENTED BY THE AUSTRALIAN 6800 USER'S GROUP
+   71                  *DATA AREA ADDRESS ASSIGNMENTS
+   72                  *
+   73      0000        PASS   EQU    $0               ASSEMBLY PASS
+   74      0001        OFILE  EQU    $1               OUTPUT FILE CLOSURE FLAG
+   75      0002        OUNIT  EQU    $2               OUTPUT FILE UNIT
+   76                  *
+   77      0003        IUNIT  EQU    $3               INPUT FILE <UNIT><SECTOR>
+   78      0004        ISIZE  EQU    $4               INPUT FILE SIZE (2 BYTES)
+   79      0006        ITRK   EQU    $6               INPUT FILE TRACK
+   80      0007        ISCTR  EQU    $7               INPUT FILE SECTOR
+   81      0008        ICNTR  EQU    $8               INPUT FILE BYTE COUNTER
+   82                  *
+   83      0009        OSIZE  EQU    $9               OUTPUT FILE SIZE (2 BYTES)
+   84      000B        OTRK   EQU    $B               OUTPUT FILE TRACK
+   85      000C        OSCTR  EQU    $C               OUTPUT FILE SECTOR
+   86      000D        OCNTR  EQU    $D               OUTPUT FILE BYTE COUNTER
+   87                  *
+   88      000E        TITRK  EQU    $E               SAVE LOCATION FOR INPUT FILE TRACK NO.
+   89      000F        TISZE  EQU    $F               SAVE LOCATION FOR INPUT FILE SIZE (TWO BYTES)
+   90                  *
+   91                  *SWITCH & JUMP VECTORS ARE FOUND AT $20 TO $26 AND $30 TO $39
+   92                  *THEY ARE USED TO DIRECT I/O AND AS PROGRAM START POINTS
+   93                  *SEE THE CODE LISTING FOR SYMBOLS & ASSIGNMMENTS
+   94                  *
+   95                  *EDOS EXECUTIVE STACK ALLOCATION RUNS FROM $6B TO $3A
+   96                  *
+   97      006B        EXSTK  EQU    $6B              EDOS EXECUTIVE STACK BEGINS HERE ^
+   98                  *
+   99 006C                    ORG    $6C              80 CHARACTER INPUT BUFFER. USED FOR ORIGINAL COMMAND INPUT
+  100                  *
+  101 006C             IBUF1  RMB    80               END OF INPUT BUFFER #1
+  102 00BC             BFPT1  RMB    2                BUFFER #1 SCAN POINTER SAVE LOCATION (TWO BYTES)
+  103 00BE             BFND1  RMB    2                BUFFER #1 TEXT END MARKER (NOT USED) (TWO BYTES)
+  104                  *
+  105                  *FILE NAME PROTOTYPE STRING, USED IN STRING SEARCHES & PARSING
+  106                  *
+  107 00C0             FLNM0  RMB    1                INPUT FILE NAME BUFFER CHAR #0
+  108 00C1             FLNM1  RMB    1                INPUT FILE NAME BUFFER CHAR #1
+  109 00C2             FLNM2  RMB    1                INPUT FILE NAME BUFFER CHAR #2
+  110 00C3             FLNM3  RMB    1                INPUT FILE NAME BUFFER CHAR #3
+  111 00C4             FLNM4  RMB    1                INPUT FILE NAME BUFFER CHAR #4
+  112 00C5             FLNM5  RMB    1                INPUT FILE NAME BUFFER UNIT ID NO.
+  113                         PAGE                    THIS PROGRAM WAS COMMENTED BY THE AUSTRALIAN 6800 USER'S GROUP
+  114 00C6             FILAT  RMB    1                SAVE LOCATION, ATTRIBUTES OF CREATED FILE
+  115 00C7             FILRQ  RMB    2                REQUESTED FILE SIZE, IN SECTORS (TWO BYTES)
+  116      00C9        HDIGT  EQU    *                SAVE LOCATION USED IN HEX TO BINARY CONVERSION
+  117      00C9        UNUMB  EQU    *                UNIT NUMBER SAVE LOCATON
+  118      00C9        NULC1  EQU    *                NULL COUNTER LOCATION
+  119 00C9             WRTRY  RMB    1                WRITE ERROR RETRY COUNT
+  120      00CA        BGBFP  EQU    *                TRACK BUFFER / LARGE DATA BUFFER POINTER
+  121      00CA        SECAV  EQU    *                CURRENT NUMBER OF SECTORS AVAILABLE
+  122      00CA        SECP1  EQU    *                DISC SECTOR BUFFER INDEX POINTER
+  123 00CA             BINHI  RMB    1                HIGH BYTE OF PACKED BINARY IN HEX TO BINARY CONVERSION
+  124 00CB             BINLO  RMB    1                LOW BYTE OF PACKED BINARY IN HEX TO BINARY CONVERSION
+  125 00CC             BFOP2  RMB    2                BUFFER #2 OUTPUT POINTER SAVE LOCATION (2 BYTES)
+  126                  *
+  127 00CE             SESP1  RMB    2                DISK SECTOR BUFFER #1 SCAN POINTER (TWO BYTES)
+  128 00D0             SECB1  RMB    128              DISK SECTOR BUFFER AREA - 128 BYTES IN A FULL SECTOR
+  129                  *
+  130 0150             USECT  RMB    1                SECTOR IN USE I/D BUFFER LOCATION
+  131 0151             CRTRK  RMB    1                CURRENT TRACK SAVE LOCATION
+  132 0152             CRSEC  RMB    1                CURRENT SECTOR SAVE LOCATION
+  133 0153             STRAK  RMB    1                SAVE LOC FOR NEW START TRACK
+  134 0154             STSEC  RMB    1                SAVE LOC FOR NEW START SECTOR
+  135      0155        SECCT  EQU    *                COUNTER USED IN TRACK/SECTOR CONVERSION
+  136      0155        BYTCT  EQU    *                SECTOR BYTE COUNTER, USED IN DUP
+  137 0155             TRYCT  RMB    1                DISK READ ERROR RETRY COUNTER
+  138 0156             TIUNT  RMB    1                SAVE LOC FOR NEW UNIT ID
+  139 0157             LGOFL  RMB    1                EDOS LOAD-&-GO FLAG (NOW UNUSED)
+  140 0158             EOFFL  RMB    1                END-OF-FILE FLAG
+  141      0159        APARS  EQU    *                ASSEMBLER FILE STRING PARSING POINTER
+  142 0159             TKBFP  RMB    2                DISK TRACK BUFFER SCAN POINTER
+  143 015B             AERFL  RMB    1                ASSEMBLER PARSING ERROR FLAG
+  144                         PAGE                    THIS PROGRAM WAS COMMENTED BY THE AUSTRALIAN 6800 USER'S GROUP
+  145                  *EDOS START @ JUMP VECTORS
+  146                         SPC    3
+  147 0020                    ORG    $20
+  148                         SPC    1
+  149 0020 7E 015C     EXECS  JMP    EXEC             EDOS EXECUTIVE START VECTOR (GENERAL LOAD & GO VECTOR)
+  150 0023 7E 06A0     CLSFV  JMP    FLCLS            WRITE EOF, UPDATE INDEX, CALL MONITOR VECTOR
+  151                         SPC    3
+  152 0030                    ORG    $30
+  153                         SPC    1
+  154 0030 7E EAB0     PRNVC  JMP    LPTC             PRINT OUTPUT SWITCH VECTOR
+  155 0033 7E F018     PRICV  JMP    PRINC            CONSOLE CHARACTER OUTPUT VECTOR
+  156 0036 7E EB02     PTAPV  JMP    RDRIN            PAPER TAPE READER HANDLER VECTOR
+  157                         PAGE                    THIS PROGRAM WAS COMMENTED BY THE AUSTRALIAN 6800 USER'S GROUP
+  158 015C                    ORG    $015C
+  159                  *
+  160                  *EDOS STARTUP ENTRY POINT - PRINT OUT ID MESSAGE - WAIT FOR COMMAND I/P
+  161                  *
+  162 015C 8E 006B     EXEC   LDS    #EXSTK           INITIALIZE EXECUTIVE STACK
+  163 015F BD 03CB            JSR    CRLF             ESTABLISH NEW LINE ON CONSOLE
+  164 0162 F6 02F7            LDAB   IDMES            GET CHARACTER COUNT FOR I/D
+  165 0165 CE 02F8            LDX    #IDMES+1         SET STRING POINTER FOR I/D
+  166 0168 BD 03C1            JSR    PRINS            OUTPUT I/D MESSAGE ON CONSOLE
+  167 016B BD 03CB            JSR    CRLF             END I/D WITH <CR><LF>
+  168 016E 0F          WTCMD  SEI                     WAIT FOR USER COMMAND (INTERRUPTS DISABLED)
+  169 016F BD E806            JSR    INTIO            INIT DISC INTERFACE TO KNOWN STATE
+  170 0172 8E 006B            LDS    #EXSTK           REINITIALIZE EDOS STACK SPACE
+  171 0175 BD 0335            JSR    USCMD            OUTPUT USER PROMPT CHARACTER, WAIT FOR COMMAND
+  172 0178 BD 036E            JSR    PRSFL            PARSE COMMAND & LEAVE IN FLNM0-FLNM4
+  173                  *
+  174                  *DO STRING COMPARE TO IDENTIFY COMMAND.  COMMAND LIST IS PACKED
+  175                  *IN 5-CHARACTER STRINGS, PADDED WITH TRAILING SPACES.  THE SWITCH
+  176                  *ADDRESS FOR EACH COMMAND FOLLOWS THE CHARACTER STRING.
+  177                  *THE INPUT COMMAND STRING IS FOUND AT FLNM0 TO FLNM4
+  178                  *
+  179 017B CE 01BB            LDX    #CMDST           POINT TO START OF PROTOTYPE COMMANDS
+  180 017E 8C 0286     CMDLP  CPX    #CMDLM           IF ALL POSSIBLE COMMANDS EXAUSTED
+  181 0181 26 0B              BNE    TRYCM            THEN
+  182 0183 F6 0286     ERRM   LDAB   FERRM            GET CHARACTER COUNT FOR MESSAGE
+  183 0186 CE 0287            LDX    #FERRM+1         SET STRING POINTER FOR FORMAT ERROR MESSAGE
+  184 0189 BD 03C1     MSWTC  JSR    PRINS            PRINT MESSAGE ON CONSOLE
+  185 018C 20 E0              BRA    WTCMD            WAIT FOR ANOTHER COMMAND INPUT
+  186                  *
+  187 018E A6 00       TRYCM  LDAA   $0,X             IF FIRST PROTOTYPE CHARACTER EQUALS
+  188 0190 91 C0              CMPA   FLNM0            FIRST CHARACTER OF THIS COMMAND
+  189 0192 26 1E              BNE    SKPCM            AND
+  190 0194 A6 01              LDAA   $1,X             SECOND PROTOTYPE CHARACTER EQUALS
+  191 0196 91 C1              CMPA   FLNM1            SECOND CHARACTER OF THIS COMMAND
+  192 0198 26 18              BNE    SKPCM            AND
+  193 019A A6 02              LDAA   $2,X             THIRD PROTOTYPE CHARACTER EQUALS
+  194 019C 91 C2              CMPA   FLNM2            THIRD CHARACTER OF THIS COMMAND
+  195 019E 26 12              BNE    SKPCM            AND
+  196 01A0 A6 03              LDAA   $3,X             FOURTH PROTOTYPE CHARACTER EQUALS
+  197 01A2 91 C3              CMPA   FLNM3            FOURTH CHARACTER OF THIS COMMAND
+  198 01A4 26 0C              BNE    SKPCM            AND
+  199 01A6 A6 04              LDAA   $4,X             FITH PROTOTYPE CHARACTER EQUALS
+  200 01A8 91 C4              CMPA   FLNM4            FITH CHARACTER OF THIS COMMAND
+  201 01AA 26 06              BNE    SKPCM            THEN
+  202 01AC EE 05              LDX    $5,X             COMMAND IS IDENTIFIED, SELECT ADDRESS
+  203 01AE AD 00              JSR    $0,X             CALL THIS COMMAND SERVICE
+  204 01B0 20 BC              BRA    WTCMD            WAIT FOR NEXT COMMAND
+  205                  *
+  206 01B2 08          SKPCM  INX                     STEP
+  207 01B3 08                 INX                     OVER
+  208 01B4 08                 INX                     FIVE
+  209 01B5 08                 INX                     PROTOTYPE
+  210 01B6 08                 INX                     CHARS &
+  211 01B7 08                 INX                     SERVICE
+  212 01B8 08                 INX                     ADDRESS.
+  213 01B9 20 C3              BRA    CMDLP            TRY ANOTHER COMMAND
+  214                         PAGE                    THIS PROGRAM WAS COMMENTED BY THE AUSTRALIAN 6800 USER'S GROUP*
+  215                  *
+  216                  *COMMAND PROTOTYPE STRINGS BEGIN HERE.  EACH COMMAND IS PADDED TO
+  217                  *5 CHARACTERS WITH ASCII SPACES AS REQUIRED.
+  218                  *
+  219                  *THE COMMAND SERVICE ADDRESS FOLLOWS EACH ASSOCIATED
+  220                  *COMMAND PROTOTYPE STRING.
+  221                  *
+  222 01BB 41 53 4D 20 CMDST  FCC    /ASM  /
+    + 01BF 20
+  223 01C0 09 3F              FDB    ASM
+  224 01C2 45 44 49 54        FCC    /EDIT /
+    + 01C6 20
+  225 01C7 0B 55              FDB    EDIT
+  226 01C9 4C 4F 41 44        FCC    /LOAD /
+    + 01CD 20
+  227 01CE 06 E5              FDB    LOAD
+  228 01D0 45 58 42 55        FCC    /EXBUG/
+    + 01D4 47
+  229 01D5 F5 64              FDB    EXBUG
+  230 01D7 50 44 49 52        FCC    /PDIR /
+    + 01DB 20
+  231 01DC 08 71              FDB    PDIR
+  232 01DE 50 4C 49 53        FCC    /PLIST/
+    + 01E2 54
+  233 01E3 07 16              FDB    PLIST
+  234 01E5 49 4E 49 54        FCC    /INIT /
+    + 01E9 20
+  235 01EA 08 34              FDB    INIT
+  236 01EC 44 55 50 20        FCC    /DUP  /
+    + 01F0 20
+  237 01F1 0D E7              FDB    DUP
+  238 01F3 52 45 4E 41        FCC    /RENAM/
+    + 01F7 4D
+  239 01F8 07 AB              FDB    RENAM
+  240 01FA 50 55 52 47        FCC    /PURGE/
+    + 01FE 45
+  241 01FF 0F AD              FDB    PURGE
+  242 0201 4D 45 52 47        FCC    /MERGE/
+    + 0205 45
+  243 0206 0F 34              FDB    MERGE
+  244 0208 43 44 55 4D        FCC    /CDUMP/
+    + 020C 50
+  245 020D 0D 22              FDB    CDUMP
+  246 020F 54 44 55 4D        FCC    /TDUMP/
+    + 0213 50
+  247 0214 0D 22              FDB    TDUMP
+  248 0216 43 54 41 50        FCC    /CTAPE/
+    + 021A 45
+  249 021B 0C 4B              FDB    CTAPE
+  250 021D 50 54 41 50        FCC    /PTAPE/
+    + 0221 45
+  251 0222 0C 4B              FDB    PTAPE
+  252                         PAGE
+  253 0224 54 54 41 50        FCC    /TTAPE/
+    + 0228 45
+  254 0229 0C 4B              FDB    TTAPE
+  255 022B 41 54 54 52        FCC    /ATTR /
+    + 022F 20
+  256 0230 07 48              FDB    ATTR
+  257 0232 43 52 45 41        FCC    /CREAT/
+    + 0236 54
+  258 0237 08 01              FDB    CREAT
+  259 0239 43 58 47 45        FCC    /CXGEN/
+    + 023D 4E
+  260 023E 0C 54              FDB    CXGEN
+  261 0240 50 58 47 45        FCC    /PXGEN/
+    + 0244 4E
+  262 0245 0C 54              FDB    PXGEN
+  263 0247 54 58 47 45        FCC    /TXGEN/
+    + 024B 4E
+  264 024C 0C 54              FDB    TXGEN
+  265 024E 48 4F 4D 45        FCC    /HOME /
+    + 0252 20
+  266 0253 08 54              FDB    HOME
+  267 0255 49 4E 49 54        FCC    /INITX/
+    + 0259 58
+  268 025A 08 3A              FDB    INITX
+  269 025C 43 44 49 52        FCC    /CDIR /
+    + 0260 20
+  270 0261 08 6C              FDB    CDIR
+  271 0263 43 4C 49 53        FCC    /CLIST/
+    + 0267 54
+  272 0268 07 11              FDB    CLIST
+  273 026A 52 4C 4F 41        FCC    /RLOAD/
+    + 026E 44
+  274 026F 07 03              FDB    RLOAD
+  275 0271 52 41 53 4D        FCC    /RASM /
+    + 0275 20
+  276 0276 09 B6              FDB    RASM
+  277 0278 46 4F 52 54        FCC    /FORT /
+    + 027C 20
+  278 027D 09 A0              FDB    FORT
+  279 027F 42 41 53 49        FCC    /BASIC/
+    + 0283 43
+  280 0284 0B A6              FDB    BASIC
+  281                  *
+  282      0286        CMDLM  EQU    *                END OF COMMAND PROTOTYPE STRINGS
+  283                         PAGE                    THIS PROGRAM WAS COMMENTED BY THE AUSTRALIAN 6800 USER'S GROUP
+  284                  *
+  285                  *
+  286                  *MESSAGE STRINGS BEGIN HERE.  EACH MESSAGE STRING BEGINS
+  287                  *WITH A SINGLE BYTE GIVING THE CHARACTER COUNT IN BINARY
+  288                  *FOLLOWED BY THE ASCII MESSAGE TEXT.
+  289                  *
+  290 0286 0C          FERRM  FCB    $0C
+  291 0287 46 4F 52 4D        FCC    /FORMAT ERROR/
+    + 028B 41 54 20 45
+    + 028F 52 52 4F 52
+  292 0293 0C          NOSFM  FCB    $0C
+  293 0294 4E 4F 20 53        FCC    /NO SUCH FILE/
+    + 0298 55 43 48 20
+    + 029C 46 49 4C 45
+  294 02A0 09          DUNMM  FCB    $09
+  295 02A1 44 55 50 4C        FCC    /DUPL NAME/
+    + 02A5 20 4E 41 4D
+    + 02A9 45
+  296 02AA 07          NORMM  FCB    $07
+  297 02AB 4E 4F 20 52        FCC    /NO ROOM/
+    + 02AF 4F 4F 4D
+  298 02B2 1B          DIRHD  FCB    $1B
+  299 02B3 4E 41 4D 45        FCC    /NAME   ATTR TRAK SCTR  SIZE/
+    + 02B7 20 20 20 41
+    + 02BB 54 54 52 20
+    + 02BF 54 52 41 4B
+    + 02C3 20 53 43 54
+    + 02C7 52 20 20 53
+    + 02CB 49 5A 45
+  300 02CE 0E          DKNRM  FCB    $0E
+  301 02CF 44 49 53 4B        FCC    /DISK NOT READY/
+    + 02D3 20 4E 4F 54
+    + 02D7 20 52 45 41
+    + 02DB 44 59
+  302 02DD 0B          MEDEM  FCB    $0B
+  303 02DE 4D 45 44 49        FCC    /MEDIA ERROR/
+    + 02E2 41 20 45 52
+    + 02E6 52 4F 52
+  304 02E9 0D          NOEXM  FCB    $0D
+  305 02EA 20 4E 4F 4E        FCC    / NON EXISTENT/
+    + 02EE 20 45 58 49
+    + 02F2 53 54 45 4E
+    + 02F6 54
+  306 02F7 13          IDMES  FCB    $13
+  307 02F8 4D 36 38 30        FCC    /M6800 EDOS VER 2.6/
+    + 02FC 30 20 45 44
+    + 0300 4F 53 20 56
+    + 0304 45 52 20 32
+    + 0308 2E 36
+  308 030A 0E          NOSRM  FCB    $0E
+  309 030B 4E 4F 20 53        FCC    /NO SOURCE FILE/
+    + 030F 4F 55 52 43
+    + 0313 45 20 46 49
+    + 0317 4C 45
+  310 0319 0C          DEVEM  FCB    $0C
+  311 031A 44 45 56 49        FCC    /DEVICE ERROR/
+    + 031E 43 45 20 45
+    + 0322 52 52 4F 52
+  312 0326 0E          OFLCM  FCB    $0E
+  313 0327 4F 46 49 4C        FCC    /OFILE CONFLICT/
+    + 032B 45 20 43 4F
+    + 032F 4E 46 4C 49
+    + 0333 43 54
+  314                  *
+  315                  *END OF MESSAGE STRINGS
+  316                         PAGE                    THIS PROGRAM WAS COMMENTED BY THE AUSTRALIAN 6800 USER'S GROUP
+  317                  *
+  318 0335 BD 03CB     USCMD  JSR    CRLF             ESTABLISH NEW LINE ON CONSOLE
+  319 0338 86 21              LDAA   #'!              PRINT AN ASCII "!"
+  320 033A BD F018            JSR    PRINC            USER PROMPT CHARACTER
+  321 033D CE 006C            LDX    #IBUF1           SET POINTER TO INPUT BUFFER START
+  322 0340 DF BC              STX    BFPT1            INITIALIZE POINTER COPY TO BUFFER START
+  323 0342 BD 03CF     USCM1  JSR    ECHOC            GET A CONSOLE INPUT CHARACTER
+  324 0345 81 7F              CMPA   #$7F             IF NOT AN ASCII RUBOUT OR "BREAK"
+  325 0347 27 15              BEQ    USCM3            AND
+  326 0349 4D                 TSTA                    NOT AN ASCII NULL
+  327 034A 27 1F              BEQ    USCM4            THEN
+  328 034C A7 00              STAA   $0,X             STORE THE CHARACTER
+  329 034E 08                 INX                     STEP ON TO THE NEXT BUFFER LOCATION
+  330 034F 8C 00BC            CPX    #IBUF1+80        IF BUFFER OVERFLOW
+  331 0352 26 03              BNE    USCM2            THEN
+  332 0354 7E 0183            JMP    ERRM             TELL USER FORMAT ERROR, WAIT FOR NEW COMMAND
+  333 0357 81 0D       USCM2  CMPA   #CR              IF A <CR> CHARACTER
+  334 0359 26 E7              BNE    USCM1            THEN
+  335 035B DF BE              STX    BFND1            COMMAND ENDED, COPY END POINT (NOT USED!)
+  336 035D 39                 RTS                     RETURN THE COMPLETE COMMAND STRING
+  337                  *
+  338                  *THIS ROUTINE DELETES CHARACTERS FROM THE COMMAND INPUT BUFFER
+  339                  *ECHOING THE CHARACTERS AS THEY ARE DELETED FROM THE BUFFER
+  340                  *
+  341 035E 8C 006C     USCM3  CPX    #IBUF1           RUBOUT FOUND, IF BUFFER EMPTY
+  342 0361 27 D2              BEQ    USCMD            ISSUE NEW PROMPT, START AGAIN
+  343 0363 09                 DEX                     ELSE BACK UP POINTER
+  344 0364 A6 00              LDAA   $0,X             GET THROWN-OUT CHARACTER
+  345 0366 BD F018            JSR    PRINC            AND PRINT IT
+  346 0369 20 D7              BRA    USCM1            GET NEXT INPUT CHARACTER
+  347                  *
+  348 036B 7E 016E     USCM4  JMP    WTCMD            WAIT FOR NEXT USER COMMAND INPUT
+  349                  *
+  350                  *
+  351                  *THIS ROUTINE PARSES A SINGLE COMMAND OR FILE NAME AND
+  352                  *LEAVES IT IN FLNM0-4.  IF A UID WAS SPECIFIED, IT IS LEFT IN FLNM5.
+  353                  *
+  354 036E CE 00C0     PRSFL  LDX    #FLNM0           FILL FLNM0-4 WITH
+  355 0371 86 20              LDAA   #SPC             ASCII SPACE CHARACTERS
+  356 0373 C6 05              LDAB   #$5              AS A DEFAULT VALUE
+  357 0375 A7 00       PRSF1  STAA   $0,X             STORE A SPACE CHARACTER
+  358 0377 08                 INX                     STEP ON TO THE NEXT POSITION
+  359 0378 5A                 DECB                    WHILE FLNM0 TO FLNM4
+  360 0379 26 FA              BNE    PRSF1            CONTINUE
+  361 037B 7F 00C5            CLR    FLNM5            SET DEFAULT UNIT ID = 0 (SYS DISK)
+  362 037E CE 00C0            LDX    #FLNM0           START TO TRANSFER IN A COMMAND OR FILE NAME
+  363 0381 BD 03A6     PRSF2  JSR    NXITM            GET A CHARACTER FROM THE STRING
+  364 0384 81 3A              CMPA   #':              IF IT IS ASCII ":"
+  365 0386 26 14              BNE    NOUID            THEN
+  366 0388 BD 03A6            JSR    NXITM            GET THE NEXT CHARACTER
+  367 038B 80 30              SUBA   #'0              STRIP DECIMAL ASCII TO BINARY
+  368 038D 16                 TAB                     COPY THE RESULT IN B
+  369 038E 84 FC              ANDA   #$FC             IF INTEGER RESULT IS .LE. 3
+  370 0390 26 07              BNE    UIDER            THEN
+  371 0392 D7 C5              STAB   FLNM5            ACCEPT & STORE UNIT ID
+  372 0394 BD 03A6     PRSF3  JSR    NXITM            GET DELIMITER (COMMA)
+  373 0397 20 FB              BRA    PRSF3            OR TERMINATOR <CR>
+  374                  *
+  375 0399 7E 0183     UIDER  JMP    ERRM             TELL USER FORMAT ERROR, TRY AGAIN
+  376                  *
+  377 039C 8C 00C5     NOUID  CPX    #FLNM5           IF ROOM IN FIELD
+  378 039F 27 E0              BEQ    PRSF2            THEN
+  379 03A1 A7 00              STAA   $0,X             STORE THE CHARACTER
+  380 03A3 08                 INX                     STEP OVER THE LOCATION
+  381 03A4 20 DB              BRA    PRSF2            GET THE NEXT CHARACTER
+  382                  *
+  383                  *THIS ROUTINE PASSES SINGLE CHARACTERS BACK TO PRSFL.  WHEN A DELIMITER
+  384                  *(COMMA) OR TERMINATOR <CR> IS FOUND, PRSFL IS TERMINATED (ERSATZ RTS)
+  385                  *
+  386 03A6 FF 03BF     NXITM  STX    ITMDX            SAVE CURRENT INDEX REGISTER
+  387 03A9 DE BC              LDX    BFPT1            PICK UP SCAN POINTER
+  388 03AB A6 00              LDAA   $0,X             PICK UP A CHARACTER
+  389 03AD 81 0D              CMPA   #CR              IF NOT AN ASCII <CR>
+  390 03AF 27 0B              BEQ    NXIT1            THEN
+  391 03B1 08                 INX                     STEP POINTER TO NEXT CHARACTER
+  392 03B2 DF BC              STX    BFPT1            STORE THE SCAN POINTER
+  393 03B4 81 2C              CMPA   #',              IF NOT A COMMA
+  394 03B6 27 04              BEQ    NXIT1            THEN
+  395 03B8 FE 03BF            LDX    ITMDX            RESTORE INDEX REGISTER
+  396 03BB 39                 RTS                     RETURN THE CHARACTER
+  397                  *
+  398 03BC 31          NXIT1  INS                     IF CHARACTER COMMA OR <CR>
+  399 03BD 31                 INS                     DELETE RETURN ADDRESS
+  400 03BE 39                 RTS                     TERMINATE & RETURN FROM PRSFL
+  401                  *
+  402 03BF             ITMDX  RMB    2                NXITM INDEX SAVE LOCATION
+  403                  *
+  404                  *
+  405                  *THIS ROUTINE PRINTS OUT A STRING OF ASCII CHARACTERS
+  406                  *START ADDRESS IS IN X, NUMBER OF CHARACTERS IN B
+  407                  *
+  408 03C1 A6 00       PRINS  LDAA   $0,X             GET A CHARACTER
+  409 03C3 BD F018            JSR    PRINC            PRINT IT OUT
+  410 03C6 08                 INX                     STEP TO NEXT CHARACTER
+  411 03C7 5A                 DECB                    WHILE CHARACTERS
+  412 03C8 26 F7              BNE    PRINS            CONTINUE
+  413 03CA 39                 RTS                     RETURN TO CALLER
+  414                  *
+  415                  *
+  416                  *THIS ROUTINE PRODUCES <CR> <LF> ON THE CONSOLE
+  417                  *(ESTABLISH A NEW LINE FOR THE NEXT FUNCTION)
+  418                  *
+  419 03CB 86 0D       CRLF   LDAA   #CR              DEFINE AN ASCII <CR>
+  420 03CD 20 09              BRA    ECHO1            BORROW THE ECHO FUNCTION
+  421                  *
+  422                  *THIS ROUTINE ECHOS INPUT CHARACTERS, EXCEPT RUBOUT OR "BREAK"
+  423                  *THE PARITY BIT IS STRIPPED, AND <CR> IS AMPLIFIED TO <CR> <LF>
+  424                  *THE INPUT CHARACTER IS PASSED THROUGH THIS ROUTINE
+  425                  *
+  426 03CF BD 03E9     ECHOC  JSR    GETCH            GET AN INPUT CHARACTER
+  427 03D2 84 7F              ANDA   #$7F             STRIP OFF THE PARITY BIT
+  428 03D4 81 7F              CMPA   #$7F             IF NOT A RUBOUT OR "BREAK"
+  429 03D6 27 10              BEQ    ECHO2            THEN
+  430 03D8 36          ECHO1  PSHA                    SAVE THE CHARACTER
+  431 03D9 BD F018            JSR    PRINC            PRINT THE CHARACTER
+  432 03DC 32                 PULA                    RESTORE THE CHARACTER
+  433 03DD 81 0D              CMPA   #CR              IF IT IS ASCII <CR>
+  434 03DF 26 07              BNE    ECHO2            THEN
+  435 03E1 36                 PSHA                    SAVE THE CHARACTER AGAIN
+  436 03E2 86 0A              LDAA   #LF              DEFINE AN ASCII <LF>
+  437 03E4 BD F018            JSR    PRINC            AND DO A CONSOLE LINE FEED
+  438 03E7 32                 PULA                    RESTORE THE CHARACTER
+  439 03E8 39          ECHO2  RTS                     RETURN TO CALLER
+  440                  *
+  441                  *
+  442                  *THIS ROUTINE LOOPS ON THE ACIA STATUS REGISTER DONE BIT WAITING FOR
+  443                  *A CHARACTER.  THE CPU WAITS HERE UNTIL A CHARACTER IS READY.  WHEN
+  444                  *A CHARACTER IS PRESENTED, IT IS RETURNED TO CALLER IN A.
+  445                  *
+  446 03E9 B6 FCF4     GETCH  LDAA   ACIAS            READ THE ACIA STATUS
+  447 03EC 47                 ASRA                    IF CHARACTER IS AVAILABLE
+  448 03ED 24 FA              BCC    GETCH            THEN
+  449 03EF B6 FCF5            LDAA   ACIAR            READ THE CHARACTER
+  450 03F2 0C                 CLC                     CLEAR THE "C" BIT
+  451 03F3 39                 RTS                     RETURN THE CHARACTER
+  452                  *
+  453                  *
+  454                  *THIS ROUTINE PERFORMS BINARY TO HEX CONVERSION,
+  455                  *AND PRINTS THE RESULT USING THE SWITCHED PRINT
+  456                  *VECTOR TO SELECT THE OUTPUT DEVICE.
+  457                  *
+  458 03F4 97 C9       PRBIN  STAA   HDIGT            COPY THE BINARY DATA
+  459 03F6 44                 LSRA                    SHIFT THE 4
+  460 03F7 44                 LSRA                    MOST SIGNIFICANT
+  461 03F8 44                 LSRA                    BITS INTO A
+  462 03F9 44                 LSRA                    BINARY VALUE
+  463 03FA BD 0404            JSR    PRBN1            PRINT THE VALUE(H)
+  464 03FD 96 C9              LDAA   HDIGT            GET THE BINARY DATA
+  465 03FF 84 0F              ANDA   #$0F             STRIP OFF THE HIGH DIGIT
+  466 0401 7E 0404            JMP    PRBN1            PRINT THE VALUE(L) & RETURN
+  467                  *
+  468 0404 81 0A       PRBN1  CMPA   #$0A             IF .GE. 9
+  469 0406 2B 02              BMI    PRBN2            THEN
+  470 0408 8B 07              ADDA   #$7              SKIP OVER : TO @
+  471 040A 8B 30       PRBN2  ADDA   #'0              CONVERT TO ASCII (HEX)
+  472 040C 7E 0030            JMP    PRNVC            PRINT, USING SWITCHED PRINT & RETURN
+  473                  *
+  474                  *
+  475                  *THIS ROUTINE READS A FULL DISK SECTOR FROM THE DEFINED
+  476                  *UNIT/TRACK/SECTOR, LEAVING THE RESULT BEGINNING AT THE
+  477                  *ADDRESS IN X.  SUCCESS RETURN IS A = 0
+  478                  *
+  479 040F DF CA       RED11  STX    SECP1            SAVE INDEX REGISTER
+  480 0411 37                 PSHB                    SAVE DEFINED TRACK
+  481 0412 BD EA03            JSR    XUS              TRANSMIT <UNIT><SECTOR> TO DISK
+  482 0415 BD 0476            JSR    DSKRD            IF DISK IS READY, THEN
+  483 0418 32                 PULA                    GET DEFINED TRACK
+  484 0419 BD EA2B            JSR    SEEK             SEEK SELECTED UNIT TO DEFINED TRACK
+  485 041C 86 05              LDAA   #$5              SET RETRY COUNT FOR 5
+  486 041E B7 0155            STAA   TRYCT            ATTEMPTED RETRIES ON READ ERROR
+  487 0421 86 02       RED12  LDAA   #$2              DEFINE READ COMMAND
+  488 0423 BD EA3E            JSR    LOOP             ISSUE COMMAND TO DISK (LOOP ON BUSY)
+  489 0426 B6 EC00            LDAA   DKDID            READ THE DISK STATUS
+  490 0429 84 80              ANDA   #$80             IF DELETED DATA (DD), REPORT IT
+  491 042B 26 18              BNE    RED14            ELSE
+  492 042D B6 EC00            LDAA   DKDID            READ THE DISK STATUS
+  493 0430 84 08              ANDA   #$08             IF CRC ERROR
+  494 0432 27 17              BEQ    RED15            THEN
+  495 0434 BD EA38            JSR    RFLAG            RESET ERROR FLAG ON DISK I/F
+  496 0437 7A 0155            DEC    TRYCT            DECREMENT TRY COUNTER
+  497 043A 26 E5              BNE    RED12            THEN
+  498 043C F6 02DD     MEDER  LDAB   MEDEM            GET CHARACTER COUNT AND POINTER
+  499 043F CE 02DE            LDX    #MEDEM+1         FOR "MEDIA ERROR" MESSAGE
+  500 0442 7E 0189            JMP    MSWTC            PRINT IT & WAIT FOR COMMAND INPUT
+  501                  *
+  502 0445 BD EA38     RED14  JSR    RFLAG            RESET ERROR FLAG ON DISK I/F
+  503 0448 86 80              LDAA   #$80             DEFINE OPERATION RESULT NON-ZERO, MINUS
+  504 044A 39                 RTS                     RETURN TO CALLER (FAILED)
+  505                  *
+  506 044B DE CA       RED15  LDX    SECP1            PICK UP THE INDEX POINTER
+  507 044D 86 80              LDAA   #$80             DEFINE COUNT OF BYTES IN A FULL SECTOR
+  508 044F B7 0155            STAA   BYTCT            FOR A COUNT (128 BYTES)
+  509 0452 86 3C       RED16  LDAA   #$3C             DEFINE DISK COMMAND MODE
+  510 0454 B7 EC03            STAA   DKCOC            SET DISK TO COMMAND MODE
+  511 0457 86 40              LDAA   #$40             DEFINE READ DATA COMMAND
+  512 0459 B7 EC02            STAA   DKCOD            COMMAND DISK TO READ
+  513 045C B6 EC00            LDAA   DKDID            READ THE DATA FROM THE IDISK
+  514 045F A7 00              STAA   $00,X            STORE AWAY READ BYTE
+  515 0461 86 2C              LDAA   #$2C             DEFINE RESET COMMAND MODE
+  516 0463 B7 EC03            STAA   DKCOC            RESET DISK FROM COMMAND MODE
+  517 0466 86 40              LDAA   #$40             DEFINE READ DATA COMMAND
+  518 0468 B7 EC02            STAA   DKCOD            STROBE IN RESET COMMAND MODE
+  519 046B 7F EC02            CLR    DKCOD            CLEAR COMMAND OUT OF PIA
+  520 046E 08                 INX                     TAKE THE NEXT BYTE
+  521 046F 7A 0155            DEC    BYTCT            WHILE BYTES
+  522 0472 26 DE              BNE    RED16            CONTINUE
+  523 0474 4F                 CLRA                    DEFINE OPERATION RESULT ZERO (SUCCESS)
+  524 0475 39                 RTS                     RETURN TO CALLER (SUCCESS)
+  525                  *
+  526                  *
+  527                  *THIS ROUTINE CHECKS ON DISK READY FOR USE.  IF READY,
+  528                  *RETURNS TO CALLER, IF NOT READY,  ABORTS OPERATION
+  529                  *PRINTS "DISK NOT READY" & WAITS FOR COMMAND
+  530                  *
+  531 0476 B6 EC00     DSKRD  LDAA   DKDID            READ DISK STATUS REGISTER
+  532 0479 84 20              ANDA   #$20             IF SELECTED DISK READY
+  533 047B 26 01              BNE    DSKR1            THEN
+  534 047D 39                 RTS                     RETURN, ELSE
+  535 047E F6 02CE     DSKR1  LDAB   DKNRM            GET CHARACTER COUNT AND POINTER
+  536 0481 CE 02CF            LDX    #DKNRM+1         FOR "DISK NOT READY" MESSAGE
+  537 0484 7E 0189            JMP    MSWTC            PRINT IT, AND WAIT FOR COMMAND INPUT
+  538                  *
+  539                  *
+  540                  *THIS ROUTINE WRITES DATA TO DISK.  DATA IS POINTED TO
+  541                  *BY X REGISTER. A FULL SECTOR OF 128 BYTES IS ASSUMED AND
+  542                  *WRITTEN.  A WRITE FAILURE RETURNS A = 1, SUCCESS - A = 0.
+  543                  *
+  544 0487 DF CA       WRTSE  STX    SECP1            SAVE THE DATA POINTER
+  545 0489 37                 PSHB                    SAVE THE SELECTED TRACK
+  546 048A BD EA03            JSR    XUS              TRANSMIT <UNIT><SECTOR> TO DISK
+  547 048D BD 0476            JSR    DSKRD            IF DISK IS READY, THEN
+  548 0490 32                 PULA                    GET THE SELECTED TRACK
+  549 0491 BD EA2B            JSR    SEEK             SEEK TO THE SELECTED TRACK
+  550 0494 86 05              LDAA   #$5              SET TRY COUNT FOR 5
+  551 0496 B7 0155            STAA   TRYCT            ATTEMPTED RETRIES ON READ ERROR
+  552 0499 DE CA              LDX    SECP1            PICK UP THE DATA POINTER
+  553 049B C6 80              LDAB   #128             DEFINE A SECTOR = 128 DECIMAL BYTES
+  554                  *
+  555 049D A6 00       WRTS1  LDAA   0,X              PICK UP A DATA BYTE
+  556 049F B7 EC06            STAA   DKDOD            LOAD DATA TO BUFFER
+  557 04A2 86 30              LDAA   #$30             DEFINE LOAD COMMAND
+  558 04A4 B7 EC02            STAA   DKCOD            COMMAND BUFFER TO LOAD
+  559 04A7 08                 INX                     STEP TO THE NEXT DATA BYTE
+  560 04A8 5A                 DECB                    WHILE SECTOR BYTES
+  561 04A9 26 F2              BNE    WRTS1            CONTINUE
+  562                  *
+  563 04AB 86 04       WRTS2  LDAA   #$04             DEFINE WRITE COMMAND
+  564 04AD BD EA3E            JSR    LOOP             ISSUE COMMAND TO DISK (LOOP ON BUSY)
+  565 04B0 86 06              LDAA   #$06             ASK DISK FOR STATUS
+  566 04B2 BD EA3E            JSR    LOOP             ISSUE COMMAND TO DISK (LOOP ON BUSY)
+  567 04B5 B6 EC00            LDAA   DKDID            READ THE REQUESTED STATUS
+  568 04B8 84 08              ANDA   #$08             IF THERE WAS A CRC ERROR
+  569 04BA 27 0F              BEQ    WRTS3            THEN (SUCCESS EXIT, A = 0)
+  570 04BC BD EA38            JSR    RFLAG            RESET ERROR FLAG ON DISK I/F
+  571 04BF 7A 0155            DEC    TRYCT            IF RETRY COUNT RUN OUT
+  572 04C2 26 E7              BNE    WRTS2            THEN
+  573 04C4 86 0E              LDAA   #$0E             ASK DISK TO MARK THIS SECTOR = DD
+  574 04C6 BD EA3E            JSR    LOOP             ISSUE COMMAND TO DISK (LOOP ON BUSY)
+  575 04C9 86 01              LDAA   #1               FAILURE EXIT, SET A .NE. 0
+  576 04CB 39          WRTS3  RTS                     RETURN TO CALLER
+  577                  *
+  578                  *
+  579                  *THIS ROUTINE SEARCHES THE DEFINED DISK DIRECTORY FOR A FILE NAME.
+  580                  *IF FOUND, X POINTS TO THE FCB OF THAT FILE IN THE BUFFER, AND A = 0.
+  581                  *
+  582 04CC 0C          FNDFL  CLC                     CLEAR THE C BIT FOR SHIFT
+  583 04CD 96 C5              LDAA   FLNM5            PICK UP CURRENT UNIT ID
+  584 04CF 46                 RORA                    SHIFT UID BITS 1,0
+  585 04D0 46                 RORA                    INTO BITS 7,6 OF RESULT
+  586 04D1 46                 RORA                    BIT 7 BECOMES OLD 1, 6 BECOMES OLD 0
+  587 04D2 8A 04              ORAA   #4               START AT SECTOR 4
+  588 04D4 B7 0150            STAA   USECT            INITIALIZE SEARCH SECTOR VALUE
+  589 04D7 B6 0150     FNDF1  LDAA   USECT            PICK UP SEARCH SECTOR VALUE
+  590 04DA 84 3F              ANDA   #$3F             STRIP OFF UID
+  591 04DC 81 1B              CMPA   #$1B             IF NOT RUN OUT OF SECTORS
+  592 04DE 27 42              BEQ    FNDFX            THEN (FAILURE EXIT A .NE. 0)
+  593 04E0 CE 00D0            LDX    #SECB1           DEFINE DISK SECTOR BUFFER #1
+  594 04E3 B6 0150            LDAA   USECT            PICK UP SEARCH SECTOR VALUE
+  595 04E6 5F                 CLRB                    ON TRACK 0
+  596 04E7 BD 040F            JSR    RED11            READ A DISK SECTOR INTO BUFFER
+  597 04EA 4D                 TSTA                    IF NOT SUCCESSFUL
+  598 04EB 27 05              BEQ    FNDF2            THEN
+  599 04ED 7C 0150            INC    USECT            TRY THE NEXT SECTOR
+  600 04F0 20 E5              BRA    FNDF1            WHILE SECTORS LAST
+  601 04F2 CE 00D0     FNDF2  LDX    #SECB1           START AT BEGINNING OF BUFFER
+  602 04F5 DF CE              STX    SESP1            INITIALIZE SCAN POINTER
+  603 04F7 DE CE       FNDF3  LDX    SESP1            PICK UP SCAN POINTER
+  604 04F9 A6 05              LDAA   $5,X             PICK UP THIS FILE'S ATTRIBUTES
+  605 04FB 81 FF              CMPA   #$FF             IF THIS IS NOT THE END OF DIRECTORY
+  606 04FD 27 23              BEQ    FNDFX            AND (FAILURE EXIT A .NE. 0)
+  607 04FF 81 80              CMPA   #$80             IF THIS IS NOT A DELETED FILE
+  608 0501 27 20              BEQ    FNDF4            AND
+  609 0503 A6 00              LDAA   $0,X             THE FIRST CHARACTER EQUALS
+  610 0505 91 C0              CMPA   FLNM0            THE FIRST SEARCH CHARACTER
+  611 0507 26 1A              BNE    FNDF4            AND
+  612 0509 A6 01              LDAA   $1,X             THE SECOND CHARACTER EQUALS
+  613 050B 91 C1              CMPA   FLNM1            THE SECOND SEARCH CHARACTER
+  614 050D 26 14              BNE    FNDF4            AND
+  615 050F A6 02              LDAA   $2,X             THE THIRD CHARACTER EQUALS
+  616 0511 91 C2              CMPA   FLNM2            THE THIRD SEARCH CHARACTER
+  617 0513 26 0E              BNE    FNDF4            AND
+  618 0515 A6 03              LDAA   $3,X             THE FOURTH CHARACTER EQUALS
+  619 0517 91 C3              CMPA   FLNM3            THE FOURTH SEARCH CHARACTER
+  620 0519 26 08              BNE    FNDF4            AND
+  621 051B A6 04              LDAA   $4,X             THE FIFTH CHARACTER EQUALS
+  622 051D 91 C4              CMPA   FLNM4            THE FIFTH SEARCH CHARACTER
+  623 051F 26 02              BNE    FNDF4            THEN
+  624 0521 4F                 CLRA                    FILE NAME IS FOUND (SUCCESS EXIT A = 0)
+  625 0522 39          FNDFX  RTS                     RETURN TO CALLER
+  626                  *
+  627 0523 86 0B       FNDF4  LDAA   #11              DEFINE DIRECTORY ENTRY SIZE (11 BYTES / ENTRY)
+  628 0525 5F                 CLRB                    ALLOWING A HIGH BYTE OF 0
+  629 0526 9B CF              ADDA   SESP1+LBYT       ADD ENTRY SIZE TO CURRENT
+  630 0528 D9 CE              ADCB   SESP1            BUFFER SCAN POINTER (2 BYTE ADD)
+  631 052A 97 CF              STAA   SESP1+LBYT       UPDATE THE BUFFER SCAN POINTER
+  632 052C D7 CE              STAB   SESP1            MODULO <ENTRY SIZE>
+  633 052E DE CE              LDX    SESP1            IF THE BUFFER HAS
+  634 0530 8C 0149            CPX    #SECB1+121       NO MORE DIRECTORY ENTRIES
+  635 0533 26 C2              BNE    FNDF3            THEN
+  636 0535 7C 0150            INC    USECT            TRY THE NEXT SECTOR
+  637 0538 20 9D              BRA    FNDF1            AND KEEP LOOKING
+  638                  *
+  639                  *
+  640                  *THIS ROUTINE SETS UP AN INPUT FILE ON THE FILE DEFINITION LOCATIONS.
+  641                  *IF NO FILE, FAILURE IS REPORTED.  SUCCESS - A = 0, FAILURE - A .NE. 0
+  642                  *
+  643 053A BD 04CC     DFINF  JSR    FNDFL            LOOK FOR THIS FILE NAME IN THE DIRECTORY
+  644 053D 4D                 TSTA                    IF IT DOES NOT EXIST
+  645 053E 27 01              BEQ    DFIN1            THEN
+  646 0540 39                 RTS                     FAILURE EXIT A .NE. 0
+  647 0541 DE CE       DFIN1  LDX    SESP1            GET FILE CONTROL BLOCK ADDRESS
+  648 0543 E6 06              LDAB   $6,X             USE DESCRIPTOR "TRACK"
+  649 0545 D7 06              STAB   ITRK             TO DEFINE ITRK
+  650 0547 E6 08              LDAB   $8,X             USE DESCRIPTOR SIZE(H)
+  651 0549 D7 04              STAB   ISIZE            TO DEFINE ISIZE(H)
+  652 054B E6 09              LDAB   $9,X             USE DESCRIPTOR SIZE(L)
+  653 054D D7 05              STAB   ISIZE+1          TO DEFINE ISIZE(L)
+  654 054F 7F 0008            CLR    ICNTR            CLEAR INPUT FILE BYTE COUNTER
+  655 0552 D6 C5              LDAB   FLNM5            PICK UP CURRENT UNIT ID
+  656 0554 0C                 CLC                     CLEAR "C" FOR SHIFTING
+  657 0555 56                 RORB                    SHIFT UID BITS 1,0
+  658 0556 56                 RORB                    INTO BITS 7,6
+  659 0557 56                 RORB                    7 BECOMES OLD 1, 6 BECOMES OLD 0
+  660 0558 EA 07              ORAB   $7,X             OR IN SECTOR NUMBER FROM DESCRIPTOR
+  661 055A 5A                 DECB                    MINUS ONE
+  662 055B D7 07              STAB   ISCTR            STORE IN ISCTR
+  663 055D 0C                 CLC                     CLEAR "C" FOR REVERSE SHIFT
+  664 055E 59                 ROLB                    SHIFT UID BITS BACK INTO BITS 1,0
+  665 055F 59                 ROLB                    SECTOR NUMBER GOES INTO
+  666 0560 59                 ROLB                    BITS 6-2 OF RESULT
+  667 0561 D7 03              STAB   IUNIT            STORE COMBINED RESULT IN IUNIT
+  668 0563 4F                 CLRA                    CLEAR A, SIGNALING SUCCESS
+  669 0564 39                 RTS                     RETURN TO CALLER
+  670                  *
+  671                  *
+  672                  *
+  673                  *
+  674                  *THIS ROUTINE IS SIMILAR TO DFINF.  IF CALLED, IT WOULD DEFINE AN
+  675                  *OUTPUT FILE IN THE OUTPUT FILE DEFINITION LOCATIONS.  IT DOES NOT
+  676                  *APPEAR TO BE USED.  AN EXISTING FILE WILL BE PRECISELY OVERWRITTEN
+  677                  *IF IT IS CALLED, WITH NO CHANGE IN FILE SIZE.
+  678                  *
+  679 0565 BD 04CC     DFOFL  JSR    FNDFL            LOOK FOR THIS FILE NAME IN THE DIRECTORY
+  680 0568 4D                 TSTA                    IF IT DOES NOT EXIST
+  681 0569 27 01              BEQ    DFOF1            THEN
+  682 056B 39                 RTS                     FAILURE EXIT A .NE. 0
+  683 056C DE CE       DFOF1  LDX    SESP1            GET FILE CONTROL BLOCK ADDRESS
+  684 056E E6 06              LDAB   $6,X             USE DESCRIPTOR "TRACK"
+  685 0570 D7 0B              STAB   OTRK             TO DEFINE OTRK
+  686 0572 E6 08              LDAB   $8,X             USE DESCRIPTOR "SIZE"
+  687 0574 A6 09              LDAA   $9,X             (2 BYTES)
+  688 0576 80 01              SUBA   #$1              MINUS 1 SECTOR
+  689 0578 C2 00              SBCB   #$0              (2 BYTES)
+  690 057A D7 09              STAB   OSIZE            TO DEFINE OSIZE
+  691 057C 97 0A              STAA   OSIZE+LBYT       (2 BYTES)
+  692 057E 7F 000D            CLR    OCNTR            CLEAR OUTPUT FILE BYTE COUNTER
+  693 0581 D6 C5              LDAB   FLNM5            PICK UP UNIT I/D
+  694 0583 D7 02              STAB   OUNIT            AND DEFINE OUNIT
+  695 0585 0C                 CLC                     CLEAR "C" FOR SHIFTING
+  696 0586 56                 RORB                    SHIFT UID BITS 1,0
+  697 0587 56                 RORB                    INTO BITS 7,6
+  698 0588 56                 RORB                    7 BECOMES OLD 1, 6 BECOMES OLD 0
+  699 0589 EA 07              ORAB   $7,X             OR IN SECTOR NUMBER FROM DESCRIPTOR
+  700 058B D7 0C              STAB   OSCTR            WHICH DEFINES OSCTR
+  701 058D 4F                 CLRA                    CLEAR A, SIGNALLING SUCCESS
+  702 058E 39                 RTS                     RETURN TO CALLER
+  703                  *
+  704                  *
+  705                  *
+  706                  *THIS ROUTINE ATTEMPTS TO CREATE A FILE ENTRY IN THE DIRECTORY
+  707                  *VARIOUS RETURN FLAGS EXIST. THEY ARE ASSIGNED AS FOLLOWS:
+  708                  *A = 0 SUCCESS, FILE CREATED IN DIRECTORY
+  709                  *A = 1 FAILURE, NO ROOM LEFT IN DIRECTORY
+  710                  *A = 2 FAILURE, THIS FILE NAME ALREADY EXISTS
+  711                  *A = 3 FAILURE, NOT ENOUGH ROOM ON THE DISK
+  712                  *
+  713 058F BD 04CC     CREAF  JSR    FNDFL            SEARCH FOR FILE NAME (DUPLICATE) IN DIRECTORY
+  714 0592 4D                 TSTA                    IF DUPLICATE FILE NAME IS FOUND
+  715 0593 26 03              BNE    CREA1            THEN
+  716 0595 86 02              LDAA   #$2              DEFINE FLAG VALUE = DUPLICATE FILE
+  717 0597 39                 RTS                     AND RETURN (FAILURE)
+  718 0598 81 FF       CREA1  CMPA   #$FF             IF DIRECTORY IS FULL (NO EOD MARK)
+  719 059A 27 03              BEQ    CREA2            THEN
+  720 059C 86 01              LDAA   #$1              DEFINE FLAG VALUE = NO ROOM
+  721 059E 39                 RTS                     AND RETURN (FAILURE)
+  722 059F DE CE       CREA2  LDX    SESP1            LOAD SCAN POINTER
+  723 05A1 86 1A              LDAA   #26              THERE ARE 26 SECTORS PER TRACK
+  724 05A3 B7 0155            STAA   SECCT            PREPARE TO COUNT BY <SECTOR><TRACK>
+  725 05A6 4F                 CLRA                    STARTING FROM
+  726 05A7 5F                 CLRB                    0, COUNT OFF SECTOR MODULUS
+  727 05A8 AB 06       CREA3  ADDA   $6,X             TIMES THE TRACKS
+  728 05AA C9 00              ADCB   #$0              ALREADY USED
+  729 05AC 7A 0155            DEC    SECCT            GIVING THE NO. OF SECTORS
+  730 05AF 26 F7              BNE    CREA3            ALREADY USED (TO THIS TRACK)
+  731 05B1 AB 07              ADDA   $7,X             THEN ADD THE SECTORS ALREADY USED ON
+  732 05B3 C9 00              ADCB   #$0              THIS TRACK, GIVING SECTORS USED (TOTAL)
+  733 05B5 B7 0156            STAA   SECCT+1          PUT AWAY THE CALCULATED
+  734 05B8 F7 0155            STAB   SECCT            NUMBER OF SECTORS ALREADY USED
+  735 05BB CE 07D0            LDX    #2000            THERE ARE 2000 SECTORS AVAILABLE ON THE DISK
+  736 05BE DF CA              STX    SECAV            CALCULATE
+  737 05C0 D6 CA              LDAB   SECAV            THAT THE
+  738 05C2 96 CB              LDAA   SECAV+1          AVAILABLE SECTORS
+  739 05C4 B0 0156            SUBA   SECCT+1          MINUS THE USED
+  740 05C7 F2 0155            SBCB   SECCT            SECTORS GIVES THE FREE SECTORS
+  741 05CA D7 CA              STAB   SECAV            SAVE THE NEW
+  742 05CC 97 CB              STAA   SECAV+1          FREE SECTORS
+  743 05CE 90 C8              SUBA   FILRQ+1          SUBTRACT THE NEW FILE'S SECTOR REQUIREMENT
+  744 05D0 D2 C7              SBCB   FILRQ            IF NOT ENOUGH SECTORS ARE FREE
+  745 05D2 2A 05              BPL    CREA4            THEN
+  746 05D4 DE CA              LDX    SECAV            DEFINE HOW MANY SECTORS ARE AVAILABLE
+  747 05D6 86 03              LDAA   #$3              FLAG "NOT ENOUGH ROOM ON DISK"
+  748 05D8 39                 RTS                     RETURN TO CALLER (FAILURE)
+  749                  *
+  750                  *FILE IS PERMISSIBLE, CREATE THE DIRECTORY ENTRY
+  751                  *
+  752 05D9 DE CE       CREA4  LDX    SESP1            PICK UP THE POINTER TO CURRENT E.O.D. FCB
+  753 05DB 96 C0              LDAA   FLNM0            CONVERT THE CURRENT END-OF-DIRECTORY
+  754 05DD A7 00              STAA   $0,X             FILE CONTROL BLOCK INTO A DIRECTORY
+  755 05DF 96 C1              LDAA   FLNM1            ENTRY FOR THE REQUESTED FILE
+  756 05E1 A7 01              STAA   $1,X             BY TRANSFERRING THE REQUESTED
+  757 05E3 96 C2              LDAA   FLNM2            FILE NAME INTO THE CURRENT FCB
+  758 05E5 A7 02              STAA   $2,X             AS IT RESIDES IN THE SECTOR BUFFER.
+  759 05E7 96 C3              LDAA   FLNM3            (A NEW END-OF-DIRECTORY
+  760 05E9 A7 03              STAA   $3,X             FILE CONTROL BLOCK MUST BE
+  761 05EB 96 C4              LDAA   FLNM4            CREATED TO REPLACE THIS ONE)
+  762 05ED A7 04              STAA   $4,X             LAST NAME CHARACTER, NOW
+  763                  *
+  764 05EF 96 C6       WTNDX  LDAA   FILAT            LOAD REQUESTED FILE ATTRIBUTE
+  765 05F1 A7 05              STAA   5,X              INTO "ATTRIBUTE" IN FCB
+  766 05F3 D6 C7              LDAB   FILRQ            PICK UP REQUESTED FILE SIZE
+  767 05F5 96 C8              LDAA   FILRQ+1          IN SECTORS TO BE WRITTEN
+  768 05F7 8B 01              ADDA   #1               ADD 1, TO ALLOW FOR A POSSIBLE
+  769 05F9 C9 00              ADCB   #0               SECTOR OVERFLOW
+  770 05FB E7 08              STAB   8,X              SET THIS ALLOCATION INTO THE
+  771 05FD A7 09              STAA   9,X              FILE LENGTH IN FCB TEMPLATE
+  772 05FF E6 06              LDAB   6,X              LOAD START TRACK FROM OLD FCB
+  773 0601 A6 07              LDAA   7,X              LOAD START SECTOR FROM OLD FCB
+  774 0603 F7 0153            STAB   STRAK            SAVE THE TRACK
+  775 0606 B7 0154            STAA   STSEC            SAVE THE SECTOR
+  776 0609 DE C7              LDX    FILRQ            IF THE SECTORS REQUIRED
+  777 060B 8C 0000            CPX    #$0              ARE DEFINED AS 0
+  778 060E 26 07              BNE    WTND1            THEN
+  779 0610 08                 INX                     ALLOCATE ONE SECTOR
+  780 0611 DF C7              STX    FILRQ            AS A MINIMUM REQUEST
+  781 0613 DE CE              LDX    SESP1            GET THE SECTOR BUFFER POINTER
+  782 0615 20 D8              BRA    WTNDX            ALLOCATE THE 1 SECTOR MINIMUM
+  783                  *
+  784 0617 8C 0000     WTND1  CPX    #$0              IF ALLOCATION IS NOT COMPLETE
+  785 061A 27 0B              BEQ    WTND3            THEN
+  786 061C 4C                 INCA                    TAKE THE NEXT SECTOR
+  787 061D 81 1B              CMPA   #27              IF NO MORE SECTORS
+  788 061F 26 03              BNE    WTND2            THEN
+  789 0621 5C                 INCB                    TAKE THE NEXT TRACK
+  790 0622 86 01              LDAA   #$1              SECTOR NUMBER 1
+  791 0624 09          WTND2  DEX                     COUNT OFF THIS SECTOR, IF ALL GONE
+  792 0625 26 F0              BNE    WTND1            THEN
+  793 0627 F7 0151     WTND3  STAB   CRTRK            SAVE THE NEW START TRACK
+  794 062A B7 0152            STAA   CRSEC            AND NEW START SECTOR
+  795 062D DE CE              LDX    SESP1            IF NEW FCB & EOD FCB
+  796 062F 8C 013E            CPX    #SECB1+110       WILL NOT FIT IN THIS SECTOR
+  797 0632 26 26              BNE    WTND6            THEN
+  798                  *
+  799 0634 5F          WTND4  CLRB                    SELECT TRACK 0
+  800 0635 B6 0150            LDAA   USECT            USING THE CURRENT SECTOR
+  801 0638 CE 00D0            LDX    #SECB1           AND SECTOR BUFFER
+  802 063B BD 0487            JSR    WRTSE            WRITE THE SECTOR BUFFER TO DISK
+  803 063E 4D                 TSTA                    IF WRITE WAS NOT SUCCESSFUL
+  804 063F 27 0F              BEQ    WTND5            THEN
+  805 0641 7C 0150            INC    USECT            TAKE THE NEXT SECTOR
+  806 0644 F6 0150            LDAB   USECT            IF THIS SECTOR
+  807 0647 C4 3F              ANDB   #$3F             WITH THE UNIT ID STRIPPED
+  808 0649 C1 1B              CMPB   #27              IS THE LAST SECTOR
+  809 064B 26 E7              BNE    WTND4            THEN
+  810 064D 7E 043C            JMP    MEDER            REPORT "MEDIA ERROR" & WAIT FOR NEW COMMAND
+  811                  *
+  812                  *CURRENT SECTOR HAS NO ROOM FOR EOD, OPEN NEXT SECTOR
+  813                  *
+  814 0650 CE 00D0     WTND5  LDX    #SECB1           INITIALIZE THE SECTOR BUFFER POINTER
+  815 0653 DF CE              STX    SESP1            TO THE START OF THE SECTOR BUFFER
+  816 0655 7C 0150            INC    USECT            TAKE THE NEXT SECTOR
+  817 0658 20 0B              BRA    WTND7            AND PUT AN E.O.D. FCB THERE
+  818                  *
+  819                  *PUT AN E.O.D. FILE CONTROL BLOCK IN THE CURRENT SECTOR
+  820                  *
+  821 065A 5F          WTND6  CLRB                    DEFINE THE NUMBER OF
+  822 065B 86 0B              LDAA   #11              BYTES IN A FILE CONTROL BLOCK = 11
+  823 065D 9B CF              ADDA   SESP1+LBYT       USE THIS NUMBER TO
+  824 065F D9 CE              ADCB   SESP1            STEP OVER THE CURRENT
+  825 0661 97 CF              STAA   SESP1+LBYT       FILE CONTROL BLOCK
+  826 0663 D7 CE              STAB   SESP1            AND ACCESS THE NEXT ONE
+  827 0665 DE CE       WTND7  LDX    SESP1            LOAD SECTOR BUFFER POINTER
+  828 0667 C6 05              LDAB   #$5              CREATE A FILE NAME OF FIVE
+  829 0669 86 2A              LDAA   #'*              ASCII ASTERISK CHARACTERS
+  830                  *
+  831 066B A7 00       WTND8  STAA   0,X              STORE A CHARACTER
+  832 066D 08                 INX                     IN THE NAME FIELD
+  833 066E 5A                 DECB                    WHILE NAME FIELD
+  834 066F 26 FA              BNE    WTND8            CONTINUE
+  835                  *
+  836 0671 86 FF              LDAA   #$FF             DEFINE ATTRIBUTE CHARACTER AS
+  837 0673 A7 00              STAA   0,X              END OF DIRECTORY MARK
+  838 0675 08                 INX                     IN THE ATTRIBUTE FIELD
+  839 0676 B6 0151            LDAA   CRTRK            SET THIS FILE'S START TRACK
+  840 0679 A7 00              STAA   0,X              AS "TRACK"
+  841 067B 08                 INX                     IN THE TRACK FIELD
+  842 067C B6 0152            LDAA   CRSEC            SET THIS FILE'S START SECTOR
+  843 067F A7 00              STAA   0,X              AS "SECTOR"
+  844 0681 5F          WTND9  CLRB                    SELECT TRACK 0
+  845 0682 B6 0150            LDAA   USECT            USING THE CURRENT SECTOR
+  846 0685 84 3F              ANDA   #$3F             MASK OFF THE UNIT ID
+  847 0687 81 1B              CMPA   #27              IF SECTORS HAVE RUN OUT
+  848 0689 26 03              BNE    WTNDA            THEN
+  849 068B 7E 043C     MEDE1  JMP    MEDER            PRINT "MEDIA ERROR" & WAIT FOR NEW COMMAND
+  850                  *
+  851 068E B6 0150     WTNDA  LDAA   USECT            USING THE CURRENT SECTOR
+  852 0691 CE 00D0            LDX    #SECB1           AND THE CURRENT SECTOR BUFFER LOAD
+  853 0694 BD 0487            JSR    WRTSE            WRITE THIS SECTOR TO DISK
+  854 0697 4D                 TSTA                    IF THE WRITE WAS SUCCESFUL
+  855 0698 26 01              BNE    WTNDB            THEN
+  856 069A 39                 RTS                     RETURN TO CALLER (SUCCESS)
+  857                  *
+  858 069B 7C 0150     WTNDB  INC    USECT            TAKE THE NEXT SECTOR
+  859 069E 20 E1              BRA    WTND9            AND TRY AGAIN
+  860                  *
+  861                  *
+  862                  *
+  863                  *
+  864                  *THIS ROUTINE CLOSES ANY OPEN FILES, AND RETURNS TO
+  865                  *LOOK FOR THE NEXT USER INPUT COMMAND STRING
+  866                  *
+  867 06A0 0F          FLCLS  SEI                     RUN THE CPU NON-INTERRUPTABLE
+  868 06A1 8E 006B            LDS    #EXSTK           REINITIALIZE EDOS STACK
+  869 06A4 7D 0001            TST    OFILE            IF THERE IS NO OUTPUT FILE CURRENTLY OPEN
+  870 06A7 26 03              BNE    FLCL2            THEN
+  871 06A9 7E 016E     FLCL1  JMP    WTCMD            WAIT FOR NEW COMMAND
+  872                  *
+  873 06AC 7D 000D     FLCL2  TST    OCNTR            IF WRITE BUFFER IS NOT FULL
+  874 06AF 27 06              BEQ    FLCL3            THEN
+  875 06B1 4F                 CLRA                    USING NULL FILL CHARACTERS
+  876 06B2 BD E80C            JSR    XWRT             PAD BUFFER
+  877 06B5 20 F5              BRA    FLCL2            UNTIL FULL
+  878                  *
+  879 06B7 CE 0000     FLCL3  LDX    #0               CREATE A NULL FILE NAME
+  880 06BA DF C0              STX    FLNM0            (PREVENTING A MATCH
+  881 06BC DF C2              STX    FLNM2            THEREBY FINDING
+  882 06BE DF C3              STX    FLNM3            END OF DIRECTORY)
+  883 06C0 96 02              LDAA   OUNIT            DEFINE NULL FILE AS ON THE CURRENT UNIT
+  884 06C2 97 C5              STAA   FLNM5            (LOOK FOR EOD ON UNIT HAVING OPEN FILE)
+  885 06C4 4F                 CLRA                    DEFINE AN ATTRIBUTE OF 0
+  886 06C5 97 C6              STAA   FILAT            IN THE ATTRIBUTE LOCATION
+  887 06C7 BD 04CC            JSR    FNDFL            TURN TO LAST ENTRY IN DIRECTORY
+  888 06CA 81 FF              CMPA   #$FF             IF IT IS END OF DIRECTORY MARK
+  889 06CC 26 BD              BNE    MEDE1            THEN
+  890 06CE DE CE              LDX    SESP1            AT CURRENT SCAN POSITION IN SECTOR BUFFER
+  891 06D0 A6 09              LDAA   9,X              GET THE "FREE SPACE" VALUE FROM
+  892 06D2 E6 08              LDAB   8,X              THE CURRENT EOD RECORD
+  893 06D4 80 01              SUBA   #1               SUBTRACT ONE SECTOR
+  894 06D6 C2 00              SBCB   #0               TO BE HELD AS A SPARE
+  895 06D8 90 0A              SUBA   OSIZE+LBYT       SUBTRACT SIZE OF FILE JUST
+  896 06DA D2 09              SBCB   OSIZE            WRITTEN (FILE NOW BEING CLOSED)
+  897 06DC 97 C8              STAA   FILRQ+1          STORE SIZE OF NEW FREE SPACE
+  898 06DE D7 C7              STAB   FILRQ            (NUMBER OF SECTORS NOW AVAILABLE ON DISK)
+  899 06E0 BD 05EF            JSR    WTNDX            REWRITE THE DISK DIRECTORY
+  900 06E3 20 C4              BRA    FLCL1            RETURN TO MONITOR, WAIT FOR NEXT COMMAND
+  901                  *
+  902                  *THIS ROUTINE LOADS A USER OBJECT FILE, OR PROGRAM FROM
+  903                  *THE DISK.  IF REQUIRED, THE USER MUST START IT, USING MAID
+  904                  *
+  905 06E5 CE E815     LOAD   LDX    #PROG            LOAD VECTOR TO PROGRAM LOADER IN EDOS ROM
+  906 06E8 FF 0701            STX    LOADV            MODIFY JUMP INSTRUCTION FOR PROGRAM LOADER
+  907 06EB BD 036E     LOAD1  JSR    PRSFL            PARSE FILE NAME TO BE LOADED
+  908 06EE BD 053A            JSR    DFINF            SET UP POINTERS TO FILE
+  909 06F1 4D                 TSTA                    IF FILE DOES NOT EXIST (DEFINITION FAILED)
+  910 06F2 27 09              BEQ    LOAD2            THEN
+  911 06F4 F6 0293     NOSFL  LDAB   NOSFM            DEFINE CHARACTER COUNT AND POINTER
+  912 06F7 CE 0294            LDX    #NOSFM+1         FOR "NO SUCH FILE" MESSAGE
+  913 06FA 7E 0189            JMP    MSWTC            PRINT IT & WAIT FOR NEW COMMAND
+  914                  *
+  915 06FD 8E FF8A     LOAD2  LDS    #EXBST           SWITCH TO EXBUG STACK SPACE
+  916 0700 7E E815            JMP    PROG             PULL IN THE PROGRAM, START EXBUG
+  917      0701        LOADV  EQU    *-2              SELF-MODIFIED JUMP ADDRESS FOR LOADER FUNCTION
+  918                  *
+  919                  *PULL IN RELOCATING LOADER & START IT RUNNING (SYSTEM FUNCTION)
+  920                  *
+  921 0703 CE E824     RLOAD  LDX    #EDITR           LOAD VECTOR FOR LOAD & GO LOADER (START = 20)
+  922 0706 FF 0701            STX    LOADV            MODIFY JUMP INSTRUCTION FOR LOAD & GO
+  923 0709 CE 006C            LDX    #IBUF1           BACK UP TO GET FILENAME "RLOAD"
+  924 070C DF BC              STX    BFPT1            REDO THE COMMAND AS A FILENAME
+  925 070E 7E 06EB            JMP    LOAD1            USING PRSFL,DFINF & LOADER
+  926                  *
+  927                  *
+  928                  *THIS GROUP OF ROUTINES LIST A FILE, USING VARIOUS OUTPUT DEVICES
+  929                  *
+  930 0711 CE F018     CLIST  LDX    #PRINC           DEFINE CONSOLE O/P ROUTINE
+  931 0714 20 03              BRA    LIST1            LIST THE FILE USING IT
+  932 0716 CE EAB0     PLIST  LDX    #LPTC            DEFINE LINE PRINTER O/P ROUTINE
+  933 0719 DF 31       LIST1  STX    PRNVC+1          STORE SELECTED O/P ROUTINE ADDRESS
+  934 071B 7F 0F33            CLR    NULCT            CLEAR NULL COUNTER
+  935 071E BD 036E            JSR    PRSFL            LOAD FILE NAME AND UID TO FLNM0-5
+  936 0721 BD 053A            JSR    DFINF            FIND AND DEFINE FILE FOR READ
+  937 0724 4D                 TSTA                    IF NO FILE FOUND
+  938 0725 27 03              BEQ    LIST2            THEN
+  939 0727 7E 06F4            JMP    NOSFL            PRINT "NO SUCH FILE" & WAIT FOR NEW COMMAND
+  940 072A BD E809     LIST2  JSR    XRI              READ A 8-BIT BYTE FROM DISK
+  941 072D 25 0C              BCS    LIST4            IF NOT EOF, THEN
+  942 072F 84 7F              ANDA   #$7F             STRIP THE PARITY BIT
+  943 0731 27 0B              BEQ    LIST5            IF NOT A NULL, THEN
+  944 0733 7F 0F33            CLR    NULCT            CLEAR NULL COUNTER
+  945 0736 BD 0030     LIST3  JSR    PRNVC            OUTPUT THE CHARACTER ON THE DEFINED DEVICE
+  946 0739 20 EF              BRA    LIST2            READ THE NEXT BYTE
+  947                  *
+  948 073B 7E 016E     LIST4  JMP    WTCMD            WAIT FOR NEW COMMAND
+  949                  *
+  950 073E 7D 0F33     LIST5  TST    NULCT            IF PREVIOUS CHAR NOT NULL
+  951 0741 26 E7              BNE    LIST2            THEN
+  952 0743 7C 0F33            INC    NULCT            RECORD THIS NULL
+  953 0746 20 EE              BRA    LIST3            AND PRINT IT
+  954                  *
+  955                  *
+  956                  *THIS FUNCTION ALLOWS THE USER TO CHANGE FILE ATTRIBUTES
+  957                  *
+  958 0748 BD 036E     ATTR   JSR    PRSFL            LOAD FILE NAME & UID TO FLNM0-5
+  959 074B BD 04CC            JSR    FNDFL            FIND THE REFERENCED FILE DIRECTORY ENTRY
+  960 074E 4D                 TSTA                    IF NO SUCH FILE EXISTS
+  961 074F 27 03              BEQ    ATTR1            THEN
+  962 0751 7E 06F4            JMP    NOSFL            PRINT "NO SUCH FILE" & WAIT FOR NEW COMMAND
+  963 0754 BD 036E     ATTR1  JSR    PRSFL            LOAD NEW ATTRIBUTE TO FLNM0
+  964 0757 CE 00C0            LDX    #FLNM0           POINT X TO THE NEW ATTRIBUTE (FLNM0)
+  965 075A BD 076D            JSR    CONHX            CONVERT INPUT ATTRIBUTE STRING TO BINARY
+  966 075D DE CE              LDX    SESP1            RESTORE THE SECTOR BUFFER POINTER
+  967 075F 96 CB              LDAA   BINLO            GET THE CONVERTED NEW ATTRIBUTE
+  968 0761 81 FF              CMPA   #$FF             END-OF-DIRECTORY IS FORBIDDEN, IF ANYTHING ELSE
+  969 0763 27 05              BEQ    ATTR2            THEN
+  970 0765 A7 05              STAA   $5,X             STORE THE NEW ATTRIBUTE IN THE FCB
+  971 0767 7E 07F0            JMP    RENA4            AND REWRITE THE SECTOR TO DISK
+  972                  *
+  973 076A 7E 0183     ATTR2  JMP    ERRM             CAN'T ALLOW BLOCKING OFF THE DISK, ERROR!!!
+  974                  *
+  975                  *
+  976                  *THIS ROUTINE CONVERTS ASCII TO HEX
+  977                  *
+  978 076D 7F 00CA     CONHX  CLR    BINHI            CLEAR OUT THE BINARY SCRATCH
+  979 0770 7F 00CB            CLR    BINLO            LOCATIONS, PREPARING TO PACK IN HEX DIGITS
+  980 0773 A6 00       CONH1  LDAA   $0,X             PICK UP THE CURRENT DIGIT
+  981 0775 BD 0780            JSR    CNHXS            CONVERT & PACK A HEX DIGIT
+  982 0778 24 03              BCC    CONH2            IF HEX - BIN CONVERSION TERMINATED, THEN
+  983 077A DE CC              LDX    BFOP2            PICK UP X FROM BFOP2
+  984 077C 39                 RTS                     AND RETURN, CONVERSION COMPLETE
+  985                  *
+  986 077D 08          CONH2  INX                     ELSE POINT TO THE NEXT DIGIT
+  987 077E 20 F3              BRA    CONH1            WHILE DIGITS, CONTINUE
+  988                  *
+  989 0780 80 30       CNHXS  SUBA   #'0              IF .GE. ASCII 0
+  990 0782 25 26              BCS    CNHS2            AND
+  991 0784 8B E9              ADDA   #$E9             .LE. ASCII F
+  992 0786 25 22              BCS    CNHS2            THEN
+  993 0788 8B 06              ADDA   #$6              IF .LT. ASCII A
+  994 078A 2A 04              BPL    CNHS1            CHECK
+  995 078C 8B 07              ADDA   #$7              IF NOT ASCII : TO @
+  996 078E 25 1A              BCS    CNHS2            THEN
+  997 0790 8B 0A       CNHS1  ADDA   #$A              COMPLETE BINARY CONVERSION
+  998 0792 0C                 CLC                     (CLEAR C TO PATCH ERROR)
+  999 0793 25 15              BCS    CNHS2            (PROGRAM ERROR-BRANCH NEVER TAKEN)
+ 1000 0795 97 C9              STAA   HDIGT            SAVE THE 4-BIT HEX DIGIT
+ 1001 0797 D6 CA              LDAB   BINHI            PICK UP THE BINARY
+ 1002 0799 96 CB              LDAA   BINLO            STRING IN PROCESS
+ 1003 079B 48                 ASLA                    SHIFT IN A 0 BIT
+ 1004 079C 59                 ROLB                    4 TIMES, DOUBLE
+ 1005 079D 48                 ASLA                    PRECISION, TO
+ 1006 079E 59                 ROLB                    PREPARE A HOLE
+ 1007 079F 48                 ASLA                    FOR THE NEW HEX DIGIT
+ 1008 07A0 59                 ROLB                    THE PACK IS RIGHT JUSTIFIED
+ 1009 07A1 48                 ASLA                    IF MORE THAN 4 DIGITS ARE
+ 1010 07A2 59                 ROLB                    INPUT, THE 4 LEAST SIGNIFICANT WILL BE USED
+ 1011 07A3 9B C9              ADDA   HDIGT            PACK IN 4 BIT BINARY
+ 1012 07A5 D7 CA              STAB   BINHI            STORE PACKED BINARY (H)
+ 1013 07A7 97 CB              STAA   BINLO            STORE PACKED BINARY (L)
+ 1014 07A9 0C                 CLC                     CLEAR C SHOWING SUCCESS (PACK STILL IN PROGRESS)
+ 1015 07AA 39          CNHS2  RTS                     RETURN TO CALLER
+ 1016                  *
+ 1017                  *
+ 1018                  *THIS FUNCTION RENAMES AN EXISTING FILE.  THE ONLY EFFECT
+ 1019                  *IS TO CHANGE THE NAME FIELD IN THE SPECIFIED FILE'S FCB.
+ 1020                  *
+ 1021 07AB BD 036E     RENAM  JSR    PRSFL            PARSE OLD FILE NAME
+ 1022 07AE 96 C5              LDAA   FLNM5            AND ACCEPT THE UNIT NUMBER
+ 1023 07B0 97 C9              STAA   UNUMB            COMMIT TO THIS UNIT NUMBER
+ 1024 07B2 BD 036E            JSR    PRSFL            PARSE NEW FILE NAME
+ 1025 07B5 96 C9              LDAA   UNUMB            BUT USE OLD UNIT NUMBER
+ 1026 07B7 97 C5              STAA   FLNM5            TO FORCE CONSISTENT FILE UID
+ 1027 07B9 BD 04CC            JSR    FNDFL            LOOK TO SEE IF THIS NAME ALREADY EXISTS
+ 1028 07BC 4D                 TSTA                    IF IT DOES NOT EXIST
+ 1029 07BD 27 60              BEQ    DUPNM            THEN
+ 1030 07BF CE 006C            LDX    #IBUF1           START ACTION PASS ON COMMAND STRING
+ 1031 07C2 DF BC              STX    BFPT1            REINITIALIZE COMMAND STRING POINTER
+ 1032 07C4 BD 036E            JSR    PRSFL            STEP OVER "RENAM" COMMAND
+ 1033 07C7 BD 036E            JSR    PRSFL            PARSE THE FILE NAME TO BE CHANGED
+ 1034 07CA BD 04CC            JSR    FNDFL            FIND THE FILE TO BE CHANGED
+ 1035 07CD 4D                 TSTA                    IF IT DOES NOT EXIST
+ 1036 07CE 27 03              BEQ    RENA2            THEN
+ 1037 07D0 7E 06F4     RENA1  JMP    NOSFL            PRINT "NO SUCH FILE" & WAIT FOR NEW COMMAND
+ 1038                  *
+ 1039 07D3 BD 036E     RENA2  JSR    PRSFL            PARSE THE NEW FILE NAME
+ 1040 07D6 DE CE              LDX    SESP1            POINT TO THE FILE FCB IN SECTOR BUFFER #1
+ 1041 07D8 96 C0              LDAA   FLNM0            IF THE FIRST CHARACTER OF THE NEW NAME
+ 1042 07DA 81 20              CMPA   #SPC             IS A SPACE, THE NEW NAME IS ILLEGAL
+ 1043 07DC 27 F2              BEQ    RENA1            ELSE,
+ 1044 07DE A7 00              STAA   $0,X             STORE THE FIRST CHARACTER IN THE FCB
+ 1045 07E0 96 C1              LDAA   FLNM1            GET THE SECOND CHARACTER
+ 1046 07E2 A7 01              STAA   $1,X             STORE THE SECOND CHARACTER IN THE FCB
+ 1047 07E4 96 C2              LDAA   FLNM2            GET THE THIRD CHARACTER
+ 1048 07E6 A7 02              STAA   $2,X             STORE THE THIRD CHARACTER IN THE FCB
+ 1049 07E8 96 C3              LDAA   FLNM3            GET THE FOURTH CHARACTER
+ 1050 07EA A7 03              STAA   $3,X             STORE THE FOURTH CHARACTER IN THE FCB
+ 1051 07EC 96 C4              LDAA   FLNM4            GET THE FIFTH CHARACTER
+ 1052 07EE A7 04              STAA   $4,X             STORE THE FIFTH CHARACTER IN THE FCB
+ 1053 07F0 5F          RENA4  CLRB                    SELECT TRACK 0
+ 1054 07F1 B6 0150            LDAA   USECT            LOAD <UNIT><SECTOR> SET BY FNDFL
+ 1055 07F4 CE 00D0            LDX    #SECB1           RESET X TO POINT TO THE START OF THE SECTOR BUFFER
+ 1056 07F7 BD 0487            JSR    WRTSE            REWRITE THE SECTOR TO THE DISK DIRECTORY
+ 1057 07FA 4D                 TSTA                    IF WRITE OF SECTOR WAS SUCCESSFUL
+ 1058 07FB 26 01              BNE    RENA5            THEN
+ 1059 07FD 39                 RTS                     RETURN TO CALLER (SUCCESS)
+ 1060                  *
+ 1061 07FE 7E 043C     RENA5  JMP    MEDER            PRINT "MEDIA ERROR" & WAIT FOR NEW COMMAND
+ 1062                  *
+ 1063                  *
+ 1064                  *THIS FUNCTION CREATES A FILE DIRECTORY ENTRY OF REQUESTED
+ 1065                  *SIZE, APPENDING IT TO THE END OF EXISTING FILES.  ANY DATA
+ 1066                  *PRESENT IN THE FILE AREA REMAINS UNCHANGED, ONLY THE DIRECTORY
+ 1067                  *AREA IS ALTERED.
+ 1068                  *
+ 1069 0801 7F 00C6     CREAT  CLR    FILAT            DEFINE CREATED FILE ATTRIBUTE = 0
+ 1070 0804 BD 036E            JSR    PRSFL            PARSE FILE NAME (NEXT ITEM IS SIZE IN HEX)
+ 1071 0807 DE BC              LDX    BFPT1            POINT TO THE NEXT ITEM
+ 1072 0809 BD 076D            JSR    CONHX            AND CONVERT THE HEX TO BINARY
+ 1073 080C DE CA              LDX    BINHI            AN ATTEMPT TO CREATE A FILE OF 0 SIZE
+ 1074 080E 27 21              BEQ    FERR1            IS FORBIDDEN, ELSE
+ 1075 0810 DF C7              STX    FILRQ            DEFINE THE REQUESTED FILE SIZE
+ 1076 0812 BD 058F            JSR    CREAF            CREATE THE NEW FILE DIRECTORY ENTRY
+ 1077 0815 4D                 TSTA                    IF SUCCESSFUL IN CREATING THE NEW FILE
+ 1078 0816 26 03              BNE    ERTYP            THEN
+ 1079 0818 7E 016E            JMP    WTCMD            WAIT FOR NEW COMMAND
+ 1080                  *
+ 1081 081B 81 02       ERTYP  CMPA   #$2              IF A = 2
+ 1082 081D 26 09              BNE    NRMMS            THEN
+ 1083 081F F6 02A0     DUPNM  LDAB   DUNMM            LOAD CHARACTER COUNT
+ 1084 0822 CE 02A1            LDX    #DUNMM+1         AND POINTER FOR "DUPLICATE NAME"
+ 1085 0825 7E 0189            JMP    MSWTC            PRINT "DUPL NAME" & WAIT FOR NEW COMMAND
+ 1086                  *
+ 1087 0828 F6 02AA     NRMMS  LDAB   NORMM            LOAD CHARACTER COUNT
+ 1088 082B CE 02AB            LDX    #NORMM+1         AND POINTER FOR "NO ROOM"
+ 1089 082E 7E 0189            JMP    MSWTC            PRINT "NO ROOM" & WAIT FOR NEW COMMAND
+ 1090                  *
+ 1091 0831 7E 0183     FERR1  JMP    ERRM             PRINT "FORMAT ERROR" & WAIT FOR NEW COMMAND
+ 1092                  *
+ 1093                  *
+ 1094 0834 96 C5       INIT   LDAA   FLNM5            IT IS FORBIDDEN TO INIT UID = 0
+ 1095 0836 27 31              BEQ    FERR2            BY COMMAND INIT:0 (INITX MUST BE USED)
+ 1096 0838 20 03              BRA    INIT1            SAFEGUARD THE SYSTEM DISK
+ 1097                  *
+ 1098      083A        INITX  EQU    *                THIS ENTRY MUST BE USED TO INIT DISK 0
+ 1099                  *
+ 1100 083A 7F 00C5            CLR    FLNM5            DEFINE UID = 0 (SELECT SYSTEM DISK)
+ 1101 083D 96 C5       INIT1  LDAA   FLNM5            LOAD THE DEFINED UID
+ 1102 083F 0C                 CLC                     CLEAR THE CARRY BIT
+ 1103 0840 46                 RORA                    ROTATE THE UID INTO
+ 1104 0841 46                 RORA                    THE TOP 2 BITS
+ 1105 0842 46                 RORA                    7 BECOMES OLD 1, 6 BECOMES OLD 0
+ 1106 0843 8A 03              ORAA   #$3              START AT SECTOR 3 (PER IBM FORMAT)
+ 1107 0845 B7 0150            STAA   USECT            <UNIT><SECTOR> IS NOW DEFINED
+ 1108 0848 86 01              LDAA   #$1              DEFINE END-OF-DIRECTORY
+ 1109 084A B7 0151            STAA   CRTRK            AS TRACK #1
+ 1110 084D B7 0152            STAA   CRSEC            AND SECTOR #1
+ 1111 0850 BD 0650            JSR    WTND5            CREATE THE END OF DIRECTORY MARKER
+ 1112 0853 39                 RTS                     RETURN TO CALLER
+ 1113                  *
+ 1114                  *
+ 1115                  *THIS FUNCTION WILL HOME THE SELECTED DISK TO TRACK 0
+ 1116                  *
+ 1117 0854 96 C5       HOME   LDAA   FLNM5            TAKE THE SPECIFIED UID
+ 1118 0856 0C                 CLC                     CLEAR THE C BIT FOR SHIFTING
+ 1119 0857 46                 RORA                    SHIFT THE UID INTO
+ 1120 0858 46                 RORA                    THE TOP 2 BITS
+ 1121 0859 46                 RORA                    7 BECOMES OLD 1, 6 BECOMES OLD 0
+ 1122 085A 4C                 INCA                    SPECIFY SECTOR 1
+ 1123 085B B7 EC06            STAA   DKDOD            COMMAND DISK <UNIT><SECTOR>
+ 1124 085E 86 20              LDAA   #$20             USING COMMAND $20
+ 1125 0860 B7 EC02            STAA   DKCOD            TO THE COMMAND REGISTER
+ 1126 0863 86 0C              LDAA   #$C              DEFINE "SEEK TO TRACK 0" COMMAND
+ 1127 0865 BD EA3E            JSR    LOOP             ISSUE COMMAND TO DISK (LOOP ON BUSY)
+ 1128 0868 39                 RTS                     RETURN TO CALLER
+ 1129                  *
+ 1130 0869 7E 0183     FERR2  JMP    ERRM             PRINT "FORMAT ERROR" & WAIT FOR NEW COMMAND
+ 1131                  *
+ 1132                  *
+ 1133                  *THIS FUNCTION WILL PRINT A DIRECTORY ON THE CONSOLE DEVICE
+ 1134                  *
+ 1135 086C CE F018     CDIR   LDX    #PRINC           DEFINE CONSOLE O/P ROUTINE
+ 1136 086F 20 03              BRA    DIR1             PRINT THE DIRECTORY, USING CONSOLE
+ 1137                  *
+ 1138                  *
+ 1139                  *THIS FUNCTION WILL PRINT A DIRECTORY ON THE LINE PRINTER
+ 1140                  *
+ 1141 0871 CE EAB0     PDIR   LDX    #LPTC            DEFINE LINE PRINTER O/P ROUTINE
+ 1142 0874 DF 31       DIR1   STX    PRNVC+1          SELECT DEFINED OUTPUT DEVICE AS PRINTER
+ 1143 0876 96 C5              LDAA   FLNM5            LOAD UID SPECIFIED
+ 1144 0878 0C                 CLC                     CLEAR CARRY BIT FOR SHIFTING
+ 1145 0879 46                 RORA                    SHIFT UID TO TOP 2 BITS
+ 1146 087A 46                 RORA                    OF <UNIT><SECTOR> PACK
+ 1147 087B 46                 RORA                    7 BECOMES OLD 1, 6 BECOMES OLD 0
+ 1148 087C 8A 04              ORAA   #$4              START AT SECTOR 4, TO PRINT DIRECTORY
+ 1149 087E B7 0150            STAA   USECT            DEFINE <UNIT><SECTOR>
+ 1150 0881 BD 0935            JSR    CRLFV            DO <CR><LF> ON PRINT DEVICE
+ 1151 0884 F6 02B2            LDAB   DIRHD            DEFINE MESSAGE COUNT & POINTER
+ 1152 0887 CE 02B3            LDX    #DIRHD+1         "NAME  ATTR TRAK SCTR SIZE"
+ 1153 088A A6 00       DIR2   LDAA   $00,X            GET A MESSAGE CHARACTER
+ 1154 088C BD 0030            JSR    PRNVC            PRINT, USING SWITCHED DEVICE
+ 1155 088F 08                 INX                     TAKE THE NEXT CHARACTER
+ 1156 0890 5A                 DECB                    WHILE CHARACTERS
+ 1157 0891 26 F7              BNE    DIR2             CONTINUE
+ 1158 0893 BD 0935            JSR    CRLFV            DO <CR><LF> TWICE TO
+ 1159 0896 BD 0935            JSR    CRLFV            SPACE HEADING FROM DIRECTORY
+ 1160 0899 B6 0150     DIR3   LDAA   USECT            GET CURRENT SECTOR
+ 1161 089C 84 3F              ANDA   #$3F             MASK OFF UID
+ 1162 089E 81 1B              CMPA   #27              IF END OF DIRECTORY TRACK
+ 1163 08A0 26 06              BNE    DIR5             THEN
+ 1164 08A2 BD 0935     DIR4   JSR    CRLFV            CLOSE DIRECTORY PRINTOUT
+ 1165 08A5 7E 016E            JMP    WTCMD            WAIT FOR NEXT COMMAND
+ 1166                  *
+ 1167 08A8 B6 0150     DIR5   LDAA   USECT            LOAD CURRENT <UNIT><SECTOR>
+ 1168 08AB 5F                 CLRB                    DEFINE TRACK 0
+ 1169 08AC CE 00D0            LDX    #SECB1           POINT TO SECTOR BUFFER #1
+ 1170 08AF BD 040F            JSR    RED11            READ CURRENT SECTOR TO BUFFER
+ 1171 08B2 4D                 TSTA                    IF DISK ERROR $80
+ 1172 08B3 27 05              BEQ    DIR7             THEN
+ 1173 08B5 7C 0150            INC    USECT            TAKE THE NEXT SECTOR
+ 1174 08B8 20 DF       DIR6   BRA    DIR3             AND READ IT
+ 1175                  *
+ 1176 08BA CE 00D0     DIR7   LDX    #SECB1           POINT TO BEGINNING OF SECTOR DATA
+ 1177 08BD DF CE              STX    SESP1            SET THE SECTOR BUFFER POINTER
+ 1178 08BF DE CE       DIR8   LDX    SESP1            GET THE CURRENT SECTOR BUFFER POINTER
+ 1179 08C1 A6 05              LDAA   $5,X             IF THIS FCB ATTRIBUTE IS NOT
+ 1180 08C3 81 FF              CMPA   #$FF             "END-OF-DIRECTORY MARKER"
+ 1181 08C5 27 DB              BEQ    DIR4             THEN
+ 1182 08C7 A6 00              LDAA   $0,X             LOAD FIRST CHARACTER OF FILE NAME
+ 1183 08C9 BD 0030            JSR    PRNVC            AND PRINT IT
+ 1184 08CC A6 01              LDAA   $1,X             LOAD SECOND CHARACTER OF FILE NAME
+ 1185 08CE BD 0030            JSR    PRNVC            AND PRINT IT
+ 1186 08D1 A6 02              LDAA   $2,X             LOAD THIRD CHARACTER OF FILE NAME
+ 1187 08D3 BD 0030            JSR    PRNVC            AND PRINT IT
+ 1188 08D6 A6 03              LDAA   $3,X             LOAD FOURTH CHARACTER OF FILE NAME
+ 1189 08D8 BD 0030            JSR    PRNVC            AND PRINT IT
+ 1190 08DB A6 04              LDAA   $4,X             LOAD FIFTH CHARACTER OF FILE NAME
+ 1191 08DD BD 0030            JSR    PRNVC            AND PRINT IT
+ 1192 08E0 BD 0926            JSR    OP3SP            SPACE OVER 3 (FORMAT O/P)
+ 1193 08E3 A6 05              LDAA   $5,X             LOAD ATTRIBUTE
+ 1194 08E5 BD 03F4            JSR    PRBIN            CONVERT TO HEX & PRINT IT (TWO DIGITS)
+ 1195 08E8 BD 0926            JSR    OP3SP            SPACE OVER 3 (FORMAT O/P)
+ 1196 08EB A6 06              LDAA   $6,X             LOAD FILE STARTING TRACK ADDRESS
+ 1197 08ED BD 03F4            JSR    PRBIN            CONVERT TO HEX & PRINT IT (TWO DIGITS)
+ 1198 08F0 BD 0926            JSR    OP3SP            SPACE OVER 3 (FORMAT O/P)
+ 1199 08F3 A6 07              LDAA   $7,X             LOAD FILE STARTING SECTOR ADDRESS
+ 1200 08F5 BD 03F4            JSR    PRBIN            CONVERT TO HEX & PRINT IT (TWO DIGITS)
+ 1201 08F8 BD 0926            JSR    OP3SP            SPACE OVER 3 (FORMAT O/P)
+ 1202 08FB E6 08              LDAB   $8,X             LOAD FILE LENGTH HIGH BYTE
+ 1203 08FD A6 09              LDAA   $9,X             LOAD FILE LENGTH LOW BYTE
+ 1204 08FF 80 01              SUBA   #$1              SUBTRACT 1 SECTOR FROM
+ 1205 0901 C2 00              SBCB   #$0              FILE LENGTH
+ 1206 0903 36                 PSHA                    SAVE THE LOW BYTE
+ 1207 0904 17                 TBA                     SET UP HIGH BYTE FOR CONVERSION
+ 1208 0905 BD 03F4            JSR    PRBIN            CONVERT TO HEX & PRINT FIRST TWO DIGITS
+ 1209 0908 32                 PULA                    GET LOW BYTE BACK
+ 1210 0909 BD 03F4            JSR    PRBIN            CONVERT TO HEX & PRINT NEXT TWO DIGITS
+ 1211 090C BD 0935            JSR    CRLFV            DO <CR><LF> (END OF THIS DIRECTORY ENTRY)
+ 1212 090F 86 0B              LDAA   #11              THERE ARE 11 BYTES IN A FILE CONTROL BLOCK
+ 1213 0911 5F                 CLRB                    STEP ON TO THE NEXT FCB OR SECTOR
+ 1214 0912 9B CF              ADDA   SESP1+LBYT       ADD 11 TO CURRENT SECTOR POINTER (LOW)
+ 1215 0914 D9 CE              ADCB   SESP1            WITH CARRY AS NEEDED INTO HIGH BYTE
+ 1216 0916 97 CF              STAA   SESP1+LBYT       UPDATE NEW CURRENT SECTOR POINTER (LOW)
+ 1217 0918 D7 CE              STAB   SESP1            UPDATE NEW CURRENT SECTOR POINTER (HIGH)
+ 1218 091A DE CE              LDX    SESP1            IF THE CURRENT SECTOR POINTER
+ 1219 091C 8C 0149            CPX    #SECB1+121       HAS PASSED THE LAST FCB IN THIS SECTOR
+ 1220 091F 26 9E              BNE    DIR8             THEN
+ 1221 0921 7C 0150            INC    USECT            TAKE THE NEXT SECTOR
+ 1222 0924 20 92              BRA    DIR6             AND CONTINUE
+ 1223                  *
+ 1224                  *OUTPUT 3 SPACES TO THE PRINT DEVICE (USING THE PRINT VECTOR)
+ 1225                  *
+ 1226 0926 86 20       OP3SP  LDAA   #SPC             LOAD AN ASCII SPACE
+ 1227 0928 BD 0030            JSR    PRNVC            AND PRINT IT
+ 1228 092B 86 20              LDAA   #SPC             LOAD AN ASCII SPACE
+ 1229 092D BD 0030            JSR    PRNVC            AND PRINT IT
+ 1230 0930 86 20              LDAA   #SPC             LOAD AN ASCII SPACE
+ 1231 0932 7E 0030            JMP    PRNVC            PRINT IT & RETURN TO CALLER
+ 1232                  *
+ 1233                  *
+ 1234                  *OUTPUT <CR><LF> TO THE PRINT DEVICE (USING THE PRINT VECTOR)
+ 1235                  *
+ 1236 0935 86 0D       CRLFV  LDAA   #CR              LOAD AN ASCII <CR>
+ 1237 0937 BD 0030            JSR    PRNVC            AND PRINT IT
+ 1238 093A 86 0A              LDAA   #LF              LOAD AN ASCII <LF>
+ 1239 093C 7E 0030            JMP    PRNVC            PRINT IT & RETURN TO CALLER
+ 1240                  *
+ 1241                  *
+ 1242                  *
+ 1243                  *THIS FUNCTION PREPARES & RUNS THE RESIDENT ASSEMBLER
+ 1244                  *
+ 1245 093F BD 036E     ASM    JSR    PRSFL            PARSE THE REQUESTED ASSEMBLY OPTION NUMBER
+ 1246 0942 CE 00C0            LDX    #FLNM0           POINT TO THE PARSED NUMBER
+ 1247 0945 BD 076D            JSR    CONHX            CONVERT IT TO A BINARY INTEGER
+ 1248 0948 96 CB              LDAA   BINLO            PICK UP THE CONVERTED VALUE
+ 1249 094A 36                 PSHA                    SAVE IT ON THE STACK
+ 1250 094B 80 05              SUBA   #$5              IF IT WAS GREATER THAN 5
+ 1251 094D 2A 4E              BPL    ASM2             A FORMAT ERROR HAS OCCURED
+ 1252 094F 32                 PULA                    RECOVER THE VALUE
+ 1253 0950 36                 PSHA                    AND RESTORE THE STACK COPY
+ 1254 0951 80 02              SUBA   #$2              IF IT WAS LESS THAN 2
+ 1255 0953 2B 48              BMI    ASM2             A FORMAT ERROR HAS OCCURED
+ 1256 0955 32                 PULA                    RECOVER THE VALUE
+ 1257 0956 48                 ASLA                    DOUBLE IT (2=4, 3=6, 4=8)
+ 1258 0957 4C                 INCA                    & ADD 1 (2=5, 3=7, 4=9)
+ 1259 0958 97 00              STAA   PASS             THIS IS THE ASSEMBLER OPTION SWITCH VALUE
+ 1260 095A BD 0C40            JSR    SVIOF            PARSE & SET UP OUTPUT FILE
+ 1261 095D BD 0BD6            JSR    NONAM            PARSE INPUT FILE NAME, CONFIRM EXISTENCE
+ 1262 0960 BD 0C46            JSR    SVIPF            SAVE INPUT FILE DEFS DURING ASSEMBLER LOAD
+ 1263 0963 86 41              LDAA   #'A              BUILD UP
+ 1264 0965 B7 0987            STAA   TCHR0            AN IMAGE
+ 1265 0968 86 53              LDAA   #'S              OF "ASMB"
+ 1266 096A B7 098B            STAA   TCHR1            IN THE
+ 1267 096D 86 4D              LDAA   #'M              PROTOTYPE
+ 1268 096F B7 098F            STAA   TCHR2            LOADING
+ 1269 0972 86 42              LDAA   #'B              ROUTINE IMMEDIATE DATA
+ 1270 0974 B7 0993            STAA   TCHR3            FOR LATER USE
+ 1271 0977 96 00              LDAA   PASS             IF SELECTED ASSEMBLER OPTION
+ 1272 0979 81 07              CMPA   #$7              DOES NOT REQUIRE AN OUTPUT FILE (LISTING ONLY)
+ 1273 097B 26 03              BNE    ASM1             THEN
+ 1274 097D 7F 0001            CLR    OFILE            CLEAR THE OUTPUT FILE REQUEST FLAG
+ 1275 0980 7F 00C5     ASM1   CLR    FLNM5            SELECT SYSTEM DISK FOR PROGRAM LOAD
+ 1276 0983 CE 00C0            LDX    #FLNM0           SET POINTER TO BUILD FILENAME
+ 1277 0986 86 41              LDAA   #'A              THIS ROUTINE IS LOADED
+ 1278      0987        TCHR0  EQU    *-1
+ 1279 0988 A7 00              STAA   $0,X             WITH APPROPRIATE IMMEDIATE
+ 1280 098A 86 53              LDAA   #'S              DATA TO DEFINE
+ 1281      098B        TCHR1  EQU    *-1
+ 1282 098C A7 01              STAA   $1,X             A PROTOTYPE TEMPLATE
+ 1283 098E 86 4D              LDAA   #'M              FOR THE SYSTEM FILE (PROGRAM)
+ 1284      098F        TCHR2  EQU    *-1
+ 1285 0990 A7 02              STAA   $2,X             TO BE LOADED & RUN
+ 1286 0992 86 42              LDAA   #'B              (ASMB, RSMB, FORT - ECT)
+ 1287      0993        TCHR3  EQU    *-1
+ 1288 0994 A7 03              STAA   $3,X             BEFORE THIS ROUTINE IS USED
+ 1289 0996 86 20              LDAA   #SPC             DEFINE A <SPC> AS THE
+ 1290 0998 A7 04              STAA   $4,X             LAST TEMPLATE CHARACTER
+ 1291 099A 7E 0B95            JMP    GEPRO            PULL IN PROGRAM & RUN IT
+ 1292                  *
+ 1293 099D 7E 0183     ASM2   JMP    ERRM             PRINT "FORMAT ERROR" & WAIT FOR NEW COMMAND
+ 1294                  *
+ 1295                  *
+ 1296                  *THIS FUNCTION SETS UP AND RUNS THE FORTRAN COMPILER
+ 1297                  *
+ 1298      09A0        FORT   EQU    *
+ 1299 09A0 86 46              LDAA   #'F              BUILD UP
+ 1300 09A2 B7 0987            STAA   TCHR0            AN IMAGE
+ 1301 09A5 86 4F              LDAA   #'O              OF "FORT"
+ 1302 09A7 B7 098B            STAA   TCHR1            IN THE
+ 1303 09AA 86 52              LDAA   #'R              IMMEDIATE DATA
+ 1304 09AC B7 098F            STAA   TCHR2            LOCATIONS
+ 1305 09AF 86 54              LDAA   #'T              TO INITIALIZE THE
+ 1306 09B1 B7 0993            STAA   TCHR3            PROTOTYPE TEMPLATE LATER
+ 1307 09B4 20 14              BRA    RASM1            FILE INPUT/OUTPUT AS FOR RASM
+ 1308                  *
+ 1309                  *
+ 1310                  *THIS FUNCTION SETS UP AND RUNS THE RELOCATING ASSEMBLER
+ 1311                  *
+ 1312 09B6 86 52       RASM   LDAA   #'R              BUILD UP
+ 1313 09B8 B7 0987            STAA   TCHR0            AN IMAGE
+ 1314 09BB 86 53              LDAA   #'S              OF "RSMB"
+ 1315 09BD B7 098B            STAA   TCHR1            IN THE
+ 1316 09C0 86 4D              LDAA   #'M              IMMEDIATE DATA
+ 1317 09C2 B7 098F            STAA   TCHR2            LOCATIONS
+ 1318 09C5 86 42              LDAA   #'B              TO INITIALIZE THE
+ 1319 09C7 B7 0993            STAA   TCHR3            PROTOTYPE TEMPLATE LATER
+ 1320 09CA CE 1200     RASM1  LDX    #BGBUF           LOAD POINTER TO LARGE BUFFER AREA
+ 1321 09CD FF 0159            STX    TKBFP            SET TRACK BUFFER #1 POINTER
+ 1322 09D0 4F                 CLRA                    DEFINE VALUE "0"
+ 1323 09D1 B7 015B            STAA   AERFL            CLEAR FORMAT ERROR FLAG
+ 1324 09D4 97 01              STAA   OFILE            ASSUME NO O/P FILE, CLEAR UPDATE FLAG
+ 1325 09D6 86 4F              LDAA   #'O              DEFINE "OUTPUT" FILE FLAG
+ 1326 09D8 B7 0A79            STAA   LSFI2            SET FOR LISTING FILE OR DEVICE DETERMINATION
+ 1327 09DB B7 0AC3            STAA   LSFIB            SET FOR OUTPUT FILE CONFLICT DETERMINATION
+ 1328 09DE BD 036E            JSR    PRSFL            PARSE LISTING DEVICE & OPTIONS
+ 1329 09E1 96 C0              LDAA   FLNM0            IF THE FIRST CHARACTER
+ 1330 09E3 81 20              CMPA   #SPC             IS A SPACE (NO LISTING FILE OR DEVICE)
+ 1331 09E5 26 05              BNE    RASM2            THEN
+ 1332 09E7 BD 0AD5            JSR    ZERFL            ENTER "NULL ENTRY" IN LISTING POS'N
+ 1333 09EA 20 03              BRA    RASM3            AND SKIP LISTING FILE DEFINITION
+ 1334 09EC BD 0A61     RASM2  JSR    LSFIL            DEFINE THE LISTING FILE/DEVICE
+ 1335 09EF BD 036E     RASM3  JSR    PRSFL            PARSE OBJECT FILE NAME
+ 1336 09F2 96 C0              LDAA   FLNM0            IF FIRST CHARACTER IS
+ 1337 09F4 81 20              CMPA   #SPC             A SPACE (NO OBJECT FILE REQUIRED)
+ 1338 09F6 26 05              BNE    RASM4            THEN
+ 1339 09F8 BD 0AD5            JSR    ZERFL            ENTER "NULL ENTRY" IN OBJECT POS'N
+ 1340 09FB 20 03              BRA    RASM5            AND SKIP OBJECT FILE DEFINITION
+ 1341 09FD BD 0A61     RASM4  JSR    LSFIL            DEFINE THE OBJECT FILE
+ 1342 0A00 BD 036E     RASM5  JSR    PRSFL            PARSE SOURCE FILE NAME
+ 1343 0A03 96 C0              LDAA   FLNM0            GET FIRST CHAR OF FIRST FILE NAME
+ 1344 0A05 81 20              CMPA   #SPC             IF THERE IS AT LEAST ONE SOURCE FILE
+ 1345 0A07 27 46              BEQ    RASMA            THEN
+ 1346 0A09 86 49              LDAA   #'I              DEFINE "INPUT" FLAG VALUE
+ 1347 0A0B BD 0A5B            JSR    LSFI0            DEFINE FIRST SOURCE FILE
+ 1348 0A0E 4D                 TSTA                    IF THERE WAS AN ERROR RETURN
+ 1349 0A0F 2F 03              BLE    RASM6            THEN
+ 1350 0A11 7C 015B            INC    AERFL            SET THE FORMAT ERROR FLAG
+ 1351 0A14 BD 036E     RASM6  JSR    PRSFL            PARSE THE NEXT SOURCE FILE NAME
+ 1352 0A17 96 C0              LDAA   FLNM0            GET FIRST CHARACTER OF FILE NAME
+ 1353 0A19 81 20              CMPA   #SPC             IF FILES HAVE NOT RUN OUT
+ 1354 0A1B 27 13              BEQ    RASM8            THEN
+ 1355 0A1D BD 0A61            JSR    LSFIL            DEFINE THIS SOURCE FILE
+ 1356 0A20 4D                 TSTA                    IF THERE WAS AN ERROR RETURN
+ 1357 0A21 2F 03              BLE    RASM7            THEN
+ 1358 0A23 7C 015B            INC    AERFL            SET THE FORMAT ERROR FLAG
+ 1359 0A26 CE 127D     RASM7  LDX    #TRKBF+125       IF THE LIMIT THAT WILL GO IN A SECTOR
+ 1360 0A29 BC 0159            CPX    TKBFP            HAS NOT BEEN REACHED (25 ENTRIES MAX)
+ 1361 0A2C 27 02              BEQ    RASM8            THEN
+ 1362 0A2E 20 E4              BRA    RASM6            LOOK FOR ANOTHER SOURCE FILE
+ 1363 0A30 86 FF       RASM8  LDAA   #$FF             DEFINE A DELIMITER CHARACTER
+ 1364 0A32 FE 0159            LDX    TKBFP            USING THE BUFFER POINTER
+ 1365 0A35 A7 00              STAA   $0,X             STORE THE DELIMITER (END MARK)
+ 1366 0A37 CE 1200            LDX    #TRKBF           SET A POINTER AT THE BEGINNING OF THE BUFFER
+ 1367 0A3A 86 03              LDAA   #$3              REQUEST DISK 0, SECTOR 3 (FILE STRING SAVE SECTOR)
+ 1368 0A3C C6 00              LDAB   #$0              USING TRACK 0
+ 1369 0A3E BD 0487            JSR    WRTSE            WRITE THIS SECTOR TO DISK
+ 1370 0A41 4D                 TSTA                    IF DISK WRITE WAS SUCCESSFUL
+ 1371 0A42 26 14              BNE    RASMB            AND IF
+ 1372 0A44 7D 015B            TST    AERFL            FORMAT ERROR FLAG WAS NOT SET
+ 1373 0A47 26 03              BNE    RASM9            THEN
+ 1374 0A49 7E 0980            JMP    ASM1             PULL IN THE PROGRAM & RUN IT
+ 1375                  *
+ 1376 0A4C 7E 0183     RASM9  JMP    ERRM             PRINT "FORMAT ERROR" & WAIT FOR A NEW COMMAND
+ 1377                  *
+ 1378 0A4F F6 030A     RASMA  LDAB   NOSRM            LOAD CHARACTER COUNT AND
+ 1379 0A52 CE 030B            LDX    #NOSRM+1         POINTER TO "NO SOURCE FILE"
+ 1380 0A55 7E 0189            JMP    MSWTC            PRINT "NO SOURCE FILE" & WAIT FOR NEW COMMAND
+ 1381                  *
+ 1382 0A58 7E 043C     RASMB  JMP    MEDER            PRINT "MEDIA ERROR" & WAIT FOR NEW COMMAND
+ 1383                  *
+ 1384                  *IDENTIFY LISTING FILE OR DEVICE & SET IT UP
+ 1385                  *
+ 1386 0A5B B7 0AC3     LSFI0  STAA   LSFIB            SAVE INP/OP FLAG FOR FILE ANALYSIS
+ 1387 0A5E B7 0A79            STAA   LSFI2            SAVE INP/OP FLAG FOR CONFLICT CHECK
+ 1388                  *
+ 1389 0A61 96 C0       LSFIL  LDAA   FLNM0            IF THE FIRST CHARACTER OF THE FILENAME
+ 1390 0A63 81 23              CMPA   #'#              IS AN ASCII "#"
+ 1391 0A65 26 5B              BNE    LSFIA            THEN
+ 1392 0A67 CE 0B43            LDX    #FLABF           LOOK IN THE FILE ASSIGNMENT BUFFER
+ 1393 0A6A 96 C1       LSFI1  LDAA   FLNM1            IF THE FIRST CHAR OF THE FILE NAME
+ 1394 0A6C E6 00              LDAB   $0,X             AND THE FIRST CHAR OF THE ASSIGNMENT
+ 1395 0A6E 11                 CBA                     ARE THE SAME
+ 1396 0A6F 26 13              BNE    LSFI3            AND
+ 1397 0A71 96 C2              LDAA   FLNM2            IF THE SECOND CHAR OF THE FILE NAME
+ 1398 0A73 E6 01              LDAB   $1,X             AND THE SECOND CHAR OF THE ASSIGNMENT
+ 1399 0A75 11                 CBA                     ARE THE SAME
+ 1400 0A76 26 0C              BNE    LSFI3            AND
+ 1401 0A78 86 00              LDAA   #$0              THE SWITCH CHARACTER
+ 1402      0A79        LSFI2  EQU    *-1              WHICH WAS STORED HERE
+ 1403 0A7A E6 02              LDAB   $2,X             AND THE THIRD CHAR OF THE ASSIGNMENT
+ 1404 0A7C 11                 CBA                     ARE THE SAME
+ 1405 0A7D 27 16              BEQ    LSFI4            TRANSLATE THE FILE NAME
+ 1406 0A7F 86 20              LDAA   #SPC             IF A THIRD CHAR OF "SPACE"
+ 1407 0A81 11                 CBA                     PRODUCES A MATCH
+ 1408 0A82 27 11              BEQ    LSFI4            TRANSLATE THE FILE NAME, ELSE
+ 1409 0A84 08          LSFI3  INX                     STEP OVER AN ASSIGNMENT
+ 1410 0A85 08                 INX                     PROTOTYPE RECORD
+ 1411 0A86 08                 INX                     OF 3 CHARACTERS
+ 1412 0A87 8C 0B55            CPX    #FLABE           IF THIS WAS THE LAST RECORD
+ 1413 0A8A 26 DE              BNE    LSFI1            THEN
+ 1414 0A8C F6 0319            LDAB   DEVEM            LOAD CHARACTER COUNT AND
+ 1415 0A8F CE 031A            LDX    #DEVEM+1         POINTER TO "DEVICE ERROR"
+ 1416 0A92 7E 0189            JMP    MSWTC            PRINT "DEVICE ERROR" & WAIT FOR NEW COMMAND
+ 1417                  *
+ 1418 0A95 FE 0159     LSFI4  LDX    TKBFP            LOAD A BUFFER POINTER
+ 1419 0A98 96 C1              LDAA   FLNM1            LOAD FIRST CHAR OF DEVICE
+ 1420 0A9A A7 00              STAA   $0,X             (FIRST CHAR OF THIS ITEM WAS "#")
+ 1421 0A9C 96 C2              LDAA   FLNM2            LOAD SECOND CHAR OF DEVICE
+ 1422 0A9E A7 01              STAA   $1,X             STORE IT IN THE BUFFER
+ 1423 0AA0 96 C3              LDAA   FLNM3            LOAD "OPTION" CHARACTER
+ 1424 0AA2 C6 39              LDAB   #'9              DEFINE ASCII "9"
+ 1425 0AA4 11                 CBA                     IF LESS THAN ASCII "9" OR EQUAL
+ 1426 0AA5 2A 0F              BPL    LSFI8            AND
+ 1427 0AA7 C6 30              LDAB   #'0              DEFINE ASCII "0"
+ 1428 0AA9 11                 CBA                     GREATER THAN ASCII "0" OR EQUAL
+ 1429 0AAA 2B 0A              BMI    LSFI8            THEN
+ 1430 0AAC A7 02       LSFI5  STAA   $2,X             STORE THE OPTION IN THE BUFFER
+ 1431 0AAE 4F          LSFI6  CLRA                    DEFINE CHARACTER = 0
+ 1432 0AAF A7 03              STAA   $3,X             AS NEXT CHARACTER
+ 1433 0AB1 4A                 DECA                    DEFINE CHARACTER = $FF (EOF MARK)
+ 1434 0AB2 A7 04       LSFI7  STAA   $4,X             AS NEXT CHARACTER (FILE DELIMITER)
+ 1435 0AB4 20 03              BRA    LSFI9            STEP OVER THE CREATED RECORD
+ 1436                  *
+ 1437 0AB6 4F          LSFI8  CLRA                    DEFINE "OPTION" = 0
+ 1438 0AB7 20 F3              BRA    LSFI5            AND COMPLETE THE RECORD
+ 1439                  *
+ 1440 0AB9 08          LSFI9  INX                     STEP THE
+ 1441 0ABA 08                 INX                     BUFFER POINTER
+ 1442 0ABB 08                 INX                     OVER A COMPLETE
+ 1443 0ABC 08                 INX                     5 CHARACTER
+ 1444 0ABD 08                 INX                     O/P DEVICE/OPTION RECORD
+ 1445 0ABE FF 0159            STX    TKBFP            AND UPDATE THE BUFFER POINTER
+ 1446 0AC1 39                 RTS                     RETURN TO CALLER
+ 1447                  *
+ 1448 0AC2 86 4F       LSFIA  LDAA   #'O              LOAD I/O FILE ID SWITCH
+ 1449      0AC3        LSFIB  EQU    *-1              SWITCH VALUE SET HERE
+ 1450 0AC4 81 49              CMPA   #'I              IF NOT AN INPUT FILE
+ 1451 0AC6 27 19              BEQ    IPFIL            AND
+ 1452 0AC8 81 4F              CMPA   #'O              IF NOT AN OUTPUT FILE
+ 1453 0ACA 27 53              BEQ    OPFIL            THEN
+ 1454 0ACC F6 0326            LDAB   OFLCM            A LISTING FILE IS IN CONFLICT
+ 1455 0ACF CE 0327            LDX    #OFLCM+1         DEFINE "OFILE CONFLICT"
+ 1456 0AD2 7E 0189            JMP    MSWTC            PRINT "OFILE CONFLICT" & WAIT FOR NEW COMMAND
+ 1457                  *
+ 1458                  *DEFINE A ALL "0" ENTRY IN BUFFER, UNUSED LIST OR OBJECT FILES
+ 1459                  *
+ 1460 0AD5 4F          ZERFL  CLRA                    DEFINE VALUE OF "0"
+ 1461 0AD6 FE 0159            LDX    TKBFP            USING THE CURRENT BUFFER POINTER
+ 1462 0AD9 A7 00              STAA   $0,X             BUILD A
+ 1463 0ADB A7 01              STAA   $1,X             RECORD OF
+ 1464 0ADD A7 02              STAA   $2,X             000
+ 1465 0ADF 20 CD              BRA    LSFI6            FINISH THE RECORD & EXIT
+ 1466                  *
+ 1467                  *
+ 1468                  *DEFINE & SET UP AN INPUT FILE
+ 1469                  *
+ 1470 0AE1 BD 053A     IPFIL  JSR    DFINF            IF THE REQUESTED FILE
+ 1471 0AE4 4D                 TSTA                    DOES NOT EXIST
+ 1472 0AE5 27 21              BEQ    IPFI1            THEN
+ 1473 0AE7 C6 05              LDAB   #$5              FOR THE 5 CHARACTERS
+ 1474 0AE9 CE 00C0            LDX    #FLNM0           OF THE REQUESTED FILE NAME
+ 1475 0AEC BD 03C1            JSR    PRINS            PRINT THE FILE NAME
+ 1476 0AEF 86 3A              LDAA   #':              DEFINE ASCII COLON
+ 1477 0AF1 BD F018            JSR    PRINC            PRINT IT
+ 1478 0AF4 96 C5              LDAA   FLNM5            GET CURRENT UID
+ 1479 0AF6 8B 30              ADDA   #'0              CONVERT TO ASCII NUMBER
+ 1480 0AF8 BD F018            JSR    PRINC            PRINT IT
+ 1481 0AFB F6 02E9            LDAB   NOEXM            DEFINE CHARACTER COUNT
+ 1482 0AFE CE 02EA            LDX    #NOEXM+1         AND PONTER FOR " NON EXISTENT"
+ 1483 0B01 BD 03C1            JSR    PRINS            PRINT " NON EXISTENT"
+ 1484 0B04 BD 03CB            JSR    CRLF             PRINT <CR><LF>
+ 1485 0B07 39                 RTS                     RETURN TO CALLER
+ 1486                  *
+ 1487 0B08 FE 0159     IPFI1  LDX    APARS            LOAD POINTER TO STRING BUFFER
+ 1488 0B0B 96 06              LDAA   ITRK             GET THE START TRACK OF THE FILE
+ 1489 0B0D A7 00              STAA   $0,X             AND STORE IT IN THE BUFFER
+ 1490 0B0F 96 07              LDAA   ISCTR            GET THE DRIVE & SECTOR OF THE FILE
+ 1491 0B11 A7 01              STAA   $1,X             AND STORE IT IN THE BUFFER
+ 1492 0B13 96 04              LDAA   ISIZE            LOAD THE SIZE HIGH BYTE
+ 1493 0B15 A7 02              STAA   $2,X             AND STORE IT IN THE BUFFER
+ 1494 0B17 96 05              LDAA   ISIZE+LBYT       LOAD THE SIZE LOW BYTE
+ 1495 0B19 A7 03              STAA   $3,X             AND STORE IT IN THE BUFFER
+ 1496 0B1B 4F                 CLRA                    DELIMIT THIS RECORD WITH "0"
+ 1497 0B1C 7E 0AB2            JMP    LSFI7            COMPLETING THIS BUFFER RECORD
+ 1498                  *
+ 1499                  *
+ 1500 0B1F BD 0BF2     OPFIL  JSR    DOOF1            CREATE A PROTOTYPE FILE CONTROL BLOCK
+ 1501 0B22 BD 0C14            JSR    DEFOP            DEFINE THE OUTPUT FILE
+ 1502 0B25 FE 0159            LDX    APARS            LOAD POINTER TO STRING BUFFER
+ 1503 0B28 96 0B              LDAA   OTRK             GET THE START TRACK OF THE FILE
+ 1504 0B2A A7 00              STAA   $0,X             AND STORE IT IN THE BUFFER
+ 1505 0B2C 96 0C              LDAA   OSCTR            GET THE DRIVE & SECTOR OF THE FILE
+ 1506 0B2E A7 01              STAA   $1,X             AND STORE IT IN THE BUFFER
+ 1507 0B30 96 09              LDAA   OSIZE            LOAD THE SIZE HIGH BYTE
+ 1508 0B32 A7 02              STAA   $2,X             AND STORE IT IN THE BUFFER
+ 1509 0B34 96 0A              LDAA   OSIZE+LBYT       LOAD THE SIZE LOW BYTE
+ 1510 0B36 A7 03              STAA   $3,X             AND STORE IT IN THE BUFFER
+ 1511 0B38 86 FF              LDAA   #$FF             DEFINE FLAG VALUE = FF (DO UPDATE)
+ 1512 0B3A 97 01              STAA   OFILE            FOR FILE CLOSURE ON EDOS RETURN
+ 1513 0B3C 7C 0AC3            INC    LSFIB            SET FLAG TO SHOW O/P FILE NOW ASSIGNED
+ 1514 0B3F 4F                 CLRA                    DELIMIT THIS RECORD WITH "0"
+ 1515 0B40 7E 0AB2            JMP    LSFI7            COMPLETING THIS BUFFER RECORD
+ 1516                  *
+ 1517                  *
+ 1518 0B43             FLABF  RMB    18               INPUT COMMAND STRING FILE ASSIGNMENT BUFFER
+ 1519      0B55        FLABE  EQU    *                END OF BUFFER SPACE ALLOCATED
+ 1520                  *
+ 1521                  *
+ 1522 0B55 CE 0B81     EDIT   LDX    #NAMDF           POINT TO THE SYSTEM FILE NAME GENERATOR
+ 1523 0B58 86 45              LDAA   #'E              DEFINE AN IMAGE
+ 1524 0B5A A7 01              STAA   $1,X             OF "EDIT " TO
+ 1525 0B5C 86 44              LDAA   #'D              BE USED AS A
+ 1526 0B5E A7 05              STAA   $5,X             SEARCH TEMPLATE
+ 1527 0B60 86 49              LDAA   #'I              WHILE LOOKING FOR
+ 1528 0B62 A7 09              STAA   $9,X             THE "EDIT " SYSTEM FILE.
+ 1529 0B64 86 54              LDAA   #'T              NOTE THAT THIS SEQUENCE
+ 1530 0B66 A7 0D              STAA   $D,X             DIRECTLY LOADS THE "#"
+ 1531 0B68 86 20              LDAA   #SPC             NAME GENERATION VALUES, I.E.
+ 1532 0B6A A7 11              STAA   $11,X            IT MODIFIES THE EXECUTABLE CODE.
+ 1533                  *
+ 1534 0B6C BD 036E     FILGT  JSR    PRSFL            IF THE INPUT FILE NAME
+ 1535 0B6F 96 C0              LDAA   FLNM0            DOES NOT OVERWRITE THE FIRST SPACE
+ 1536 0B71 81 20              CMPA   #SPC             IT IS ASSUMED TO BE DEFINED "NULL"
+ 1537 0B73 27 4A              BEQ    NULFL            ELSE
+ 1538 0B75 BD 0BDF            JSR    EDINF            LOOK FOR THE REQUESTED INPUT FILE
+ 1539 0B78 BD 0C40            JSR    SVIOF            GET OUTPUT FILE & SAVE FILE DEFINITIONS
+ 1540                  *
+ 1541 0B7B 7F 00C5     NAMDO  CLR    FLNM5            FORCE THE SYSTEM FILE SEARCH TO DRIVE 0
+ 1542 0B7E CE 00C0            LDX    #FLNM0           POINT TO THE SEARCH TARGET STRING
+ 1543                  *
+ 1544                  *THIS STRING LOAD IS RUN-TIME MODIFIED, AND WILL
+ 1545                  *CONTAIN THE "#" VALUES DEFINING THE TARGET FILE
+ 1546                  *
+ 1547 0B81 86 45       NAMDF  LDAA   #'E              DEFINE FLNM0 (NOMINALLY "E")
+ 1548 0B83 A7 00              STAA   0,X              PUT IT IN THE FILE NAME
+ 1549 0B85 86 44              LDAA   #'D              DEFINE FLNM1 (NOMINALLY "D")
+ 1550 0B87 A7 01              STAA   1,X              PUT IT IN THE FILE NAME
+ 1551 0B89 86 49              LDAA   #'I              DEFINE FLNM2 (NOMINALLY "I")
+ 1552 0B8B A7 02              STAA   2,X              PUT IT IN THE FILE NAME
+ 1553 0B8D 86 54              LDAA   #'T              DEFINE FLNM3 (NOMINALLY "T")
+ 1554 0B8F A7 03              STAA   3,X              PUT IT IN THE FILE NAME
+ 1555 0B91 86 20              LDAA   #SPC             DEFINE FLNM4 (NOMINALLY <SPC>)
+ 1556 0B93 A7 04              STAA   4,X              PUT IT IN THE FILE NAME
+ 1557 0B95 BD 053A     GEPRO  JSR    DFINF            IF THE REQUESTED SYSTEM PROGRAM OBJECT FILE
+ 1558 0B98 4D                 TSTA                    IS NOT RESIDENT ON THE SYSTEM DISK
+ 1559 0B99 27 03              BEQ    GEPR1            THEN
+ 1560 0B9B 7E 06F4            JMP    NOSFL            PRINT "NO SUCH FILE" & WAIT FOR NEW COMMAND
+ 1561 0B9E B6 0156     GEPR1  LDAA   TIUNT            ELSE DEFINE THE LOAD DISK
+ 1562 0BA1 97 03              STAA   IUNIT            IN IUNIT
+ 1563 0BA3 7E E824            JMP    EDITR            LOAD AND RUN THE REQUESTED SYSTEM PROGRAM
+ 1564                  *
+ 1565                  *
+ 1566                  *THIS FUNCTION SETS UP AND RUNS BASIC
+ 1567                  *
+ 1568 0BA6 CE 0B81     BASIC  LDX    #NAMDF           POINT TO THE SYSTEM FILE NAME GENERATOR
+ 1569 0BA9 86 42              LDAA   #'B              DEFINE A IMAGE
+ 1570 0BAB A7 01              STAA   $1,X             OF "BASIC" TO
+ 1571 0BAD 86 41              LDAA   #'A              BE USED AS A
+ 1572 0BAF A7 05              STAA   $5,X             SEARCH TEMPLATE
+ 1573 0BB1 86 53              LDAA   #'S              WHILE LOOKING FOR
+ 1574 0BB3 A7 09              STAA   $9,X             THE "BASIC" SYSTEM FILE.
+ 1575 0BB5 86 49              LDAA   #'I              NOTE THAT THIS SEQUENCE
+ 1576 0BB7 A7 0D              STAA   $D,X             DIRECTLY LOADS THE "#"
+ 1577 0BB9 86 43              LDAA   #'C              NAME GENERATION VALUES, I.E.
+ 1578 0BBB A7 11              STAA   $11,X            IT MODIFIES THE EXECUTABLE CODE
+ 1579 0BBD 20 AD              BRA    FILGT            LOOK FOR I/O FILES, LOAD BASIC & GO
+ 1580                  *
+ 1581                  *
+ 1582                  *THIS ROUTINE SETS UP A DUMMY FILE, IF A FILE WAS DECLARED "NULL"
+ 1583                  *
+ 1584 0BBF CE 0001     NULFL  LDX    #$1              DEFINE A DUMMY FILE SIZE OF 1 SECTOR
+ 1585 0BC2 DF 04              STX    ISIZE            FOR THE ISIZE SETUP VALUE
+ 1586 0BC4 86 01              LDAA   #$1              DEFINE TRACK NUMBER
+ 1587 0BC6 97 06              STAA   ITRK             AS TRACK 1
+ 1588 0BC8 7F 0008            CLR    ICNTR            CLEAR THE INPUT BYTE COUNTER
+ 1589 0BCB 7F 0007            CLR    ISCTR            DEFINE INPUT <UNIT><SECTOR> AS 0
+ 1590 0BCE 7F 0003            CLR    IUNIT            ON UNIT 0
+ 1591 0BD1 BD 0C40            JSR    SVIOF            PREPARE FCB, AND SAVE I/O FILE DEFINITIONS
+ 1592 0BD4 20 A5              BRA    NAMDO            CALL IN THE REQUESTED SYSTEM PROGRAM
+ 1593                  *
+ 1594                  *THIS ROUTINE USED TO CHECK FOR A MISSING NAME
+ 1595                  *
+ 1596 0BD6 BD 036E     NONAM  JSR    PRSFL            IF NEXT NAME IN THE INPUT COMMAND STRING
+ 1597 0BD9 96 C0              LDAA   FLNM0            DOES NOT OVERWITE THE FIRST SPACE
+ 1598 0BDB 81 20              CMPA   #SPC             IT IS ASSUMED NOT TO EXIST
+ 1599 0BDD 27 07              BEQ    EDNOF            ELSE
+ 1600                  *
+ 1601 0BDF BD 053A     EDINF  JSR    DFINF            IF THE INPUT FILE IS FOUND
+ 1602 0BE2 4D                 TSTA                    AND SUCCESSFULLY DEFINED
+ 1603 0BE3 26 01              BNE    EDNOF            THEN
+ 1604 0BE5 39                 RTS                     RETURN (SUCCESS)
+ 1605                  *
+ 1606 0BE6 7E 06F4     EDNOF  JMP    NOSFL            PRINT "NO SUCH FILE" & WAIT FOR NEW COMMAND
+ 1607                  *
+ 1608 0BE9 BD 036E     DOOFL  JSR    PRSFL            PARSE OUTPUT FILE NAME
+ 1609 0BEC 96 C0              LDAA   FLNM0            IF OUTPUT FILE WAS SPECIFIED
+ 1610 0BEE 81 20              CMPA   #SPC             (VALID CHAR OVERWRITES FIRST SPACE CHAR)
+ 1611 0BF0 27 F4              BEQ    EDNOF            THEN
+ 1612                  *
+ 1613                  *
+ 1614                  *CREATE A PROTOTYPE FCB, ATTR = FF (EOD), SIZE = FREE SPACE ON DISK
+ 1615                  *
+ 1616 0BF2 CE 07B7     DOOF1  LDX    #1975            ALLOW AN ALLOCATION OF 1975 SECTORS (FULL DISK)
+ 1617 0BF5 DF 09              STX    OSIZE            IN THE OSIZE LOCATION
+ 1618 0BF7 DF C7              STX    FILRQ            AND DEFINE THE REQUESTED FILE SIZE
+ 1619 0BF9 86 FF       DOOF2  LDAA   #$FF             DEFINE END OF DIRECTORY (NEW FILE GOES ON THE END)
+ 1620 0BFB 97 C6              STAA   FILAT            WITH ATTRIBUTE = $FF
+ 1621 0BFD BD 058F            JSR    CREAF            CREATE THE FILE DIRECTORY ENTRY
+ 1622 0C00 4D                 TSTA                    IF THE FILE CAN BE CREATED
+ 1623 0C01 26 01              BNE    DOOF3            THEN
+ 1624 0C03 39                 RTS                     RETURN (SUCCESS)
+ 1625                  *
+ 1626 0C04 81 03       DOOF3  CMPA   #$3              IF ERROR WORSE THAN DISK NOT EMPTY
+ 1627 0C06 27 03              BEQ    DOOF4            THEN
+ 1628 0C08 7E 081B            JMP    ERTYP            SORT OUT & REPORT THE ERROR
+ 1629                  *
+ 1630 0C0B DF 09       DOOF4  STX    OSIZE            THIS IS THE FREE SPACE AVAILABLE
+ 1631 0C0D DF C7              STX    FILRQ            IF FREE SPACE IS = 0
+ 1632 0C0F 26 E8              BNE    DOOF2            THEN
+ 1633 0C11 7E 0828            JMP    NRMMS            PRINT "NO ROOM" & WAIT FOR NEW COMMAND
+ 1634                  *
+ 1635                  *
+ 1636 0C14 B6 0153     DEFOP  LDAA   STRAK            PICK UP START TRACK ADDRESS FOR PROTOTYPE
+ 1637 0C17 97 0B              STAA   OTRK             DEFINE OUTPUT FILE TRACK
+ 1638 0C19 96 C5              LDAA   FLNM5            PICK UP FILE NAME UID
+ 1639 0C1B 97 02              STAA   OUNIT            AND DEFINE OUTPUT UNIT NUMBER
+ 1640 0C1D 0C                 CLC                     CLEAR C FOR SHIFTING
+ 1641 0C1E 46                 RORA                    SHIFT UID INTO TOP 2 BITS
+ 1642 0C1F 46                 RORA                    OF <UNIT><SECTOR> PACK
+ 1643 0C20 46                 RORA                    BIT 7 BECOMES OLD 1, 6 BECOMES OLD 0
+ 1644 0C21 BA 0154            ORAA   STSEC            OR IN START SECTOR ADDRESS
+ 1645 0C24 97 0C              STAA   OSCTR            DEFINE OUTPUT <UNIT><SECTOR>
+ 1646 0C26 7F 000D            CLR    OCNTR            CLEAR OUTPUT BYTE COUNT
+ 1647 0C29 39                 RTS                     RETURN DEFINED OUTPUT FILE
+ 1648                  *
+ 1649                  *
+ 1650 0C2A 96 06       MOVIP  LDAA   ITRK             TAKE CURRENT DEFINED INPUT FILE TRACK ADDRESS
+ 1651 0C2C 97 0E              STAA   TITRK            AND SAVE IT (DURING PROGRAM LOAD)
+ 1652 0C2E DE 04              LDX    ISIZE            TAKE CURRENT DEFINED INPUT FILE SIZE
+ 1653 0C30 DF 0F              STX    TISZE            AND SAVE IT (DURING PROGRAM LOAD)
+ 1654 0C32 96 03              LDAA   IUNIT            TAKE THE CURRENT DEFINED UNIT ID
+ 1655 0C34 B7 0156            STAA   TIUNT            AND SAVE IT (DURING PROGRAM LOAD)
+ 1656 0C37 39                 RTS                     RETURN SAVED INPUT DEFINITIONS TO CALLER
+ 1657                  *
+ 1658 0C38 86 FF       SVIO1  LDAA   #$FF             SET FLAG VALUE = $FF (CLOSE FILE)
+ 1659 0C3A 97 01              STAA   OFILE            COMMANDING EDOS TO CLOSE FILE & UPDATE
+ 1660 0C3C 39                 RTS                     THE DIRECTORY WHEN EDOS RELOADS
+ 1661                  *
+ 1662                  *
+ 1663                  *
+ 1664 0C3D BD 0BD6            JSR    NONAM            THIS CALL IS NOT USED
+ 1665                  *
+ 1666                  *
+ 1667 0C40 BD 0BE9     SVIOF  JSR    DOOFL            PARSE COMMAND FOR OUTPUT FILE
+ 1668 0C43 BD 0C14            JSR    DEFOP            SET UP FILE DEFINITION LOCATIONS TO OUTPUT FILE
+ 1669                  *
+ 1670 0C46 BD 0C2A     SVIPF  JSR    MOVIP            SAVE INPUT FILE DEFINITIONS DURING PROGRAM LOAD
+ 1671 0C49 20 ED              BRA    SVIO1            FLAG REQUIRED OUTPUT FILE CLOSURE
+ 1672                  *
+ 1673                  *
+ 1674                  *THESE ROUTINES GENERATE DISK FILES FROM:
+ 1675                  *
+ 1676                  *CASSETTE
+ 1677                  *
+ 1678                  *HS PAPER TAPE READER
+ 1679                  *
+ 1680                  *TELETYPE READER
+ 1681                  *
+ 1682      0C4B        CTAPE  EQU    *
+ 1683      0C4B        PTAPE  EQU    *
+ 1684      0C4B        TTAPE  EQU    *
+ 1685 0C4B BD 0C40            JSR    SVIOF            VALIDATE NEW FILE NAME, & ALLOCATE
+ 1686 0C4E BD 0C96            JSR    GENDV            SWITCH TO SELECTED TERMINAL, INPUT DATA & WRITE IT TO DISK
+ 1687 0C51 7E 06A0            JMP    FLCLS            CLOSE THE NEW FILE, WAIT FOR NEXT COMMAND
+ 1688                  *
+ 1689                  *THESE ROUTINES GENERATE A COPY OF A NEW SYSTEM FROM:
+ 1690                  *
+ 1691                  *
+ 1692                  *CASSETTE
+ 1693                  *
+ 1694                  *HS PAPER TAPE READER
+ 1695                  *
+ 1696                  *TELETYPE READER
+ 1697                  *
+ 1698      0C54        PXGEN  EQU    *
+ 1699      0C54        CXGEN  EQU    *
+ 1700      0C54        TXGEN  EQU    *
+ 1701 0C54 86 01              LDAA   #1               SELECT TRACK 1
+ 1702 0C56 97 0B              STAA   OTRK             FOR THE SYSTEM AREA
+ 1703 0C58 97 0C              STAA   OSCTR            BEGIN AT SECTOR 1
+ 1704 0C5A 7F 0002            CLR    OUNIT            USE THE SYSTEM DISK
+ 1705 0C5D 7F 000D            CLR    OCNTR            CLEAR THE O/P BYTE COUNT
+ 1706 0C60 CE 0082            LDX    #SYSSZ           ALLOCATE SYSSZ SECTORS
+ 1707 0C63 DF 09              STX    OSIZE            FOR THE NEW SYSTEM AREA
+ 1708 0C65 BD 0C96            JSR    GENDV            SWITCH TO SELECTED TERMINAL, INPUT DATA & WRITE IT TO DISK
+ 1709 0C68 86 53              LDAA   #'S              DEFINE FILE BLOCK "S"
+ 1710 0C6A BD E80C            JSR    XWRT             AND WRITE IT TO DISK
+ 1711 0C6D 86 1B              LDAA   #ESC             GENERATE END OF OBJECT FILE MARK (ESC CHAR)
+ 1712 0C6F BD E80C            JSR    XWRT             AND WRITE IT TO DISK
+ 1713 0C72 86 14              LDAA   #DC4             COMMAND "PUNCH OFF" IN THE FILE TO TERMINATE DUMPS
+ 1714 0C74 BD E80C            JSR    XWRT             WRITE THE DC4 TO THE DISK
+ 1715 0C77 7D 000D     GENS1  TST    OCNTR            IF DISK DATA BUFFER IS NOT FULL (128 BYTES)
+ 1716 0C7A 27 06              BEQ    GENS2            THEN
+ 1717 0C7C 4F                 CLRA                    PAD WITH NULLS
+ 1718 0C7D BD E80C            JSR    XWRT             WRITING TO DISK
+ 1719 0C80 20 F5              BRA    GENS1            UNTIL BUFFER IS FULL
+ 1720                  *
+ 1721 0C82 86 03       GENS2  LDAA   #3               DEFINE SECTOR 3
+ 1722 0C84 B7 0150            STAA   USECT            AS THE CURRENT SECTOR
+ 1723 0C87 86 01              LDAA   #1               DEFINE SECTOR 1
+ 1724 0C89 B7 0152            STAA   CRSEC            AS THE STARTING SECTOR
+ 1725 0C8C 96 0B              LDAA   OTRK             DEFINE THE START TRACK
+ 1726 0C8E 4C                 INCA                    AS THE CURRENT TRACK +1
+ 1727 0C8F B7 0151            STAA   CRTRK            FOR USE BY WTNDX
+ 1728 0C92 BD 0650            JSR    WTND5            GENERATE THE DIRECTORY ENTRY
+ 1729 0C95 39                 RTS                     AND RETURN
+ 1730                  *
+ 1731                  *
+ 1732                  *IDENTIFY INPUT DEVICE, & READ TO DISK
+ 1733                  *UNTIL END OF MEDIA OCCURS.
+ 1734                  *
+ 1735 0C96 96 6C       GENDV  LDAA   IBUF1            GET THE FIRST CHARACTER OF COMMAND
+ 1736 0C98 81 50              CMPA   #'P              IF IT IS AN ASCII "P", THEN
+ 1737 0C9A 27 79              BEQ    GENDA            USE HS PAPER TAPE READER I/P
+ 1738 0C9C 7D FF02     GEND1  TST    SPEED            IF SPEED FLAG IS NEGATIVE
+ 1739 0C9F 2A 0C              BPL    GEND2            IT IS A TAPE CASSETTE TERMINAL
+ 1740 0CA1 86 10              LDAA   #$10             LOAD THE RDC "ATTENTION"
+ 1741 0CA3 BD F9CF            JSR    OCHAR            OUTPUT CHARACTER (NO NULLS)
+ 1742 0CA6 86 37              LDAA   #$37             LOAD "BLOCK FORWARD" MODE
+ 1743 0CA8 BD F9CF            JSR    OCHAR            OUTPUT CHARACTER (NO NULLS)
+ 1744 0CAB 20 0D              BRA    GEND3            INPUT RESULTING DATA STREAM
+ 1745                  *
+ 1746 0CAD B6 FCFD     GEND2  LDAA   SBITC            GET CONTROL TEMPLATE FOR ACIA
+ 1747 0CB0 84 55              ANDA   #$55             MASK TO REQUEST FOR READER RELAY CONTROL
+ 1748 0CB2 B7 FCF4            STAA   ACIAC            SET UP IN ACIA (RTS)
+ 1749 0CB5 86 11              LDAA   #$11             LOAD "AUTO READER ON"
+ 1750 0CB7 BD F9CF            JSR    OCHAR            OUTPUT CHARACTER (NO NULLS)
+ 1751 0CBA CE 1200     GEND3  LDX    #TRKBF           LOAD POINTER TO TRACK BUFFER AREA (END OF EDOS + MOD 2
+ 1752 0CBD DF CA       GEND4  STX    BGBFP            SAVE WRITE BUFFER POINTER
+ 1753 0CBF CE FFFF            LDX    #TIMAX           BEGIN TIMEOUT FOR EOM
+ 1754 0CC2 B6 FCF4     GEND5  LDAA   ACIAS            READ ACIA STATUS REGISTER
+ 1755 0CC5 47                 ASRA                    SHIFT "DATA AVAILABLE" FLAG TO C BIT
+ 1756 0CC6 25 09              BCS    GEND6            IF DATA IS READY, GO GET IT
+ 1757 0CC8 09                 DEX                     IF TIMEOUT HAS RUN DOWN
+ 1758 0CC9 26 F7              BNE    GEND5            THEN
+ 1759 0CCB 86 1A              LDAA   #ASUB            LOAD A "SUB" CHARACTER TO SHOW EOM
+ 1760 0CCD DE CA              LDX    BGBFP            GET CURRENT BUFFER POINTER
+ 1761 0CCF 20 10              BRA    GEND7            AND CLOSE OFF THE READ
+ 1762                  *
+ 1763 0CD1 DE CA       GEND6  LDX    BGBFP            GET CURRENT BUFFER POINTER
+ 1764 0CD3 B6 FCF5            LDAA   ACIAR            PICK UP THE DATA CHARACTER
+ 1765 0CD6 84 7F              ANDA   #$7F             STRIP OFF THE PARITY BIT
+ 1766 0CD8 81 0D              CMPA   #CR              IF IT IS AN ASCII <CR>, CYCLE THE TTY
+ 1767 0CDA 27 05              BEQ    GEND7            ELSE,
+ 1768 0CDC A7 00              STAA   0,X              STORE THE CHARACTER IN THE BUFFER
+ 1769 0CDE 08                 INX                     MOVE ON TO THE NEXT FREE BUFFER LOCATION
+ 1770 0CDF 20 DC              BRA    GEND4            AND CONTINUE READING
+ 1771                  *
+ 1772 0CE1 A7 00       GEND7  STAA   0,X              STORE THE <CR> OR <SUB>(EOM) IN THE BUFFER
+ 1773 0CE3 08                 INX                     MOVE ON TO THE NEXT FREE BUFFER LOCATION
+ 1774 0CE4 86 FF              LDAA   #$FF             GENERATE AN END-OF-LINE MARKER
+ 1775 0CE6 A7 00              STAA   0,X              IN THE BUFFER
+ 1776 0CE8 B6 FCFD            LDAA   SBITC            GET CONTROL TEMPLATE FOR ACIA
+ 1777 0CEB 84 35              ANDA   #$35             TURN OFF RELAY CONTROLLED READER
+ 1778 0CED B7 FCF4            STAA   ACIAC            BY DROPPING RTS SIGNAL
+ 1779 0CF0 86 13              LDAA   #$13             SIGNAL "READER OFF" OR CYCLE THE TTY
+ 1780 0CF2 BD F9CF            JSR    OCHAR            OUTPUT CHARACTER (NO NULLS)
+ 1781 0CF5 B6 FCF5            LDAA   ACIAR            REMOVE BAD CHARACTERS FROM ACIA INPUT BUFFER
+ 1782 0CF8 B6 FCF5            LDAA   ACIAR            DUE TO READER SHUTDOWN ON TTY
+ 1783                  *
+ 1784                  *HAVING A LOAD OF CHARACTERS IN THE BUFFER
+ 1785                  *WRITE THEM TO THE DISK, WITH READER OFF
+ 1786                  *
+ 1787 0CFB CE 1200            LDX    #TRKBF           DEFINE THE START OF THE DATA BUFFER
+ 1788 0CFE DF CA              STX    BGBFP            SET THE BUFFER POINTER TO THE START OF THE BUFFER
+ 1789 0D00 DE CA       GEND8  LDX    BGBFP            PICK UP THE CURRENT BUFFER POINTER
+ 1790 0D02 A6 00              LDAA   0,X              PICK UP A DATA CHARACTER
+ 1791 0D04 08                 INX                     MOVE ON TO THE NEXT CHARACTER
+ 1792 0D05 DF CA              STX    BGBFP            SAVE THE BUFFER POINTER
+ 1793 0D07 81 FF              CMPA   #$FF             AT END OF LINE, START THE READER AGAIN
+ 1794 0D09 27 91              BEQ    GEND1            ELSE,
+ 1795 0D0B 81 1A              CMPA   #ASUB            AT EOM OR TIMEOUT, EXIT
+ 1796 0D0D 27 05              BEQ    GEND9            ELSE,
+ 1797 0D0F BD E80C            JSR    XWRT             WRITE THE CHARACTER TO DISK
+ 1798 0D12 20 EC              BRA    GEND8            WHILE CHARACTERS IN THE BUFFER, CONTINUE
+ 1799                  *
+ 1800 0D14 39          GEND9  RTS                     RETURN TO CALLER
+ 1801                  *
+ 1802 0D15 BD EB04     GENDA  JSR    INITR            INITIALIZE HS PAPER TAPE READER
+ 1803 0D18 BD 0036     GENDB  JSR    PTAPV            GET DATA TO THE END OF TAPE
+ 1804 0D1B 25 F7              BCS    GEND9            WHILE MORE TAPE
+ 1805 0D1D BD E80C            JSR    XWRT             WRITE DATA TO DISK
+ 1806 0D20 20 F6              BRA    GENDB            CONTINUE
+ 1807                  *
+ 1808                  *
+ 1809      0D22        TDUMP  EQU    *
+ 1810      0D22        CDUMP  EQU    *
+ 1811 0D22 BD 036E            JSR    PRSFL            PARSE THE INPUT FILE NAME
+ 1812 0D25 BD 053A            JSR    DFINF            IF THE REQUESTED FILE
+ 1813 0D28 4D                 TSTA                    IS NOT FOUND
+ 1814 0D29 27 03              BEQ    DUMP1            THEN
+ 1815 0D2B 7E 06F4            JMP    NOSFL            PRINT "NO SUCH FILE" & WAIT FOR NEW COMMAND
+ 1816 0D2E 96 6C       DUMP1  LDAA   IBUF1            IF FIRST CHARACTER OF COMMAND
+ 1817 0D30 81 43              CMPA   #'C              IS NOT A "C" (CASSETTE DUMP)
+ 1818 0D32 27 2D              BEQ    CDMP1            THEN
+ 1819 0D34 BD 0DD9            JSR    NULOC            OUTPUT 100 NULLS (10" LEADER ON TAPE)
+ 1820 0D37 BD 0DD9            JSR    NULOC            OUTPUT 100 NULLS (20" LEADER ON TAPE)
+ 1821 0D3A BD E809     TDMP1  JSR    XRI              READ A BYTE FROM DISK
+ 1822 0D3D 25 09              BCS    TDMP2            IF NOT END OF FILE, AND
+ 1823 0D3F 81 0D              CMPA   #CR              IF NOT A <CR>
+ 1824 0D41 27 15              BEQ    TDMP3            THEN
+ 1825 0D43 BD 0033            JSR    PRICV            PUNCH THIS CHARACTER
+ 1826 0D46 20 F2              BRA    TDMP1            AND CONTINUE
+ 1827                  *
+ 1828 0D48 86 1A       TDMP2  LDAA   #ASUB            LOAD ASCII "SUB" (EOM MARK)
+ 1829 0D4A BD 0033            JSR    PRICV            AND PUNCH IT TO TAPE
+ 1830 0D4D 86 0D              LDAA   #CR              LOAD AN ASCII <CR>
+ 1831 0D4F BD 0033            JSR    PRICV            AND PUNCH IT TO TAPE
+ 1832 0D52 BD 0DD9            JSR    NULOC            OUTPUT 100 NULLS (10" TRAILER)
+ 1833 0D55 7E 016E            JMP    WTCMD            WAIT FOR NEW COMMAND
+ 1834                  *
+ 1835 0D58 BD 0033     TDMP3  JSR    PRICV            PUNCH THE <CR>
+ 1836 0D5B 4F                 CLRA                    DEFINE A NULL (ALLOW FOR PUNCH ON/OFF)
+ 1837 0D5C BD 0033            JSR    PRICV            AND PUNCH IT
+ 1838 0D5F 20 D9              BRA    TDMP1            CONTINUE PUNCHING
+ 1839                  *
+ 1840                  *
+ 1841 0D61 7F 0158     CDMP1  CLR    EOFFL            CLEAR END-OF-FILE FLAG FOR CASSETTE WRITE
+ 1842 0D64 8D 0E       CDMP2  BSR    DUMRD            READ A RECORD TERMINATED BY EOF OR <CR>
+ 1843 0D66 7D 0158            TST    EOFFL            IF NOT END OF FILE YET
+ 1844 0D69 26 04              BNE    CDMP3            THEN
+ 1845 0D6B 8D 2C              BSR    DUMWT            WRITE THIS RECORD TO THE CASSETTE
+ 1846 0D6D 20 F5              BRA    CDMP2            CONTINUE
+ 1847                  *
+ 1848 0D6F 8D 28       CDMP3  BSR    DUMWT            WRITE THE LAST (EOF) RECORD TO CASSETTE
+ 1849 0D71 7E 016E            JMP    WTCMD            WAIT FOR NEXT COMMAND
+ 1850                  *
+ 1851                  *
+ 1852                  *THIS SUBROUTINE READS A DISK FILE UNTIL <CR> OR EOF
+ 1853                  *
+ 1854 0D74 CE 1200     DUMRD  LDX    #TRKBF           DEFINE A POINTER TO A LARGE
+ 1855 0D77 DF CA              STX    BGBFP            BUFFER WORK AREA
+ 1856                  *
+ 1857 0D79 BD E809     DUMR1  JSR    XRI              READ A BYTE FROM DISK
+ 1858 0D7C 25 0C              BCS    DUMR2            IF NOT EOF
+ 1859 0D7E DE CA              LDX    BGBFP            USE POINTER TO
+ 1860 0D80 A7 00              STAA   $0,X             STORE CHARACTER IN BUFFER
+ 1861 0D82 08                 INX                     TAKE THE NEXT BUFFER LOCATION
+ 1862 0D83 DF CA              STX    BGBFP            AND UPDATE THE POINTER
+ 1863 0D85 81 0D              CMPA   #CR              IF THE CHARACTER WAS NOT <CR>
+ 1864 0D87 26 F0              BNE    DUMR1            CONTINUE
+ 1865 0D89 39                 RTS                     ELSE RETURN
+ 1866                  *
+ 1867 0D8A 86 1A       DUMR2  LDAA   #ASUB            LOAD AN ASCII "SUB" AS EOM MARK
+ 1868 0D8C DE CA              LDX    BGBFP            USING THE BUFFER POINTER
+ 1869 0D8E A7 00              STAA   $0,X             STORE "SUB" IN THE BUFFER
+ 1870 0D90 08                 INX                     TAKE THE NEXT BUFFER LOCATION
+ 1871 0D91 86 0D              LDAA   #CR              LOAD AN ASCII <CR>
+ 1872 0D93 A7 00              STAA   $0,X             STORE "CR" IN THE BUFFER
+ 1873 0D95 7C 0158            INC    EOFFL            SET END-OF-FILE FLAG
+ 1874 0D98 39                 RTS                     AND RETURN
+ 1875                  *
+ 1876                  *
+ 1877                  *THIS SUBROUTINE WRITES A RECORD TO CASSETTE
+ 1878                  *RETURN IS DELAYED UNTIL RECORD IS WRITTEN
+ 1879                  *
+ 1880 0D99 0D          DUMWT  SEC                     SET THE CARRY BIT TO "1"
+ 1881 0D9A 79 FF62            ROL    EXPUN            SET THE EXBUG PUNCH FLAG BIT 0
+ 1882 0D9D 86 10              LDAA   #DLE             LOAD A R.O.C. "ATTENTION" CHAR FOR CASSETTE TERMINAL
+ 1883 0D9F BD F9CF            JSR    OCHAR            SEND IT TO TERMINAL (NO NULLS)
+ 1884 0DA2 86 30              LDAA   #'0              DEFINE "PRINTER OFF" COMMAND
+ 1885 0DA4 BD F9CF            JSR    OCHAR            SEND IT TO TERMINAL (NO NULLS)
+ 1886 0DA7 86 FF              LDAA   #RUB             DEFINE A RUBOUT CHAR (TIME FILLER)
+ 1887 0DA9 BD F9CF            JSR    OCHAR            SEND IT TO TERMINAL (NO NULLS)
+ 1888 0DAC 86 12              LDAA   #DC2             DEFINE "CASSETTE WRITE" COMMAND
+ 1889 0DAE BD F9CF            JSR    OCHAR            SEND IT TO TERMINAL (NO NULLS)
+ 1890 0DB1 CE 1200            LDX    #TRKBF           SET POINTER AT BEGINNING OF BUFFER
+ 1891 0DB4 A6 00       DUMW1  LDAA   $0,X             PICK UP A CHARACTER
+ 1892 0DB6 BD F018            JSR    PRINC            WRITE IT TO THE CASSETTE TAPE
+ 1893 0DB9 A6 00              LDAA   $0,X             LOAD THE CHARACTER AGAIN
+ 1894 0DBB 08                 INX                     TAKE THE NEXT BUFFER POSITION
+ 1895 0DBC 81 0D              CMPA   #CR              IF THE CHARACTER WAS NOT <CR>, THEN
+ 1896 0DBE 26 F4              BNE    DUMW1            CONTINUE, ELSE
+ 1897                  *
+ 1898 0DC0 86 14              LDAA   #DC4             DEFINE "CASSETTE OFF" COMMAND
+ 1899 0DC2 BD F9CF            JSR    OCHAR            SEND IT TO TERMINAL (NO NULLS)
+ 1900 0DC5 86 10              LDAA   #DLE             LOAD A R.O.C. "ATTENTION" CHAR FOR CASSETTE TERMINAL
+ 1901 0DC7 BD F9CF            JSR    OCHAR            SEND IT TO TERMINAL (NO NULLS)
+ 1902 0DCA 86 39              LDAA   #'9              DEFINE "PRINTER ON" COMMAND
+ 1903 0DCC BD F9CF            JSR    OCHAR            SEND IT TO TERMINAL (NO NULLS)
+ 1904 0DCF 7F FF62            CLR    EXPUN            CLEAR THE PUNCH ON CONTROL FLAG
+ 1905                  *
+ 1906                  *NOW WAIT FOR CASSETTE TO WRITE LAST RECORD & STOP
+ 1907                  *
+ 1908 0DD2 CE 5DC0            LDX    #24000           DEFINE A COUNT OF 24000, DECIMAL
+ 1909 0DD5 09          WAIT1  DEX                     COUNT DOWN TO 0, @ 8 USEC PER COUNT
+ 1910 0DD6 26 FD              BNE    WAIT1            WHILE COUNT, CONTINUE (200 MILLISECONDS)
+ 1911 0DD8 39                 RTS                     AFTER TIMED WAIT, RETURN TO CALLER
+ 1912                  *
+ 1913                  *
+ 1914                  *
+ 1915                  *THIS ROUTINE OUTPUTS 100 DECIMAL NULLS TO THE SWITCHED PRINT DEVICE
+ 1916                  *
+ 1917 0DD9 C6 64       NULOC  LDAB   #100             DEFINE A COUNT OF
+ 1918 0DDB D7 C9              STAB   NULC1            100 NULLS TO BE O/P
+ 1919 0DDD 4F          NULO1  CLRA                    PRODUCE A NULL CHARACTER
+ 1920 0DDE BD 0033            JSR    PRICV            USING SWITCH VECTOR, PRINT IT
+ 1921 0DE1 7A 00C9            DEC    NULC1            WHILE 100 NULLS
+ 1922 0DE4 26 F7              BNE    NULO1            CONTINUE TO OUTPUT NULLS
+ 1923 0DE6 39                 RTS                     RETURN TO CALLER
+ 1924                  *
+ 1925                  *
+ 1926                  *
+ 1927                  *
+ 1928                  *DUPLICATE CONTENTS OF DISK DRIVE 0 TO DISK DRIVE 1  EACH TRACK
+ 1929                  *IS COPIED IN 3 DISK REVOLUTIONS, STORED IN 3 REVOLUTIONS AND
+ 1930                  *CHECK READ FOR CRC IN 2 REVOLUTIONS. BUFFER USED IS TRKBF
+ 1931                  *
+ 1932      0DE7        DUP    EQU    *
+ 1933 0DE7 86 01              LDAA   #$1              START ON SECTOR #1
+ 1934 0DE9 97 07              STAA   ISCTR            FOR THE INPUT FILE
+ 1935 0DEB 7F 0006            CLR    ITRK             START ON TRACK 0
+ 1936 0DEE 86 41              LDAA   #$41             SELECT UNIT 1, SECTOR 1
+ 1937 0DF0 97 0C              STAA   OSCTR            FOR THE OUTPUT FILE
+ 1938 0DF2 7F 000B            CLR    OTRK             START ON TRACK 0
+ 1939 0DF5 96 07       DUP1   LDAA   ISCTR            PICK UP INITIAL INPUT SECTOR
+ 1940 0DF7 BD EA22            JSR    XUSP             TRANSMIT PHYSICAL <UNIT><SECTOR> TO DISK
+ 1941 0DFA BD 0476            JSR    DSKRD            IF DISK IS READY, THEN
+ 1942 0DFD 96 06              LDAA   ITRK             PICK UP INITIAL INPUT TRACK
+ 1943 0DFF BD EA2B            JSR    SEEK             SEEK DISK 0 TO TRACK 0
+ 1944 0E02 CE 1200            LDX    #TRKBF           DEFINE START OF TRACK BUFFER
+ 1945 0E05 DF CA              STX    BGBFP            IN THE TRACK BUFFER POINTER
+ 1946 0E07 96 07       DUP2   LDAA   ISCTR            PICK UP CURRENT SECTOR FOR INPUT
+ 1947 0E09 BD EA22            JSR    XUSP             TRANSMIT PHYSICAL <UNIT><SECTOR> TO DISK
+ 1948 0E0C DE CA              LDX    BGBFP            PICK UP THE CURRENT TRACK BUFFER POINTER
+ 1949 0E0E BD 0E99            JSR    DUSRD            READ A SECTOR INTO THE TRACK BUFFER
+ 1950 0E11 DF CA              STX    BGBFP            SAVE THE CURRENT TRACK BUFFER POINTER
+ 1951 0E13 86 03              LDAA   #$3              INTERLEAVE SECTORS BY 3 (ALLOW PROCESSING TIME)
+ 1952 0E15 9B 07              ADDA   ISCTR            TO AVOID A 1 REVOLUTION WAIT BETWEEN SECTORS
+ 1953 0E17 97 07              STAA   ISCTR            (MAINTAIN MINIMUM DISK ACCESS DELAY TIME)
+ 1954 0E19 C6 02              LDAB   #$2              ASSUME REV 1, START REV 2 @ SECTOR 2
+ 1955 0E1B 81 1C              CMPA   #28              IF NEXT SECTOR IS 28, END OF REV 1
+ 1956 0E1D 27 12              BEQ    DUP3             THEN START REV 2
+ 1957 0E1F 5C                 INCB                    ELSE ASSUME REV 2, START REV 3 @ SECTOR 3
+ 1958 0E20 81 1D              CMPA   #29              IF NEXT SECTOR IS 29, END OF REV 2
+ 1959 0E22 27 0D              BEQ    DUP3             THEN START REV 3
+ 1960 0E24 81 1B              CMPA   #27              IF NEXT SECTOR IS 27, END OF REV 3
+ 1961 0E26 26 DF              BNE    DUP2             THEN
+ 1962 0E28 7C 0006            INC    ITRK             TAKE THE NEXT TRACK
+ 1963 0E2B 86 01              LDAA   #$1              START ON SECTOR 1
+ 1964 0E2D 97 07              STAA   ISCTR            OF THAT TRACK
+ 1965 0E2F 20 04              BRA    DUP4             WRITE THE TRACK JUST READ
+ 1966                  *
+ 1967 0E31 D7 07       DUP3   STAB   ISCTR            START REV 2 OR 3
+ 1968 0E33 20 D2              BRA    DUP2             READ THE INTERLEAVED SECTORS
+ 1969                  *
+ 1970 0E35 86 05       DUP4   LDAA   #$5              DEFINE A WRITE RETRY COUNT
+ 1971 0E37 97 C9              STAA   WRTRY            5 ATTEMPTS TO WRITE THE TRACK
+ 1972 0E39 CE 1200     DUP5   LDX    #TRKBF           START THE BUFFER POINTER
+ 1973 0E3C DF CA              STX    BGBFP            AT THE BEGINNING OF THE TRACK BUFFER
+ 1974 0E3E 96 0C              LDAA   OSCTR            PICK UP INITIAL <UNIT><SECTOR>
+ 1975 0E40 BD EA22            JSR    XUSP             TRANSMIT PHYSICAL <UNIT><SECTOR> TO DISK
+ 1976 0E43 BD 0476            JSR    DSKRD            IF DISK IS READY, THEN
+ 1977 0E46 96 0B              LDAA   OTRK             PICK UP INITIAL TRACK
+ 1978 0E48 BD EA2B            JSR    SEEK             SEEK DRIVE 1 TO TRACK 0, SECTOR 1
+ 1979 0E4B 96 0C       DUP6   LDAA   OSCTR            PICK UP CURRENT <UNIT><SECTOR>
+ 1980 0E4D BD EA22            JSR    XUSP             TRANSMIT PHYSICAL <UNIT><SECTOR> TO DISK
+ 1981 0E50 DE CA              LDX    BGBFP            PICK UP THE CURRENT TRACK BUFFER POINTER
+ 1982 0E52 BD 0EEB            JSR    DUWTS            WRITE A SECTOR TO DISK
+ 1983 0E55 DF CA              STX    BGBFP            SAVE THE CURRENT TRACK BUFFER POINTER
+ 1984 0E57 86 03              LDAA   #$3              INTERLEAVE SECTORS BY 3 (ALLOW PROCESSING TIME)
+ 1985 0E59 9B 0C              ADDA   OSCTR            TO AVOID A 1 REVOLUTION WAIT BETWEEN SECTORS
+ 1986 0E5B 97 0C              STAA   OSCTR            (MAINTAIN MINIMUM DISK ACCESS DELAY TIME)
+ 1987 0E5D C6 42              LDAB   #$42             ASSUME REV 1, START REV 2 @ SECTOR 2
+ 1988 0E5F 81 5C              CMPA   #28+$40          IF NEXT SECTOR IS 28, END OF REV 1
+ 1989 0E61 27 0F              BEQ    DUP7             THEN START REV 2
+ 1990 0E63 5C                 INCB                    ELSE ASSUME REV 2, START REV 3 @ SECTOR 3
+ 1991 0E64 81 5D              CMPA   #29+$40          IF NEXT SECTOR IS 29, END OF REV 2
+ 1992 0E66 27 0A              BEQ    DUP7             THEN START REV 3
+ 1993 0E68 81 5B              CMPA   #27+$40          IF NEXT SECTOR IS 27, END OF REV 3
+ 1994 0E6A 26 DF              BNE    DUP6             THEN
+ 1995 0E6C 86 41              LDAA   #$41             START <UNIT><SECTOR> AT
+ 1996 0E6E 97 0C              STAA   OSCTR            DRIVE 1, SECTOR 0 AGAIN
+ 1997 0E70 20 04              BRA    DUP8             CHECK CRC ON TRACK JUST WRITTEN
+ 1998                  *
+ 1999 0E72 D7 0C       DUP7   STAB   OSCTR            START REV 2 OR 3
+ 2000 0E74 20 D5              BRA    DUP6             WRITE INTERLEAVED SECTORS
+ 2001                  *
+ 2002 0E76 BD 0F08     DUP8   JSR    DUCRC            CHECK READ FOR CRC, IF FAILURE
+ 2003 0E79 27 0F              BEQ    DUP9             THEN
+ 2004 0E7B 86 41              LDAA   #$41             START <UNIT><SECTOR> AT
+ 2005 0E7D 97 0C              STAA   OSCTR            DRIVE 1, SECTOR 0 AGAIN
+ 2006 0E7F BD EA38            JSR    RFLAG            RESET ERROR FLAG ON DISK I/F
+ 2007 0E82 7A 00C9            DEC    WRTRY            DECREMENT WRITE RETRY COUNTER, IF TRIES RUN OUT
+ 2008 0E85 26 B2              BNE    DUP5             THEN (ELSE TRY TO WRITE THE TRACK AGAIN)
+ 2009 0E87 7E 043C            JMP    MEDER            PRINT "MEDIA ERROR" & WAIT FOR NEW COMMAND
+ 2010                  *
+ 2011 0E8A 7C 000B     DUP9   INC    OTRK             TAKE THE NEXT TRACK
+ 2012 0E8D 96 0B              LDAA   OTRK             IF THE NEXT TRACK
+ 2013 0E8F 81 4D              CMPA   #77              IS (LAST TRACK)+1
+ 2014 0E91 26 03              BNE    DUPA             THEN
+ 2015 0E93 7E 016E            JMP    WTCMD            WAIT FOR NEXT COMMAND
+ 2016                  *
+ 2017 0E96 7E 0DF5     DUPA   JMP    DUP1             ELSE START ON THE NEXT TRACK
+ 2018                  *
+ 2019                  *
+ 2020                  *READ A DISK SECTOR TO TRACK INPUT BUFFER,  IF A READ ERROR
+ 2021                  *PERSISTS, USE THE DATA READ ON THE FIFTH TRY
+ 2022                  *
+ 2023 0E99 86 05       DUSRD  LDAA   #$5              DEFINE A RETRY COUNT OF
+ 2024 0E9B B7 0155            STAA   TRYCT            5 TRIES TO READ DATA WITH ERRORS
+ 2025 0E9E 86 02       DUSR1  LDAA   #$2              DEFINE DISK READ COMMAND
+ 2026 0EA0 BD EA3E            JSR    LOOP             ISSUE COMMAND TO DISK (LOOP ON BUSY)
+ 2027 0EA3 B6 EC00            LDAA   DKDID            READ DISK STATUS
+ 2028 0EA6 84 08              ANDA   #$8              IF CRC ERROR
+ 2029 0EA8 27 08              BEQ    DUSR2            THEN
+ 2030 0EAA BD EA38            JSR    RFLAG            RESET ERROR FLAG ON DISK I/F
+ 2031 0EAD 7A 0155            DEC    TRYCT            RECORD FAILED READ TRY, WHILE COUNT
+ 2032 0EB0 26 EC              BNE    DUSR1            TRY AGAIN, ELSE
+ 2033 0EB2 86 04       DUSR2  LDAA   #$4              DEFINE WRITE DATA COMMAND
+ 2034 0EB4 A7 00              STAA   $0,X             ASSUME USABLE SECTOR (NOT "DD" MARK)
+ 2035 0EB6 B6 EC00            LDAA   DKDID            IF THIS SECTOR READ AS "DD"
+ 2036 0EB9 84 80              ANDA   #$80             INDICATED ON "DD" STATUS BIT
+ 2037 0EBB 27 04              BEQ    DUSR3            THEN
+ 2038 0EBD 86 0E              LDAA   #$E              DEFINE WRITE "DD" COMMAND
+ 2039 0EBF A7 00              STAA   $0,X             PASS COMMAND TO WRITE ROUTINE
+ 2040 0EC1 08          DUSR3  INX                     STEP OVER THE SECTOR COMMAND BYTE IN THE BUFFER
+ 2041 0EC2 86 80              LDAA   #128             DEFINE BYTE COUNT FOR A SECTOR = 128
+ 2042 0EC4 B7 0155            STAA   BYTCT            INITIALIZE READ DATA BYTE COUNTER
+ 2043 0EC7 C6 40              LDAB   #$40             DEFINE READ DATA COMMAND
+ 2044 0EC9 86 3C       DUSR4  LDAA   #$3C             DEFINE COMMAND CONTROL
+ 2045 0ECB B7 EC03            STAA   DKCOC            ISSUE COMMAND CONTROL
+ 2046 0ECE F7 EC02            STAB   DKCOD            ISSUE COMMAND DEFINED IN B REG (READ DATA)
+ 2047 0ED1 B6 EC00            LDAA   DKDID            LOAD DATA READ FROM DISK BUFFER
+ 2048 0ED4 A7 00              STAA   $0,X             STORE DATA IN TRKBF
+ 2049 0ED6 08                 INX                     TAKE THE NEXT LOCATION IN TRKBF
+ 2050 0ED7 86 2C              LDAA   #$2C             DEFINE RESET DRIVE COMMAND
+ 2051 0ED9 B7 EC03            STAA   DKCOC            ISSUE RESET DRIVE
+ 2052 0EDC F7 EC02            STAB   DKCOD            ISSUE COMMAND DEFINED IN B REG (READ DATA)
+ 2053 0EDF 7F EC02            CLR    DKCOD            CLEAR THE COMMAND REGISTER
+ 2054 0EE2 7A 0155            DEC    BYTCT            COUNT OFF THIS BYTE, WHILE 128 BYTES
+ 2055 0EE5 26 E2              BNE    DUSR4            CONTINUE
+ 2056 0EE7 BD EA38            JSR    RFLAG            RESET ERROR FLAG ON DISK I/F
+ 2057 0EEA 39                 RTS                     RETURN TO CALLER
+ 2058                  *
+ 2059                  *
+ 2060                  *WRITE A SECTOR TO DISK, USING DATA FROM THE CURRENT SECTOR
+ 2061                  *
+ 2062 0EEB A6 00       DUWTS  LDAA   $0,X             PICK UP SECTOR WRITE CONTROL BYTE
+ 2063 0EED 36                 PSHA                    SAVE IT TO USE AS A WRITE COMMAND AFTER BUFFER LOAD
+ 2064 0EEE 08                 INX                     STEP OVER THE SECTOR WRITE CONTROL BYTE
+ 2065 0EEF 86 80              LDAA   #128             DEFINE 128 BYTES IN A SECTOR
+ 2066 0EF1 B7 0155            STAA   BYTCT            FOR A WRITE BYTE COUNTER
+ 2067 0EF4 C6 30              LDAB   #$30             DEFINE A WRITE DISK COMMAND
+ 2068 0EF6 A6 00       DUWT1  LDAA   $0,X             PICK UP CURRENT DATA BYTE FROM BUFFER
+ 2069 0EF8 B7 EC06            STAA   DKDOD            OUTPUT IT TO THE DISK
+ 2070 0EFB F7 EC02            STAB   DKCOD            STROBE THE DATA IN TO THE DISK BUFFER
+ 2071 0EFE 08                 INX                     TAKE THE NEXT DATA BYTE
+ 2072 0EFF 7A 0155            DEC    BYTCT            WHILE 128 BYTES
+ 2073 0F02 26 F2              BNE    DUWT1            CONTINUE
+ 2074 0F04 32                 PULA                    GET SECTOR WRITE CONTROL BYTE
+ 2075 0F05 7E EA3E            JMP    LOOP             ISSUE COMMAND TO DISK (LOOP ON BUSY)
+ 2076                  *AND RETURN TO CALLER
+ 2077                         SPC    3
+ 2078                  *READ A TRACK & CHECK FOR CRC ERRORS
+ 2079                  *
+ 2080 0F08 96 0C       DUCRC  LDAA   OSCTR            PICK UP CURRENT SECTOR
+ 2081 0F0A BD EA22            JSR    XUSP             TRANSMIT PHYSICAL <UNIT><SECTOR> TO DISK
+ 2082 0F0D 86 06              LDAA   #$6              DEFINE READ DISK FOR CRC COMMAND
+ 2083 0F0F BD EA3E            JSR    LOOP             ISSUE COMMAND TO DISK (LOOP ON BUSY)
+ 2084 0F12 B6 EC00            LDAA   DKDID            READ DISK STATUS
+ 2085 0F15 84 08              ANDA   #$8              IF CRC ERROR NOT ON
+ 2086 0F17 26 19              BNE    DUCR2            THEN (FAILURE EXIT, Z = 0)
+ 2087 0F19 86 02              LDAA   #$2              INTERLEAVE SECTORS BY TWO DURING
+ 2088 0F1B 9B 0C              ADDA   OSCTR            CRC READ PASS (LESS CPU TIME)
+ 2089 0F1D 97 0C              STAA   OSCTR            DEFINE NEXT SECTOR
+ 2090 0F1F 81 5B              CMPA   #27+$40          IF END OR PAST PASS 1
+ 2091 0F21 2B E5              BMI    DUCRC            THEN
+ 2092 0F23 81 5C              CMPA   #28+$40          IF NOT END OF PASS 2
+ 2093 0F25 27 06              BEQ    DUCR1            THEN
+ 2094 0F27 86 42              LDAA   #$42             DEFINE SECTOR 2 ON UNIT 1
+ 2095 0F29 97 0C              STAA   OSCTR            FOR PASS 2
+ 2096 0F2B 20 DB              BRA    DUCRC            BEGIN PASS 2 (READ INTERLEAVED SECTORS)
+ 2097                  *
+ 2098 0F2D 86 41       DUCR1  LDAA   #$41             DEFINE SECTOR 1 ON UNIT 1
+ 2099 0F2F 97 0C              STAA   OSCTR            FOR NEXT FUNCTION
+ 2100 0F31 4F                 CLRA                    SET Z = 1 (SUCCESS EXIT)
+ 2101 0F32 39          DUCR2  RTS                     RETURN TO CALLER
+ 2102                  *
+ 2103                  *
+ 2104                  *
+ 2105 0F33             NULCT  RMB    1
+ 2106                  *
+ 2107                  *
+ 2108                  *THIS FUNCTION IS A GENERAL FILE DUPLICATE OR MERGE FACILITY
+ 2109                  *
+ 2110      0F34        MERGE  EQU    *
+ 2111 0F34 BD 0C40            JSR    SVIOF            CREATE A NAMED FCB, ATTR = FF, SIZE = FREE SPACE
+ 2112 0F37 BD 036E     MERG1  JSR    PRSFL            PARSE THE NEXT FILE NAME & UNIT I/D
+ 2113 0F3A 96 C0              LDAA   FLNM0            IF THE FILE IS DEFINED
+ 2114 0F3C 81 20              CMPA   #SPC             (FIRST SPACE IS OVERWRITTEN)
+ 2115 0F3E 27 0E              BEQ    MERG3            THEN
+ 2116 0F40 BD 053A            JSR    DFINF            LOOK FOR THIS FILE
+ 2117 0F43 4D                 TSTA                    IF IT DOES NOT EXIST
+ 2118 0F44 27 03              BEQ    MERG2            THEN
+ 2119 0F46 7E 06F4            JMP    NOSFL            PRINT "NO SUCH FILE" & WAIT FOR NEW COMMAND
+ 2120                  *
+ 2121 0F49 BD 0F51     MERG2  JSR    MOVFL            MOVE SOURCE FILE TO DESTINATION FILE
+ 2122 0F4C 20 E9              BRA    MERG1            LOOK FOR MORE SOURCE FILES
+ 2123                  *
+ 2124 0F4E 7E 06A0     MERG3  JMP    FLCLS            CLOSE THE OUPUT FILE & WAIT FOR THE NEXT COMMAND
+ 2125                  *
+ 2126                  *
+ 2127                  *MOVE AN INPUT FILE TO A OUTPUT FILE, VIA A LARGE BUFFER AREA
+ 2128                  *
+ 2129 0F51 7F 0158     MOVFL  CLR    EOFFL            CLEAR "END OF FILE" FLAG
+ 2130 0F54 CE 1200     MOVF1  LDX    #BGBUF           SET THE POINTER AT THE START
+ 2131 0F57 DF CA       MOVF2  STX    BGBFP            OF THE LARGE BUFFER AREA
+ 2132 0F59 BD E809            JSR    XRI              GET AN INPUT BYTE FROM THE DISK
+ 2133 0F5C 25 23              BCS    MOVF5            IF NOT EOF, THEN
+ 2134 0F5E DE CA              LDX    BGBFP            LOAD THE CURRENT BUFFER POINTER
+ 2135 0F60 A7 00              STAA   $0,X             STORE THE DATA IN THE BUFFER AREA
+ 2136 0F62 08                 INX                     TAKE THE NEXT BUFFER LOCATION
+ 2137 0F63 8C 1EFE            CPX    #BGBFE           IF END OF THE BUFFER
+ 2138 0F66 26 EF              BNE    MOVF2            THEN
+ 2139                  *
+ 2140 0F68 DF CA              STX    BGBFP            SAVE THE POINTER AS A LIMIT
+ 2141 0F6A CE 1200     MOVF3  LDX    #BGBUF           START AT THE BEGINNING OF THE BUFFER
+ 2142 0F6D DF CC       MOVF4  STX    BFOP2            USING AN OUTPUT POINTER LOCATION
+ 2143 0F6F A6 00              LDAA   $0,X             GET THE CURRENT DATA BYTE
+ 2144 0F71 BD E80C            JSR    XWRT             WRITE THE DATA TO DISK
+ 2145 0F74 DE CC              LDX    BFOP2            LOAD THE OUTPUT POINTER
+ 2146 0F76 08                 INX                     TAKE THE NEXT BUFFER LOCATION
+ 2147 0F77 9C CA              CPX    BGBFP            IF REACHED PREVIOUS END POINT
+ 2148 0F79 26 F2              BNE    MOVF4            THEN
+ 2149 0F7B 7D 0158            TST    EOFFL            IF THE END OF FILE HAS BEEN REACHED
+ 2150 0F7E 27 D4              BEQ    MOVF1            THEN
+ 2151 0F80 39                 RTS                     FILE IS MOVED, RETURN TO CALLER
+ 2152                  *
+ 2153 0F81 7C 0158     MOVF5  INC    EOFFL            RECORD END OF FILE FOUND
+ 2154 0F84 20 E4              BRA    MOVF3            START WRITING IT
+ 2155                         PAGE
+ 2156                  *
+ 2157                  *
+ 2158                  *LOCAL VARIABLE STORAGE FOR THE PURGE FUNCTION
+ 2159                  *
+ 2160 0F86             PUUID  RMB    1                SAVE LOCATION FOR DISK UNIT I/D BEING PURGED
+ 2161 0F87             PUFCP  RMB    2                FILE CONTROL BLOCK STRING POINTER (FILE BEING PURGED)
+ 2162 0F89             PUSEC  RMB    1                CURRENT SECTOR BEING PURGED <UNIT><SECTOR>
+ 2163 0F8A             PUFMP  RMB    2                FILE CONTROL BLOCK STRING POINTER (FILE BEING MOVED)
+ 2164 0F8C             PUSEM  RMB    1                CURRENT SECTOR BEING MOVED <UNIT><SECTOR>
+ 2165                  *
+ 2166                  *
+ 2167                  *USER PROMPT MESSAGE STRINGS FOR THE PURGE FUNCTION
+ 2168                  *
+ 2169 0F8D 0A          PERMM  FCB    $0A
+ 2170 0F8E 20 50 45 52        FCC    / PERMANENT/
+    + 0F92 4D 41 4E 45
+    + 0F96 4E 54
+ 2171 0F98 07          PURGM  FCB    $07
+ 2172 0F99 20 50 55 52        FCC    / PURGED/
+    + 0F9D 47 45 44
+ 2173 0FA0 0C          PKDSM  FCB    $0C
+ 2174 0FA1 50 41 43 4B        FCC    /PACKING DISK/
+    + 0FA5 49 4E 47 20
+    + 0FA9 44 49 53 4B
+ 2175                         PAGE                    THIS PROGRAM WAS COMMENTED BY THE AUSTRALIAN 6800 USER'S GROUP
+ 2176                  *
+ 2177                  *THIS FUNCTION PURGES UNWANTED FILES FROM THE DISK, AND
+ 2178                  *PACKS THE REMAINING FILES, RECLAIMING THE SPACE
+ 2179                  *
+ 2180                  *PURGE IS DONE IN TWO PASSES
+ 2181                  *
+ 2182                  *                     PASS 1
+ 2183                  *TEST VALIDITY OF INPUT FILE STRING, WRITE DELETED FILE
+ 2184                  *MARKERS IN DIRECTORY FCB OF FILES TO BE PURGED.
+ 2185                  *
+ 2186                  *                     PASS 2
+ 2187                  *SEARCH FOR DELETED FILE MARK (ATTRIBUTE = 80).  ON FINDING
+ 2188                  *THE FIRST DELETED FILE MARK, SCAN FORWARD UNTIL A NON-
+ 2189                  *DELETED FILE IS FOUND. THIS FILE IS THEN MOVED INTO THE
+ 2190                  *AREA TO BE PURGED.  THIS PROCESS THEN CONTINUES TO THE END
+ 2191                  *OF THE DIRECTORY. EACH TIME A FILE IS MOVED, THE DIRECTORY
+ 2192                  *IS UPDATED.
+ 2193                  *
+ 2194                  *                    ERRORS
+ 2195                  *SEVERAL ERRORS MAY OCCUR DURING THE PURGE PROCESS, SOME OF
+ 2196                  *WHICH ARE FATAL TO ALL FILES FOLLOWING THE ERROR.  SOME
+ 2197                  *POSSIBLE ERRORS MAY CAUSE DIRECTORY FAULTS.  PURGE SHOULD
+ 2198                  *NOT BE USED ON A DISK THAT HAS NO BACKUP COPY.
+ 2199                  *
+ 2200      0FAD        PURGE  EQU    *
+ 2201 0FAD 96 C5              LDAA   FLNM5            GET THE UNIT I/D TO BE PURGED
+ 2202 0FAF B7 0F86            STAA   PUUID            AND DEFINE THE PURGE UID
+ 2203 0FB2 BD 036E     PURG1  JSR    PRSFL            PARSE THE NEXT FILE NAME
+ 2204 0FB5 96 C0              LDAA   FLNM0            GET THE FIRST CHARACTER
+ 2205 0FB7 81 20              CMPA   #SPC             IF IT IS A SPACE
+ 2206 0FB9 26 03              BNE    PURG2            THEN
+ 2207 0FBB 7E 105E            JMP    PKDSK            FILE INPUT IS COMPLETE
+ 2208                  *
+ 2209 0FBE B6 0F86     PURG2  LDAA   PUUID            PICK UP THE PURGE UID
+ 2210 0FC1 97 C5              STAA   FLNM5            AND DEFINE THIS FILE TO RESIDE ON PURGE UID DRIVE
+ 2211 0FC3 BD 053A            JSR    DFINF            DEFINE THE INPUT FILE
+ 2212 0FC6 4D                 TSTA                    IF SUCCESSFUL
+ 2213 0FC7 26 E9              BNE    PURG1            THEN
+ 2214 0FC9 A6 05              LDAA   $5,X             GET THE ATTRIBUTE ENTRY
+ 2215 0FCB 81 01              CMPA   #$1              IF THE ATTRIBUTE IS NOT "PERMANENT" (01)
+ 2216 0FCD 26 16              BNE    PURG3            THEN
+ 2217                  *
+ 2218 0FCF CE 00C0            LDX    #FLNM0           SET A POINTER TO THE FILE NAME
+ 2219 0FD2 C6 05              LDAB   #$5              WITH A CHARACTER COUNT OF 5
+ 2220 0FD4 BD 03C1            JSR    PRINS            PRINT OUT THE FILE NAME
+ 2221 0FD7 CE 0F8E            LDX    #PERMM+1         POINT TO MESSAGE STRING & SET CHAR
+ 2222 0FDA F6 0F8D            LDAB   PERMM            COUNT FOR PERMANENT MESSAGE
+ 2223 0FDD BD 03C1            JSR    PRINS            PRINT " PERMANENT"
+ 2224 0FE0 BD 03CB            JSR    CRLF             PRINT <CR><LF> FOR NEW LINE ON PRINTER
+ 2225 0FE3 20 CD              BRA    PURG1            CONTINUE WITH NEXT FILE
+ 2226                  *
+ 2227 0FE5 86 80       PURG3  LDAA   #$80             DEFINE A "DELETED FILE" MARK
+ 2228 0FE7 A7 05              STAA   $5,X             SET FILE ATTRIBUTE "DELETED" IN FCB
+ 2229 0FE9 B6 0150            LDAA   USECT            PICK UP THE DIRECTORY <UNIT><SECTOR>
+ 2230 0FEC 5F                 CLRB                    SELECT TRACK 0 FOR DIRECTORY
+ 2231 0FED CE 00D0            LDX    #SECB1           SET A POINTER TO THE SECTOR BUFFER
+ 2232 0FF0 BD 0487            JSR    WRTSE            WRITE THIS SECTOR TO DISK
+ 2233 0FF3 4D                 TSTA                    IF DIRECTORY SECTOR WRITE FAILURE
+ 2234 0FF4 27 03              BEQ    PURG4            THEN
+ 2235 0FF6 7E 043C            JMP    MEDER            PRINT "MEDIA ERROR" & WAIT FOR NEW COMMAND
+ 2236                  *
+ 2237 0FF9 CE 00C0     PURG4  LDX    #FLNM0           SET A POINTER TO THE FILE NAME
+ 2238 0FFC C6 05              LDAB   #$5              WITH A CHARACTER COUNT OF 5
+ 2239 0FFE BD 03C1            JSR    PRINS            PRINT OUT THE FILE NAME
+ 2240 1001 CE 0F99            LDX    #PURGM+1         POINT TO MESSAGE STRING & SET CHAR
+ 2241 1004 F6 0F98            LDAB   PURGM            COUNT FOR PURGED MESSAGE
+ 2242 1007 BD 03C1            JSR    PRINS            PRINT " PURGED"
+ 2243 100A BD 03CB            JSR    CRLF             PRINT <CR><LF> FOR NEW LINE ON PRINTER
+ 2244 100D 20 A3              BRA    PURG1            CONTINUE WITH NEXT FILE
+ 2245                  *
+ 2246                  *
+ 2247 100F 0C          DIRSE  CLC                     CLEAR "C" BIT FOR SHIFTING
+ 2248 1010 B6 0F86            LDAA   PUUID            PICK UP PURGE UNIT I/D
+ 2249 1013 46                 RORA                    SHIFT UID BITS INTO BITS 6 &7
+ 2250 1014 46                 RORA                    ROTATING THEM THROUGH THE C BIT
+ 2251 1015 46                 RORA                    BIT 7 BECOMES OLD 1, BIT 6 BECOMES OLD 0
+ 2252 1016 8A 04              ORAA   #$4              THE DIRECTORY STARTS AT SECTOR 4
+ 2253 1018 B7 0F8C            STAA   PUSEM            DEFINE THE PURGE DIRECTORY <UNIT><SECTOR>
+ 2254                  *
+ 2255 101B CE 00D0     DIRS1  LDX    #SECB1           LOAD POINTER FOR SECTOR BUFFER
+ 2256 101E FF 0F8A            STX    PUFMP            INITIALIZE THE SECTOR SCAN
+ 2257                  *
+ 2258 1021 B6 0F8C     DIRS2  LDAA   PUSEM            GET CURRENT <UNIT><SECTOR>
+ 2259 1024 84 3F              ANDA   #$3F             MASK TO SECTOR ONLY (STRIP OFF UID)
+ 2260 1026 81 1B              CMPA   #27              IF THIS IS THE END OF TRACK (26 SECTORS/TRACK)
+ 2261 1028 26 03              BNE    DIRS3            THEN
+ 2262 102A 86 FF              LDAA   #$FF             FLAG END OF DIRECTORY
+ 2263 102C 39                 RTS                     AND RETURN TO CALLER
+ 2264                  *
+ 2265 102D CE 00D0     DIRS3  LDX    #SECB1           START AT THE BEGINNING OF THE SECTOR BUFFER
+ 2266 1030 B6 0F8C            LDAA   PUSEM            GET CURRENT <UNIT><SECTOR>
+ 2267 1033 5F                 CLRB                    SELECT TRACK 0 FOR THE DIRECTORY
+ 2268 1034 BD 040F            JSR    RED11            READ IN THE DIRECTORY SECTOR
+ 2269 1037 4D                 TSTA                    IF A "DD" MARK WAS FOUND IN THIS SECTOR
+ 2270 1038 27 05              BEQ    DIRS5            THEN
+ 2271 103A 7C 0F8C     DIRS4  INC    PUSEM            TAKE THE NEXT SECTOR
+ 2272 103D 20 DC              BRA    DIRS1            AND TRY IT
+ 2273                  *
+ 2274 103F FE 0F8A     DIRS5  LDX    PUFMP            USE THE CURRENT SECTOR POINTER
+ 2275 1042 A6 05              LDAA   $5,X             READ THE ATTRIBUTE VALUE FROM THE CURRENT FCB
+ 2276 1044 39                 RTS                     AND RETURN TO CALLER
+ 2277                  *
+ 2278                  *
+ 2279                  *ADVANCE BUFFER POINTER BY 11 TO NEXT FCB.
+ 2280                  *WHEN NEEDED, GET NEXT DIRECTORY SECTOR
+ 2281                  *
+ 2282 1045 86 0B       NXFCB  LDAA   #11              DEFINE 11 BYTES IN A FILE CONTROL BLOCK
+ 2283 1047 5F                 CLRB                    WITH A HIGH BYTE OF 0
+ 2284 1048 BB 0F8B            ADDA   PUFMP+LBYT       ADD 11 TO LOW BYTE OF POINTER
+ 2285 104B F9 0F8A            ADCB   PUFMP            ADD IN THE CARRY (IF ANY) TO THE HIGH BYTE
+ 2286 104E B7 0F8B            STAA   PUFMP+LBYT       STORE THE LOW POINTER BYTE
+ 2287 1051 F7 0F8A            STAB   PUFMP            AND THE HIGH POINTER BYTE (POINTER IS NOW +11)
+ 2288 1054 FE 0F8A            LDX    PUFMP            USE THE NEW POINTER VALUE (NEXT FCB)
+ 2289 1057 8C 0149            CPX    #SECB1+121       IF THERE ARE NO MORE FCB'S IN THIS SECTOR
+ 2290 105A 26 C5              BNE    DIRS2            THEN
+ 2291 105C 20 DC              BRA    DIRS4            TAKE THE NEXT SECTOR & FIRST FCB IN THAT SECTOR
+ 2292                  *
+ 2293                  *
+ 2294                  *SEARCH DIRECTORY FOR FILES TO BE PURGED (ATTRIBUTE = $80)
+ 2295                  *
+ 2296 105E CE 0FA1     PKDSK  LDX    #PKDSM+1         LOAD POINTER TO MESSAGE STRING
+ 2297 1061 F6 0FA0            LDAB   PKDSM            LOAD THE CHARACTER COUNT
+ 2298 1064 BD 03C1            JSR    PRINS            PRINT "PACKING DISK"
+ 2299 1067 BD 03CB            JSR    CRLF             PRINT <CR><LF> FOR NEW LINE
+ 2300 106A BD 100F            JSR    DIRSE            READ & SET UP THE FIRST DIRECTORY SECTOR
+ 2301                  *
+ 2302 106D 81 FF       PKDS1  CMPA   #$FF             IF THIS IS THE END OF THE DIRECTORY TRACK
+ 2303 106F 26 01              BNE    PKDS2            THEN
+ 2304 1071 39                 RTS                     RETURN
+ 2305 1072 81 80       PKDS2  CMPA   #$80             IF ATTRIBUTE OF CURRENT FCB IS NOT "DELETED FILE" ($80
+ 2306 1074 27 05              BEQ    PURFL            THEN
+ 2307 1076 BD 1045            JSR    NXFCB            LOOK AT THE NEXT FCB
+ 2308 1079 20 F2              BRA    PKDS1            AND CONTINUE
+ 2309                  *
+ 2310                  *PURGE THIS FILE, MOVE THE FILES, UPDATE THE DIRECTORY
+ 2311                  *
+ 2312 107B FE 0F8A     PURFL  LDX    PUFMP            GET POINTER TO CURRENT FCB
+ 2313 107E A6 06              LDAA   $6,X             GET THE STARTING TRACK ADDRESS OF FILE TO BE PURGED
+ 2314 1080 97 0B              STAA   OTRK             DEFINE IT AS START OF AN OUTPUT FILE
+ 2315 1082 B6 0F86            LDAA   PUUID            GET PURGE UNIT NUMBER
+ 2316 1085 97 02              STAA   OUNIT            DEFINE OUTPUT FILE ON THAT UNIT
+ 2317 1087 0C                 CLC                     CLEAR THE "C" BIT FOR SHIFTING
+ 2318 1088 46                 RORA                    SHIFT THE UID INTO BITS 6 & 7
+ 2319 1089 46                 RORA                    SHIFTING THROUGH THE CARRY BIT
+ 2320 108A 46                 RORA                    BIT 7 BECOMES OLD 1, BIT 6 BECOMES OLD 0
+ 2321 108B AA 07              ORAA   $7,X             INCLUDE THE START SECTOR OF THE FILE TO BE PURGED
+ 2322 108D 97 0C              STAA   OSCTR            DEFINE AS THE OUTPUT FILE <UNIT><SECTOR>
+ 2323 108F 7F 000D            CLR    OCNTR            CLEAR THE BYTE COUNTER FOR THE OUTPUT FILE
+ 2324 1092 CE 07B7            LDX    #1975            DEFINE A FILE SIZE OF ALL USER SPACE ON DISK
+ 2325 1095 DF 09              STX    OSIZE            AS THE OUTPUT FILE SIZE (SHUT OFF FILE SIZE MONITOR)
+ 2326 1097 DF C7              STX    FILRQ            REQUEST A FILE SIZE OF ALL USER SPACE
+ 2327 1099 FE 0F8A            LDX    PUFMP            GET POINTER TO CURRENT FCB
+ 2328 109C FF 0F87            STX    PUFCP            SAVE IT FOR LATER USE
+ 2329 109F B6 0F8C            LDAA   PUSEM            GET THE CURRENT DIRECTORY <UNIT><SECTOR>
+ 2330 10A2 B7 0F89            STAA   PUSEC            SAVE IT FOR USE LATER
+ 2331                  *
+ 2332 10A5 BD 1045     PURF1  JSR    NXFCB            TAKE THE NEXT FILE CONTROL BLOCK
+ 2333 10A8 81 FF              CMPA   #$FF             IF THIS IS NOT THE END OF THE DIRECTORY TRACK
+ 2334 10AA 27 36              BEQ    PURF3            AND
+ 2335 10AC 81 80              CMPA   #$80             IF THIS IS NOT ANOTHER DELETED FILE
+ 2336 10AE 27 F5              BEQ    PURF1            THEN
+ 2337                  *
+ 2338 10B0 FE 0F8A            LDX    PUFMP            POINT TO THE CURRENT FILE CONTROL BLOCK
+ 2339 10B3 A6 06              LDAA   $6,X             PICK UP THIS FILE'S STARTING TRACK ADDRESS
+ 2340 10B5 97 06              STAA   ITRK             DEFINE THIS AS AN INPUT FILE TRACK START ADDRESS
+ 2341 10B7 A6 08              LDAA   $8,X             PICK UP THIS FILE'S LENGTH (HIGH BYTE)
+ 2342 10B9 97 04              STAA   ISIZE            DEFINE AS INPUT FILE SIZE (HIGH BYTE)
+ 2343 10BB A6 09              LDAA   $9,X             PICK UP THIS FILE'S LENGTH (LOW BYTE)
+ 2344 10BD 97 05              STAA   ISIZE+LBYT       DEFINE AS INPUT FILE SIZE (LOW BYTE)
+ 2345 10BF 7F 0008            CLR    ICNTR            CLEAR THE INPUT FILE BYTE COUNTER
+ 2346 10C2 B6 0F86            LDAA   PUUID            GET PURGE UNIT NUMBER
+ 2347 10C5 0C                 CLC                     CLEAR THE "C" BIT FOR SHIFTING
+ 2348 10C6 46                 RORA                    SHIFT THE UID INTO BITS 6 & 7
+ 2349 10C7 46                 RORA                    ROTATING THEM THROUGH THE CARRY BIT
+ 2350 10C8 46                 RORA                    BIT 7 BECOMES OLD 1, BIT 6 BECOMES OLD 0
+ 2351 10C9 AA 07              ORAA   $7,X             INCLUDE SECTOR TO MAKE <UNIT><SECTOR>
+ 2352 10CB 4A                 DECA                    MINUS ONE
+ 2353 10CC 97 07              STAA   ISCTR            AS THE STARTING SECTOR FOR AN INPUT FILE
+ 2354 10CE 0C                 CLC                     CLEAR THE "C" BIT FOR SHIFTING
+ 2355 10CF 49                 ROLA                    SHIFT UID BACK INTO BITS 1 & 0
+ 2356 10D0 49                 ROLA                    SECTOR NUMBER NOW OCCUPIES BITS 3 - 7
+ 2357 10D1 49                 ROLA                    (SECTOR NUMBER IS * 8)
+ 2358 10D2 97 03              STAA   IUNIT            SAVE THIS AS INPUT UNIT <SECTOR><UNIT>
+ 2359 10D4 BD 0F51            JSR    MOVFL            MOVE THE INPUT FILE INTO SPACE CREATED BY PURGING
+ 2360 10D7 7D 000D     PURF2  TST    OCNTR            IF OUTPUT SECTOR NOT COMPLETE
+ 2361 10DA 27 09              BEQ    PURF4            THEN
+ 2362 10DC 4F                 CLRA                    DEFINE A NULL
+ 2363 10DD BD E80C            JSR    XWRT             PAD THE REMAINDER OF THIS SECTOR WITH NULLS
+ 2364 10E0 20 F5              BRA    PURF2            WHILE SECTOR, CONTINUE
+ 2365                  *
+ 2366 10E2 7E 119A     PURF3  JMP    WTEOD            CLOSE END OF DIRECTORY (BRANCH RANGE EXTENSION)
+ 2367                  *
+ 2368                  *
+ 2369                  *UPDATE THE FCB NOW RELATING TO THE FILE JUST MOVED
+ 2370                  *
+ 2371 10E5 FE 0F8A     PURF4  LDX    PUFMP            SET THE POINTER TO THE FCB OF THE FILE JUST MOVED
+ 2372 10E8 A6 05              LDAA   $5,X             GET FILE ATTRIBUTE
+ 2373 10EA 36                 PSHA                    AND SAVE IT
+ 2374 10EB A6 04              LDAA   $4,X             GET NAME CHAR #5
+ 2375 10ED 36                 PSHA                    AND SAVE IT
+ 2376 10EE A6 03              LDAA   $3,X             GET NAME CHAR #4
+ 2377 10F0 36                 PSHA                    AND SAVE IT
+ 2378 10F1 A6 02              LDAA   $2,X             GET NAME CHAR #3
+ 2379 10F3 36                 PSHA                    AND SAVE IT
+ 2380 10F4 A6 01              LDAA   $1,X             GET NAME CHAR #2
+ 2381 10F6 36                 PSHA                    AND SAVE IT
+ 2382 10F7 A6 00              LDAA   $0,X             GET NAME CHAR #1
+ 2383 10F9 36                 PSHA                    AND SAVE IT
+ 2384                  *
+ 2385 10FA D6 C7              LDAB   FILRQ            GET THE CURRENT "MAXIMUM USER DISK SPACE"
+ 2386 10FC 96 C8              LDAA   FILRQ+LBYT       (IT STARTED OUT AS 1975 SECTORS)
+ 2387 10FE 90 0A              SUBA   OSIZE+LBYT       SUBTRACT THE SECTORS NOT USED DURING
+ 2388 1100 D2 09              SBCB   OSIZE            WRITE, GIVING THIS FILE'S SECTOR COUNT
+ 2389 1102 8B 01              ADDA   #$1              OR SIZE, AFTER ALLOWING ONE MORE SECTOR
+ 2390 1104 C9 00              ADCB   #$0              WITH PROPAGATED CARRY
+ 2391 1106 37                 PSHB                    SAVE FILE SIZE (HIGH)
+ 2392 1107 36                 PSHA                    SAVE FILE SIZE (LOW)
+ 2393                  *
+ 2394 1108 CE 00D0            LDX    #SECB1           POINT TO THE DIRECTORY SECTOR BUFFER
+ 2395 110B B6 0F89            LDAA   PUSEC            GET <UNIT><SECTOR> FOR PURGED FILE FCB
+ 2396 110E 5F                 CLRB                    USE TRACK 0 FOR DIRECTORY READ
+ 2397 110F BD 040F            JSR    RED11            READ THE DIRECTORY SECTOR
+ 2398                  *
+ 2399                  *AN ERROR CHECK HAS BEEN MISSED HERE!!!!
+ 2400                  *
+ 2401 1112 FE 0F87            LDX    PUFCP            POINT TO THE CURRENT PURGED FILE FCB
+ 2402 1115 32                 PULA                    GET LOW BYTE OF MOVED FILE SIZE
+ 2403 1116 A7 09              STAA   $9,X             STORE IT AS FCB LENGTH (LOW)
+ 2404 1118 32                 PULA                    GET HIGH BYTE OF MOVED FILE SIZE
+ 2405 1119 A7 08              STAA   $8,X             STORE IT AS FCB LENGTH (HIGH)
+ 2406 111B 32                 PULA                    GET THE FIRST CHAR OF THE MOVED FILE NAME
+ 2407 111C A7 00              STAA   $0,X             STORE IT AS FCB NAME, CHAR 1
+ 2408 111E 32                 PULA                    GET THE SECOND CHAR OF THE MOVED FILE NAME
+ 2409 111F A7 01              STAA   $1,X             STORE IT AS FCB NAME, CHAR 2
+ 2410 1121 32                 PULA                    GET THE THIRD CHAR OF THE MOVED FILE NAME
+ 2411 1122 A7 02              STAA   $2,X             STORE IT AS FCB NAME, CHAR 3
+ 2412 1124 32                 PULA                    GET THE FOURTH CHAR OF THE MOVED FILE NAME
+ 2413 1125 A7 03              STAA   $3,X             STORE IT AS FCB NAME, CHAR 4
+ 2414 1127 32                 PULA                    GET THE FIFTH CHAR OF THE MOVED FILE NAME
+ 2415 1128 A7 04              STAA   $4,X             STORE IT AS FCB NAME, CHAR 5
+ 2416 112A 32                 PULA                    GET THE ATTRIBUTE CHARACTER OF THE MOVED FILE
+ 2417 112B A7 05              STAA   $5,X             STORE IT AS FCB ATTRIBUTE CHAR
+ 2418                  *
+ 2419                  *FCB IS NOW UPDATED (TRACK & SECTOR ARE KNOWN TO BE CORRECT)
+ 2420                  *
+ 2421 112D CE 00D0            LDX    #SECB1           POINT TO THE BEGINNING OF THE SECTOR BUFFER
+ 2422 1130 B6 0F89            LDAA   PUSEC            GET THE <UNIT><SECTOR> FOR THIS FCB ENTRY
+ 2423 1133 5F                 CLRB                    SELECT TRACK 0 FOR THE DIRECTORY
+ 2424 1134 BD 0487            JSR    WRTSE            WRITE THIS SECTOR TO DISK
+ 2425 1137 4D                 TSTA                    IF THERE WAS A WRITE ERROR
+ 2426 1138 27 03              BEQ    PURF5            THEN
+ 2427 113A 7E 043C            JMP    MEDER            PRINT "MEDIA ERROR" & WAIT FOR NEW COMMAND
+ 2428                  *
+ 2429 113D B6 0F8A     PURF5  LDAA   PUFMP            GET POINTER TO CURRENT FCB (HIGH BYTE)
+ 2430 1140 36                 PSHA                    AND SAVE IT
+ 2431 1141 B6 0F8B            LDAA   PUFMP+LBYT       GET POINTER TO CURRENT FCB (LOW BYTE)
+ 2432 1144 36                 PSHA                    AND SAVE IT
+ 2433 1145 B6 0F8C            LDAA   PUSEM            GET CURRENT FCB <UNIT><SECTOR>
+ 2434 1148 36                 PSHA                    AND SAVE IT
+ 2435 1149 FE 0F87            LDX    PUFCP            GET THE POINTER FOR FCB OF THE PURGED FILE
+ 2436 114C FF 0F8A            STX    PUFMP            AND SAVE IT AS TARGET FOR FCB MOVE
+ 2437 114F B6 0F89            LDAA   PUSEC            GET THE <UNIT><SECTOR> FOR FCB OF THE PURGED FILE
+ 2438 1152 B7 0F8C            STAA   PUSEM            AND SAVE IT AS TARGET FOR FCB MOVE
+ 2439 1155 BD 1045            JSR    NXFCB            GET THE NEXT FCB
+ 2440 1158 FE 0F8A            LDX    PUFMP            POINT TO IT IN THE SECTOR BUFFER
+ 2441 115B 96 0B              LDAA   OTRK             GET THE LAST TRACK USED
+ 2442 115D A7 06              STAA   $6,X             SAVE IT AS START TRACK IN THE NEW FCB
+ 2443 115F 96 0C              LDAA   OSCTR            GET THE LAST <UNIT><SECTOR> USED
+ 2444 1161 84 3F              ANDA   #$3F             STRIP OFF THE UNIT ID BITS
+ 2445 1163 A7 07              STAA   $7,X             SAVE IT AS START SECTOR IN THE NEW FCB
+ 2446 1165 CE 00D0            LDX    #SECB1           START AT THE BEGINNING OF THE SECTOR BUFFER
+ 2447 1168 B6 0F8C            LDAA   PUSEM            GET THE <UNIT><SECTOR> FOR THE CHANGED FCB
+ 2448 116B 5F                 CLRB                    SELECT TRACK 0 FOR THE DIRECTORY
+ 2449 116C BD 0487            JSR    WRTSE            WRITE THIS SECTOR TO DISK
+ 2450 116F 4D                 TSTA                    IF THERE WAS A WRITE ERROR
+ 2451 1170 27 03              BEQ    PURF7            THEN
+ 2452 1172 7E 043C     PURF6  JMP    MEDER            PRINT "MEDIA ERROR" & WAIT FOR NEW COMMAND
+ 2453 1175 CE 07B7     PURF7  LDX    #1975            DEFINE MAXIMUM USER SPACE AVAILABLE ON DISK
+ 2454 1178 DF 09              STX    OSIZE            SET AN OUTPUT SIZE OF MAX. (SHUT OFF OUTPUT TEST)
+ 2455 117A DF C7              STX    FILRQ            REQUEST A OUTPUT FILE OF MAXIMUM USER SPACE
+ 2456 117C 7F 000D            CLR    OCNTR            CLEAR THE OUTPUT FILE BYTE COUNTER
+ 2457 117F FE 0F8A            LDX    PUFMP            GO BACK TO THE PURGED FILE FCB
+ 2458 1182 FF 0F87            STX    PUFCP            IN THE SAVE LOCATION
+ 2459 1185 B6 0F8C            LDAA   PUSEM            GO BACK TO THE PURGED FILE <UNIT><SECTOR>
+ 2460 1188 B7 0F89            STAA   PUSEC            IN THE SAVE LOCATION
+ 2461 118B 32                 PULA                    GET CURRENT <UNIT><SECTOR> OFF STACK
+ 2462 118C B7 0F8C            STAA   PUSEM            AND RESTORE IT
+ 2463 118F 32                 PULA                    GET LOW BYTE OF CURRENT FCB PONTER OFF STACK
+ 2464 1190 B7 0F8B            STAA   PUFMP+LBYT       AND RESTORE IT
+ 2465 1193 32                 PULA                    GET HIGH BYTE OF CURRENT FCB POINTER OFF STACK
+ 2466 1194 B7 0F8A            STAA   PUFMP            AND RESTORE IT
+ 2467 1197 7E 10A5            JMP    PURF1            CONTINUE THE PACKING PROCESS
+ 2468                  *
+ 2469                  *
+ 2470                  *THIS SUBROUTINE WRITES AN END-OF-DIRECTORY FCB ENTRY
+ 2471                  *
+ 2472 119A CE 00D0     WTEOD  LDX    #SECB1           POINT TO THE SECTOR BUFFER
+ 2473 119D B6 0F89            LDAA   PUSEC            GET THE CURRENT <UNIT><SECTOR>
+ 2474 11A0 5F                 CLRB                    SELECT TRACK 0 FOR THE DIRECTORY
+ 2475 11A1 BD 040F            JSR    RED11            READ THIS SECTOR FROM THE DISK
+ 2476                  *
+ 2477                  *AN ERROR CHECK IS MISSING HERE!!!
+ 2478                  *
+ 2479 11A4 FE 0F87            LDX    PUFCP            POINT TO THE "NEXT FCB" DEFINED AT LAST MOVE
+ 2480 11A7 86 2A              LDAA   #'*              DEFINE ASCII CHARACTER "*"
+ 2481 11A9 A7 00              STAA   $0,X             DEFINE THE NAME
+ 2482 11AB A7 01              STAA   $1,X             OF THE EOD
+ 2483 11AD A7 02              STAA   $2,X             FILE TO BE
+ 2484 11AF A7 03              STAA   $3,X             "*****"
+ 2485 11B1 A7 04              STAA   $4,X             AS AN IDENTIFIER
+ 2486 11B3 86 FF              LDAA   #$FF             DEFINE EOD ATTRIBUTE
+ 2487 11B5 A7 05              STAA   $5,X             AS NEW FCB ATTRIBUTE
+ 2488 11B7 96 0B              LDAA   OTRK             TAKE THE LAST TRACK WRITTEN
+ 2489 11B9 A7 06              STAA   $6,X             AS THE START TRACK FOR THIS FCB
+ 2490 11BB 96 0C              LDAA   OSCTR            TAKE THE LAST <UNIT><SECTOR> WRITTEN
+ 2491 11BD 84 3F              ANDA   #$3F             STRIP OFF UNIT ID BITS
+ 2492 11BF A7 07              STAA   $7,X             AND USE AS START SECTOR FOR THIS FCB
+ 2493 11C1 CE 00D0            LDX    #SECB1           POINT TO THE BEGINNING OF THE SECTOR BUFFER
+ 2494 11C4 B6 0F89            LDAA   PUSEC            GET <UNIT><SECTOR> FOR THIS FCB
+ 2495 11C7 5F                 CLRB                    SELECT TRACK 0 FOR THE DIRECTORY
+ 2496 11C8 BD 0487            JSR    WRTSE            WRITE THIS SECTOR TO DISK
+ 2497 11CB 4D                 TSTA                    IF THERE WAS NO WRITE ERROR
+ 2498 11CC 26 A4              BNE    PURF6            THEN
+ 2499 11CE 39                 RTS                     RETURN TO CALLER
+ 2500                  *
+ 2501                  *
+ 2502                  **TRACK BUFFER & LARGE BUFFER ALLOCATION BEGINS AFTER EDOS
+ 2503                  *
+ 2504 1200                    ORG    $1200
+ 2505                  *
+ 2506      1200        TRKBF  EQU    *                DISK TRACK BUFFER START ADDRESS
+ 2507 1200             BGBUF  RMB    3326             LARGE DATA BUFFER
+ 2508      1EFE        BGBFE  EQU    *                END OF ALLOCATION FOR LARGE DATA BUFFER
+ 2509                  *
+ 2510                         END
+
+Symbol table:
+
+         CR 000d         LF 000a        DLE 0010        SPC 0020
+        ESC 001b       ASUB 001a        DC2 0012        DC4 0014
+        RUB 00ff       LBYT 0001       HBYT 0100      SYSSZ 0082
+      TIMAX ffff      INTIO e806        XRI e809       XWRT e80c
+       PROG e815      EDITR e824        XUS ea03       XUSP ea22
+       SEEK ea2b      RFLAG ea38       LOOP ea3e       LPTC eab0
+      INITR eb04      RDRIN eb02      PRINC f018      OCHAR f9cf
+      SPEED ff02      EXPUN ff62      EXBST ff8a      EXBUG f564
+      DKDID ec00      DKDIC ec01      DKCOD ec02      DKCOC ec03
+      PTDAT ec04      PTCTL ec05      DKDOD ec06      DKDOC ec07
+      ACIAS fcf4      ACIAC fcf4      ACIAR fcf5      ACIAT fcf5
+      SBITC fcfd       PASS 0000      OFILE 0001      OUNIT 0002
+      IUNIT 0003      ISIZE 0004       ITRK 0006      ISCTR 0007
+      ICNTR 0008      OSIZE 0009       OTRK 000b      OSCTR 000c
+      OCNTR 000d      TITRK 000e      TISZE 000f      EXSTK 006b
+      IBUF1 006c      BFPT1 00bc      BFND1 00be      FLNM0 00c0
+      FLNM1 00c1      FLNM2 00c2      FLNM3 00c3      FLNM4 00c4
+      FLNM5 00c5      FILAT 00c6      FILRQ 00c7      HDIGT 00c9
+      UNUMB 00c9      NULC1 00c9      WRTRY 00c9      BGBFP 00ca
+      SECAV 00ca      SECP1 00ca      BINHI 00ca      BINLO 00cb
+      BFOP2 00cc      SESP1 00ce      SECB1 00d0      USECT 0150
+      CRTRK 0151      CRSEC 0152      STRAK 0153      STSEC 0154
+      SECCT 0155      BYTCT 0155      TRYCT 0155      TIUNT 0156
+      LGOFL 0157      EOFFL 0158      APARS 0159      TKBFP 0159
+      AERFL 015b      EXECS 0020       EXEC 015c      CLSFV 0023
+      FLCLS 06a0      PRNVC 0030      PRICV 0033      PTAPV 0036
+       CRLF 03cb      IDMES 02f7      PRINS 03c1      WTCMD 016e
+      USCMD 0335      PRSFL 036e      CMDST 01bb      CMDLP 017e
+      CMDLM 0286      TRYCM 018e       ERRM 0183      FERRM 0286
+      MSWTC 0189      SKPCM 01b2        ASM 093f       EDIT 0b55
+       LOAD 06e5       PDIR 0871      PLIST 0716       INIT 0834
+        DUP 0de7      RENAM 07ab      PURGE 0fad      MERGE 0f34
+      CDUMP 0d22      TDUMP 0d22      CTAPE 0c4b      PTAPE 0c4b
+      TTAPE 0c4b       ATTR 0748      CREAT 0801      CXGEN 0c54
+      PXGEN 0c54      TXGEN 0c54       HOME 0854      INITX 083a
+       CDIR 086c      CLIST 0711      RLOAD 0703       RASM 09b6
+       FORT 09a0      BASIC 0ba6      NOSFM 0293      DUNMM 02a0
+      NORMM 02aa      DIRHD 02b2      DKNRM 02ce      MEDEM 02dd
+      NOEXM 02e9      NOSRM 030a      DEVEM 0319      OFLCM 0326
+      USCM1 0342      ECHOC 03cf      USCM3 035e      USCM4 036b
+      USCM2 0357      PRSF1 0375      PRSF2 0381      NXITM 03a6
+      NOUID 039c      UIDER 0399      PRSF3 0394      ITMDX 03bf
+      NXIT1 03bc      ECHO1 03d8      GETCH 03e9      ECHO2 03e8
+      PRBIN 03f4      PRBN1 0404      PRBN2 040a      RED11 040f
+      DSKRD 0476      RED12 0421      RED14 0445      RED15 044b
+      MEDER 043c      RED16 0452      DSKR1 047e      WRTSE 0487
+      WRTS1 049d      WRTS2 04ab      WRTS3 04cb      FNDFL 04cc
+      FNDF1 04d7      FNDFX 0522      FNDF2 04f2      FNDF3 04f7
+      FNDF4 0523      DFINF 053a      DFIN1 0541      DFOFL 0565
+      DFOF1 056c      CREAF 058f      CREA1 0598      CREA2 059f
+      CREA3 05a8      CREA4 05d9      WTNDX 05ef      WTND1 0617
+      WTND3 0627      WTND2 0624      WTND6 065a      WTND4 0634
+      WTND5 0650      WTND7 0665      WTND8 066b      WTND9 0681
+      WTNDA 068e      MEDE1 068b      WTNDB 069b      FLCL2 06ac
+      FLCL1 06a9      FLCL3 06b7      LOADV 0701      LOAD1 06eb
+      LOAD2 06fd      NOSFL 06f4      LIST1 0719      NULCT 0f33
+      LIST2 072a      LIST4 073b      LIST5 073e      LIST3 0736
+      ATTR1 0754      CONHX 076d      ATTR2 076a      RENA4 07f0
+      CONH1 0773      CNHXS 0780      CONH2 077d      CNHS2 07aa
+      CNHS1 0790      DUPNM 081f      RENA2 07d3      RENA1 07d0
+      RENA5 07fe      FERR1 0831      ERTYP 081b      NRMMS 0828
+      FERR2 0869      INIT1 083d       DIR1 0874      CRLFV 0935
+       DIR2 088a       DIR3 0899       DIR5 08a8       DIR4 08a2
+       DIR7 08ba       DIR6 08b8       DIR8 08bf      OP3SP 0926
+       ASM2 099d      SVIOF 0c40      NONAM 0bd6      SVIPF 0c46
+      TCHR0 0987      TCHR1 098b      TCHR2 098f      TCHR3 0993
+       ASM1 0980      GEPRO 0b95      RASM1 09ca      BGBUF 1200
+      LSFI2 0a79      LSFIB 0ac3      RASM2 09ec      ZERFL 0ad5
+      RASM3 09ef      LSFIL 0a61      RASM4 09fd      RASM5 0a00
+      RASMA 0a4f      LSFI0 0a5b      RASM6 0a14      RASM8 0a30
+      RASM7 0a26      TRKBF 1200      RASMB 0a58      RASM9 0a4c
+      LSFIA 0ac2      FLABF 0b43      LSFI1 0a6a      LSFI3 0a84
+      LSFI4 0a95      FLABE 0b55      LSFI8 0ab6      LSFI5 0aac
+      LSFI6 0aae      LSFI7 0ab2      LSFI9 0ab9      IPFIL 0ae1
+      OPFIL 0b1f      IPFI1 0b08      DOOF1 0bf2      DEFOP 0c14
+      NAMDF 0b81      FILGT 0b6c      NULFL 0bbf      EDINF 0bdf
+      NAMDO 0b7b      GEPR1 0b9e      EDNOF 0be6      DOOFL 0be9
+      DOOF2 0bf9      DOOF3 0c04      DOOF4 0c0b      MOVIP 0c2a
+      SVIO1 0c38      GENDV 0c96      GENS1 0c77      GENS2 0c82
+      GENDA 0d15      GEND1 0c9c      GEND2 0cad      GEND3 0cba
+      GEND4 0cbd      GEND5 0cc2      GEND6 0cd1      GEND7 0ce1
+      GEND8 0d00      GEND9 0d14      GENDB 0d18      DUMP1 0d2e
+      CDMP1 0d61      NULOC 0dd9      TDMP1 0d3a      TDMP2 0d48
+      TDMP3 0d58      CDMP2 0d64      DUMRD 0d74      CDMP3 0d6f
+      DUMWT 0d99      DUMR1 0d79      DUMR2 0d8a      DUMW1 0db4
+      WAIT1 0dd5      NULO1 0ddd       DUP1 0df5       DUP2 0e07
+      DUSRD 0e99       DUP3 0e31       DUP4 0e35       DUP5 0e39
+       DUP6 0e4b      DUWTS 0eeb       DUP7 0e72       DUP8 0e76
+      DUCRC 0f08       DUP9 0e8a       DUPA 0e96      DUSR1 0e9e
+      DUSR2 0eb2      DUSR3 0ec1      DUSR4 0ec9      DUWT1 0ef6
+      DUCR2 0f32      DUCR1 0f2d      MERG1 0f37      MERG3 0f4e
+      MERG2 0f49      MOVFL 0f51      MOVF1 0f54      MOVF2 0f57
+      MOVF5 0f81      BGBFE 1efe      MOVF3 0f6a      MOVF4 0f6d
+      PUUID 0f86      PUFCP 0f87      PUSEC 0f89      PUFMP 0f8a
+      PUSEM 0f8c      PERMM 0f8d      PURGM 0f98      PKDSM 0fa0
+      PURG1 0fb2      PURG2 0fbe      PKDSK 105e      PURG3 0fe5
+      PURG4 0ff9      DIRSE 100f      DIRS1 101b      DIRS2 1021
+      DIRS3 102d      DIRS5 103f      DIRS4 103a      NXFCB 1045
+      PKDS1 106d      PKDS2 1072      PURFL 107b      PURF1 10a5
+      PURF3 10e2      PURF2 10d7      PURF4 10e5      WTEOD 119a
+      PURF5 113d      PURF7 1175      PURF6 1172

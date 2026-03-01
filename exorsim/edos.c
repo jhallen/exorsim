@@ -119,7 +119,7 @@ int comp(struct name **l, struct name **r)
 
 int force_convert;
 
-void read_file(int lsn, int size, FILE *f)
+void read_file(int lsn, int size, FILE *f, int raw)
 {
         unsigned char buf[SECTOR_SIZE];
         int x;
@@ -128,50 +128,56 @@ void read_file(int lsn, int size, FILE *f)
         {
                 getsect(buf, x);
 
-                if (x == lsn && buf[0] == 'D')
-                        guess_type = 1; /* Object file- don't delete NULs */
-
-                if (guess_type)
+                if (raw)
                 {
-                        /* Not ASCII! */
-                        if (x + 1 == lsn + size)
-                        {
-                                int y;
-                                /* Last sector of file- delete trailing NULs */
-                                for (y = SECTOR_SIZE - 1; y && !buf[y]; --y);
-                                if (y)
-                                        fwrite(buf, y + 1, 1, f);
-                        }
-                        else
-                        {
-                                fwrite(buf, SECTOR_SIZE, 1, f);
-                        }
+                        fwrite(buf, SECTOR_SIZE, 1, f);
                 }
                 else
                 {
-                        /* ASCII */
-                        int ends = SECTOR_SIZE;
-                        int n;
-                        if (x + 1 == lsn + size)
+                        if (x == lsn && buf[0] == 'D')
+                                guess_type = 1; /* Object file- don't delete NULs */
+
+                        if (guess_type)
                         {
-                                /* Last sector, delete trailing NULs */
-                                while (ends && buf[ends-1] == 0) --ends;
-                        }
-                        for (n = 0; n != ends; ++n) {
-                                int c = buf[n];
-                                if (c == 13) {
-                                        /* Convert to MS-DOS */
-                                        fputc('\r', f);
-                                        fputc('\n', f);
-                                } else if (c == 10) {
-                                        /* Delete Line Feeds */
-                                } else if (c == 0) {
-                                        /* Delete NULs- not sure this is a good idea */
-                                } else {
-                                        fputc(c, f);
+                                /* Not ASCII! */
+                                if (x + 1 == lsn + size)
+                                {
+                                        int y;
+                                        /* Last sector of file- delete trailing NULs */
+                                        for (y = SECTOR_SIZE - 1; y && !buf[y]; --y);
+                                        if (y)
+                                                fwrite(buf, y + 1, 1, f);
+                                }
+                                else
+                                {
+                                        fwrite(buf, SECTOR_SIZE, 1, f);
                                 }
                         }
-                        
+                        else
+                        {
+                                /* ASCII */
+                                int ends = SECTOR_SIZE;
+                                int n;
+                                if (x + 1 == lsn + size)
+                                {
+                                        /* Last sector, delete trailing NULs */
+                                        while (ends && buf[ends-1] == 0) --ends;
+                                }
+                                for (n = 0; n != ends; ++n) {
+                                        int c = buf[n];
+                                        if (c == 13) {
+                                                /* Convert to MS-DOS */
+                                                fputc('\r', f);
+                                                fputc('\n', f);
+                                        } else if (c == 10) {
+                                                /* Delete Line Feeds */
+                                        } else if (c == 0) {
+                                                /* Delete NULs- not sure this is a good idea */
+                                        } else {
+                                                fputc(c, f);
+                                        }
+                                }
+                        }
                 }
         }
 }
@@ -453,48 +459,18 @@ void edos_append(struct dirent *new_d)
         }
 }
 
-int put_file(char *local_name, char *mdos_name)
+/* Write file starting at lsn.  Returns -1 for errors, or number of sectors written */
+
+int put_file_lsn(int lsn, char *local_name, int free_sects, int all)
 {
         FILE *f;
-        int i, x;
-        int alloc = edos_alloc();
-        int free_sects = TRACK_SIZE * 77 - alloc;
-        int start_track = alloc / TRACK_SIZE;
-        int start_sect = alloc % TRACK_SIZE;
         int size;
         int up;
         int up_sects;
-        struct dirent d[1];
-        char c;
         unsigned char *buf;
-
-        if (strlen(mdos_name) > 5)
-        {
-                printf("File name too long for EDOS\n");
-                return -1;
-        }
-
-        if (edos_exist(mdos_name))
-        {
-                printf("File %s already exists\n", mdos_name);
-                return -1;
-        }
-
-        d->track = start_track;
-        d->sect = start_sect + 1;
-        d->mark = 0;
-        d->unknown = 0;
-        d->size_lo = 0;
-        d->size_hi = 0;
-
-        for (i = 0; i != 5 && mdos_name[i]; ++i)
-                d->name[i] = upper(mdos_name[i]);
-        while (i != 5)
-                d->name[i++] = ' ';
-
-        printf("Starting free sector = %d\n", alloc);
-        printf("Free sectors = %d\n", free_sects);
-        printf("Starting track = 0x%x, sector = 0x%x\n", alloc / TRACK_SIZE, (alloc % TRACK_SIZE) + 1);
+        int x;
+        int c;
+        int i;
 
         f = fopen(local_name, "r");
 
@@ -553,8 +529,68 @@ int put_file(char *local_name, char *mdos_name)
 
         for (i = 0; i != up_sects; ++i)
         {
-                printf("Write lsn %d (track=%x, sector=%x)\n", alloc+i, (alloc+i)/TRACK_SIZE, 1+((alloc+i)%TRACK_SIZE));
-                putsect(buf + i * SECTOR_SIZE, alloc + i);
+                // printf("Write lsn %d (track=%x, sector=%x)\n", alloc+i, (alloc+i)/TRACK_SIZE, 1+((alloc+i)%TRACK_SIZE));
+                putsect(buf + i * SECTOR_SIZE, lsn + i);
+        }
+
+        /* Pad out to entire given size */
+        if (all)
+        {
+                memset(buf, 0, SECTOR_SIZE);
+
+                for (; i < free_sects; ++i)
+                {
+                        putsect(buf + i * SECTOR_SIZE, lsn + i);
+                }
+        }
+
+        printf("Wrote %d sectors\n", i);
+
+        return up_sects;
+}
+
+int put_file(char *local_name, char *mdos_name)
+{
+        int i;
+        int alloc = edos_alloc();
+        int free_sects = TRACK_SIZE * 77 - alloc;
+        int start_track = alloc / TRACK_SIZE;
+        int start_sect = alloc % TRACK_SIZE;
+        int up_sects;
+        struct dirent d[1];
+
+        if (strlen(mdos_name) > 5)
+        {
+                printf("File name too long for EDOS\n");
+                return -1;
+        }
+
+        if (edos_exist(mdos_name))
+        {
+                printf("File %s already exists\n", mdos_name);
+                return -1;
+        }
+
+        d->track = start_track;
+        d->sect = start_sect + 1;
+        d->mark = 0;
+        d->unknown = 0;
+        d->size_lo = 0;
+        d->size_hi = 0;
+
+        for (i = 0; i != 5 && mdos_name[i]; ++i)
+                d->name[i] = upper(mdos_name[i]);
+        while (i != 5)
+                d->name[i++] = ' ';
+
+        printf("Starting free sector = %d\n", alloc);
+        printf("Free sectors = %d\n", free_sects);
+        printf("Starting track = 0x%x, sector = 0x%x\n", alloc / TRACK_SIZE, (alloc % TRACK_SIZE) + 1);
+
+        up_sects = put_file_lsn(alloc, local_name, free_sects, 0);
+        if (up_sects < 0)
+        {
+                return -1;
         }
 
         /* Add directory entry */
@@ -621,20 +657,20 @@ void cat(char *name)
                 printf("File '%s' not found\n", name);
                 exit(-1);
         } else {
-                read_file(lsn, size, stdout);
+                read_file(lsn, size, stdout, 0);
         }
 }
 
 /* get a file from the disk */
 
-int get_file_lsn(int lsn, int size, char *local_name)
+int get_file_lsn(int lsn, int size, char *local_name, int raw)
 {
         FILE *f = fopen(local_name, "w");
         if (!f) {
                 printf("Couldn't open local file '%s'\n", local_name);
                 return -1;
         }
-        read_file(lsn, size, f);
+        read_file(lsn, size, f, raw);
         if (fclose(f)) {
                 printf("Couldn't close local file '%s'\n", local_name);
                 return -1;
@@ -650,7 +686,7 @@ int get_file(char *mdos_name, char *local_name)
                 fprintf(stderr, "File '%s' not found\n", mdos_name);
                 return -1;
         } else {
-                return get_file_lsn(lsn, size, local_name);
+                return get_file_lsn(lsn, size, local_name, 0);
         }
 }
 
@@ -675,7 +711,9 @@ int main(int argc, char *argv[])
                 printf("      dir                           Directory in raw EDOS format\n");
                 printf("      cat edos-name                 Type file to console\n");
                 printf("      get edos-name [local-name]    Copy file from diskette to local-name\n");
+                printf("      getexec local-name            Copy EXEC from diskette to local-name\n");
                 printf("      put local-name [edos-name]    Copy file to diskette to edos-name\n");
+                printf("      putexec local-name            Copy local-name to EXEC area of diskette\n");
                 printf("      rm edos-name                  Delete a file\n");
                 printf("      x                             Extract all files into current directory\n");
                 printf("\n");
@@ -738,7 +776,7 @@ int main(int argc, char *argv[])
                 char *mdos_name;
                 ++x;
                 if (x == argc) {
-                        printf("Missing file name to get\n");
+                        printf("Missing file name to put\n");
                         return -1;
                 }
                 local_name = argv[x];
@@ -746,6 +784,15 @@ int main(int argc, char *argv[])
                 if (x + 1 != argc)
                         mdos_name = argv[++x];
                 return put_file(local_name, mdos_name);
+        } else if (!strcmp(argv[x], "putexec")) {
+                char *local_name;
+                ++x;
+                if (x == argc) {
+                        printf("Missing file name to put\n");
+                        return -1;
+                }
+                local_name = argv[x];
+                return put_file_lsn(26, local_name, 4 * TRACK_SIZE, 1); /* Write up to 4 tracks */
 	} else if (!strcmp(argv[x], "get")) {
                 char *local_name;
                 char *mdos_name;
@@ -759,6 +806,15 @@ int main(int argc, char *argv[])
                 if (x + 1 != argc)
                         local_name = argv[++x];
                 return get_file(mdos_name, local_name);
+	} else if (!strcmp(argv[x], "getexec")) {
+                char *local_name;
+                ++x;
+                if (x == argc) {
+                        printf("Missing file name to get\n");
+                        return -1;
+                }
+                local_name = argv[x];
+                return get_file_lsn(26, 104, local_name, 1);
         } else if (!strcmp(argv[x], "x")) {
                 char local_name[80];
                 edos_load_dir();
@@ -788,7 +844,7 @@ int main(int argc, char *argv[])
                         {
                                 printf("File already exists, renamed to %s\n", local_name);
                         }
-                        if (get_file_lsn(names[x]->lsn, names[x]->size, local_name))
+                        if (get_file_lsn(names[x]->lsn, names[x]->size, local_name, 0))
                         {
                                 sta = -1;
                                 printf("  failed reading file.\n");

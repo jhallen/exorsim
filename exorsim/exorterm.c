@@ -219,6 +219,10 @@ void term_reset()
 void update()
 {
 	int y;
+	if (!exorterm) {
+		fflush(stdout);
+		return;
+        }
 	for (y = 0; y != HEIGHT; ++y) {
 		int x;
 		for (x = 0; x != WIDTH; ++x) {
@@ -1154,10 +1158,7 @@ int term_poll()
 		return 1;
         }
 
-	if (!exorterm)
-		fflush(stdout);
-	else
-		update();
+        update();
 
 	again:
 
