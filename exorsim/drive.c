@@ -20,7 +20,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include "sim6800.h"
+#include "sim.h"
 #include "exor.h"
 #include "drive.h"
 

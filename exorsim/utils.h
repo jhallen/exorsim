@@ -1,3 +1,6 @@
+#ifndef _Iutils
+#define _Iutils
+
 int to_upper(int c);
 int to_lower(int c);
 
@@ -32,3 +35,5 @@ void jdirname(char *dest, const char *src);
 int copyfile(const char *src, const char *dest);
 const char *choose_config_file(const char *name);
 void install_config_file(const char *name);
+
+#endif

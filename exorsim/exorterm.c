@@ -24,7 +24,7 @@
 #include <unistd.h>
 #include <signal.h>
 #include "utils.h"
-#include "sim6800.h"
+#include "sim.h"
 #include "exor.h"
 #include "drive.h"
 #include "exorterm.h"
@@ -1542,29 +1542,27 @@ void add_acia(unsigned short addr)
         add_reader(addr, 0, acia_read_status);
         add_reader(addr, 1, acia_read_data);
         add_writer(addr, 1, acia_write_data);
-        if (!memcmp(&mem[0xFA8B], "\xb6\xfc\xf4\x47", 4))
+        if (cputype == M6800 && !memcmp(&mem[0xFA8B], "\xb6\xfc\xf4\x47", 4))
         {
                 printf("  EXBUG-1.1 detected\n");
                 add_jumper(0xFA8B, exbug_inch);
                 echo_flag_addr = 0xFF53;
                 exbug_detected = 1;
         }
-        else if (!memcmp(&mem[0xFA6B], "\xb6\xfc\xf4\x47", 4))
+        else if (cputype == M6800 && !memcmp(&mem[0xFA6B], "\xb6\xfc\xf4\x47", 4))
         {
                 printf("  EXBUG-1.2 detected\n");
                 add_jumper(0xFA6B, exbug_inch);
                 echo_flag_addr = 0xFF53;
                 exbug_detected = 1;
         }
-#ifdef M6809
-        else if (!memcmp(&mem[0xF0D2], "\xb6\xfc\xf4\x47", 4))
+        else if (cputype == M6809 && !memcmp(&mem[0xF0D2], "\xb6\xfc\xf4\x47", 4))
         {
                 printf("  EXBUG09-2.1 detected\n");
                 add_jumper(0xF0D2, exbug_inch);
                 echo_flag_addr = 0xFF58;
                 exbug_detected = 1;
         }
-#endif
 }
 
 

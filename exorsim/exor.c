@@ -28,7 +28,7 @@
 #include <signal.h>
 #include <unistd.h>
 
-#include "sim6800.h"
+#include "sim.h"
 #include "lpt.h"
 #include "drive.h"
 #include "exor.h"
@@ -209,7 +209,7 @@ void add_jumper(unsigned short addr, int (*func)(unsigned short addr))
         third[31 & addr].func = func;
 }
 
-unsigned short pull2();
+unsigned short pulls2();
 
 void jump(unsigned short addr)
 {
@@ -230,7 +230,7 @@ void jump(unsigned short addr)
                                 if (rtn)
                                 {
                                         /* Return from subroutine now */
-                                        addr = pull2();
+                                        addr = pulls2();
                                         jump(addr);
                                 }
                                 return;
@@ -245,11 +245,10 @@ void ctrl_c(int sig)
 {
         printf("\nInterrupt!\n");
         stop = 1;
-#ifdef M6809
-        printf("Entering 6809 Monitor: Ctrl-C to exit, 'c' to continue, or type 'help'\n\n");
-#else
-        printf("Entering 6800 Monitor: Ctrl-C to exit, 'c' to continue, or type 'help'\n\n");
-#endif
+        if (cputype == M6809)
+                printf("Entering 6809 Monitor: Ctrl-C to exit, 'c' to continue, or type 'help'\n\n");
+        else
+                printf("Entering 6800 Monitor: Ctrl-C to exit, 'c' to continue, or type 'help'\n\n");
 }
 
 int main(int argc, char *argv[])
@@ -330,12 +329,8 @@ int main(int argc, char *argv[])
                                 printf("  --no_protect  Allow writing to ROMs\n");
                                 printf("  --no_exorterm Disable exorterm emulation\n");
                                 printf("\n");
-#ifdef M6809
-                                printf("Default disk0 is mdos09.dsk/flex09.dsk\n");
-#endif
-#ifdef M6800
-                                printf("Default disk0 is mdos.dsk/flex.dsk\n");
-#endif
+                                printf("Default disk0 for 6809 is mdos09.dsk/flex09.dsk\n");
+                                printf("Default disk0 for 6800 is mdos.dsk/flex.dsk\n");
                                 printf("\n");
                                 printf("Hints:\n");
                                 printf("  To load MDOS from EXBUG, type MAID followed by E800;G\n");

@@ -4,48 +4,55 @@ MANDIR ?= /usr/local/man/man1/
 
 CFLAGS = -g -Wall -DDATADIR=\"$(DATADIR)\"
 
-CC = gcc
+all : mdos exor unasm6800 edos lpf imdx
 
-all : mdos exor exor09 unasm6800 edos lpf imdx
+unasm6800 : unasm_main.o utils.o unasm.o
+	$(CC) -o unasm6800 unasm_main.o utils.o unasm.o
 
-unasm6800 : obj/unasm.o obj/utils.o obj/unasm6800.o
-	$(CC) -o unasm6800 obj/unasm.o obj/utils.o obj/unasm6800.o
+OBJS = utils.o exor.o sim.o asm.o unasm.o exorterm.o mon.o lpt.o drive.o
 
-.PHONY: exor
-exor :
-	make -f Makefile.00 DATADIR=$(DATADIR)
+exor : $(OBJS)
+	$(CC) -o exor $(OBJS)
 
-.PHONY: exor09
-exor09 :
-	make -f Makefile.09 DATADIR=$(DATADIR)
+mdos : mdos.o utils.o
+	$(CC) -o mdos mdos.o utils.o
 
-mdos : obj/mdos.o obj/utils.o
-	$(CC) -o mdos obj/mdos.o obj/utils.o
+edos : edos.o
+	$(CC) -o edos edos.o
 
-edos : obj/edos.o
-	$(CC) -o edos obj/edos.o
+imdx : imdx.o
+	$(CC) -o imdx imdx.o
 
-imdx : obj/imdx.o
-	$(CC) -o imdx obj/imdx.o
-
-lpf : obj/lpf.o
-	$(CC) -o lpf obj/lpf.o
+lpf : lpf.o
+	$(CC) -o lpf lpf.o
 
 .PHONY: clean
 clean :
-	rm -rf obj
-	make -f Makefile.00 clean
-	make -f Makefile.09 clean
+	rm -f $(OBJS) $(OBJS:.o=.d)
+	rm -f mdos.o mdos.d
+	rm -f edos.o edos.d
+	rm -f lpf.o lpf.d
+	rm -f imdx.o imdx.d
+	rm -f unasm_main.o unasm_main.d
+
+.PHONY: cleaner
+cleaner :
+	rm -f exor
+	rm -f mdos
+	rm -f edos
+	rm -f lpf
+	rm -f imdx
+	rm -f unasm6800
 
 .PHONY: install
-install : mdos exor exor09 edos unasm6800 lpf imdx
+install : mdos exor edos unasm6800 lpf imdx
 	install -D unasm6800 $(BINDIR)unasm6800
 	install -D lpf $(BINDIR)lpf
 	install -D imdx $(BINDIR)imdx
 	install -D exor $(BINDIR)exor
 	install -D exor $(BINDIR)exor1
 	install -D exor $(BINDIR)swtpc
-	install -D exor09 $(BINDIR)exor09
+	install -D exor $(BINDIR)exor09
 	install -D mdos $(BINDIR)mdos
 	install -D edos $(BINDIR)edos
 	install -D -m 644 facts $(DATADIR)facts
@@ -65,10 +72,8 @@ install : mdos exor exor09 edos unasm6800 lpf imdx
 	install -D -m 644 swtpc.setup $(DATADIR)swtpc.setup
 
 # include dependancy files if they exist
--include obj/unasm.d obj/utils.d obj/unasm6800.d obj/mdos.d obj/edos.d obj/imdx.d obj/lpf.d
+-include $(OBJS:.o=.d) unasm_main.d mdos.d edos.d imdx.d lpf.d
 
 # compile and generate dependency info
-obj/%.o: %.c
-	@echo
-	@mkdir -p obj/$(shell dirname $*)
-	$(CC) -c $(CFLAGS) -MT $@ -MMD -MP -MF obj/$*.d $*.c -o obj/$*.o
+.c.o:
+	$(CC) -c $(CFLAGS) -MT $@ -MMD -MP -MF $*.d $< -o $@

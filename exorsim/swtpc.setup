@@ -1,6 +1,10 @@
 ; Comment
 
-echo "Hello..."
+echo "SWTPC setup file..."
+
+; CPU
+
+cpu 6800
 
 ; Load initial memory
 

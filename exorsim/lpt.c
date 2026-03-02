@@ -20,7 +20,7 @@
 
 #include <stdio.h>
 #include "exor.h"
-#include "sim6800.h"
+#include "sim.h"
 #include "exorterm.h"
 #include "lpt.h"
 

@@ -21,9 +21,9 @@
 #include <string.h>
 
 #include "exor.h"
-#include "unasm6800.h"
-#include "asm6800.h"
-#include "sim6800.h"
+#include "unasm.h"
+#include "asm.h"
+#include "sim.h"
 
 int skip = 0; /* Skip first nn instructions in trace */
 int trace = 0; /* Enable instruction trace */

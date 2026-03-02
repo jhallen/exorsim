@@ -2,6 +2,10 @@
 
 echo "EXORdisk-II setup..."
 
+; CPU
+
+cpu 6800
+
 ; Load initial memory
 
 read exbug.bin

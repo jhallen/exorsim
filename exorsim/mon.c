@@ -25,9 +25,9 @@
 #include <unistd.h>
 
 #include "utils.h"
-#include "unasm6800.h"
-#include "asm6800.h"
-#include "sim6800.h"
+#include "unasm.h"
+#include "asm.h"
+#include "sim.h"
 #include "exor.h"
 #include "lpt.h"
 #include "drive.h"
@@ -171,26 +171,22 @@ int regs_cmd(char *p)
 {
         int val;
         if (!*p) {
-#ifdef M6809
-                fprintf(mon_out, "PC=%4.4X A=%2.2X B=%2.2X X=%4.4X Y=%4.4X U=%4.4X SP=%2.2X DP=%2.2X CC=%2.2X\n", pc, acca, accb, ix, iy, up, sp, dp, read_flags());
-#endif
-#ifdef M6800
-                fprintf(mon_out, "PC=%4.4X A=%2.2X B=%2.2X X=%4.4X SP=%2.2X CC=%2.2X\n", pc, acca, accb, ix, sp, read_flags());
-#endif
+                if (cputype == M6809)
+                        fprintf(mon_out, "PC=%4.4X A=%2.2X B=%2.2X X=%4.4X Y=%4.4X U=%4.4X SP=%2.2X DP=%2.2X CC=%2.2X\n", pc, acca, accb, ix, iy, up, sp, dp, read_flags());
+                else
+                        fprintf(mon_out, "PC=%4.4X A=%2.2X B=%2.2X X=%4.4X SP=%2.2X CC=%2.2X\n", pc, acca, accb, ix, sp, read_flags());
         } else if (match_word(&p, "pc") && parse_hex(&p, &val)) {
                 pc = val;
         } else if (match_word(&p, "sp") && parse_hex(&p, &val)) {
                 sp = val;
         } else if (match_word(&p, "x") && parse_hex(&p, &val)) {
                 ix = val;
-#ifdef M6809
-        } else if (match_word(&p, "y") && parse_hex(&p, &val)) {
+        } else if (cputype == M6809 && match_word(&p, "y") && parse_hex(&p, &val)) {
                 iy = val;
-        } else if (match_word(&p, "u") && parse_hex(&p, &val)) {
+        } else if (cputype == M6809 && match_word(&p, "u") && parse_hex(&p, &val)) {
                 up = val;
-        } else if (match_word(&p, "dp") && parse_hex(&p, &val)) {
+        } else if (cputype == M6809 && match_word(&p, "dp") && parse_hex(&p, &val)) {
                 dp = val;
-#endif
         } else if (match_word(&p, "a") && parse_hex(&p, &val)) {
                 acca = val;
         } else if (match_word(&p, "b") && parse_hex(&p, &val)) {
@@ -276,9 +272,8 @@ int clr_cmd(char *p)
 int sy_cmd(char *p)
 {
         show_syms(mon_out);
-#ifdef M6809
-        printf("setdp value is %2.2x\n", pseudo_dp);
-#endif
+        if (cputype == M6809)
+                printf("setdp value is %2.2x\n", pseudo_dp);
         return 0;
 }
 
@@ -756,6 +751,22 @@ int echo_cmd(char *p)
         return 0;
 }
 
+int cpu_cmd(char *p)
+{
+        char buf[32];
+        if (parse_word(&p, buf))
+        {
+                if (!strcmp(buf, "6800")) cputype = M6800;
+                else if (!strcmp(buf, "6809")) cputype = M6809;
+                else printf("Unknown CPU\n");
+        }
+        else
+        {
+                printf("Missing CPU type: 6800 or 6809\n");
+        }
+        return 0;
+}
+
 int device_cmd(char *p)
 {
         char buf[32];
@@ -874,6 +885,7 @@ struct cmd cmds[]=
         { "read", read_cmd,	" [file [hhhh]]		Read binary file into memory starting at hh\n" },
         { "lpt", lpt_cmd,       " [file]		Open line printer file, or close it if filename is missing\n" },
         { "lpt_append", lpt_cmd," [file]		Open line printer file for append, or close it if filename is missing\n" },
+        { "cpu", cpu_cmd,       " 6800 or 6809          Select CPU\n" },
         { "device", device_cmd, " name [hhhh]           Install a device at address hhhh\n" },
         { "rom", rom_cmd,       " llll hhhh             Mark range of memory as ROM\n" },
         { "drive0", drive0_cmd, " [file]		Change disk in drive 0\n" },

@@ -1,3 +1,6 @@
+#ifndef _Iunasm6800
+#define _Iunasm6800
+
 /* A known fact */
 
 struct fact {
@@ -16,3 +19,5 @@ void unasm_line(unsigned char *mem, unsigned short *at_pc, char *outbuf, int *at
 int fdb_line(unsigned char *mem, unsigned short *at_pc, char *outbuf, int flag);
 
 void parse_facts(FILE *f);
+
+#endif
