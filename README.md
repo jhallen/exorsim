@@ -272,12 +272,19 @@ You can get FLEX2 disk images here:
 2. (Linux)
 
 	cd exorsim
+
 	sudo make install
 
 2. (Cygwin) "run as administrator" the Cygwin terminal, then:
 
 	cd exorsim
+
 	make install
+
+3. If you are updating to a new version of exorsim, delete the local files
+in your home directory before running it:
+
+	rm -r ~/.exorsim
 
 This will install the binaries in /usr/local/bin and install the data files
 in /usr/local/share/exorsim.  When you run exor or exor09, the default drive 0
@@ -297,7 +304,7 @@ A number of utilities are built in addition to "exor":
 
 	edos	This provides file access to EDOS-II diskette images
 
-	unasm	This is a stand-alone 6800 disassember
+	unasm6800	This is a stand-alone 6800 disassember
 
 	imdx	Utility to extract disk images from .imd files
 		(so that you don't have to run MS-DOS)
