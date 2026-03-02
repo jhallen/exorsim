@@ -172,6 +172,9 @@ An ad for it here:
 
 The manual for it is here:
 
+[Resident FORTRAN Reference Manual 1976](https://www.bitsavers.org/components/motorola/6800/exorciser/M68FTN_-_Resident_FORTRAN_Reference_Manual_197609.pdf)
+
+[Resident FORTRAN Comiler Reference Manual 1977](https://www.bitsavers.org/components/motorola/6800/exorciser/M68FTN_-Resident_FORTRAN_Compiler_Reference_Manual_197703.pdf)
 
 FORTRAN 1.0 is an earlier version than documented in the 1976 and 1977 manuals.
 One area in which v1.0 differs is in the optional numeric parameter that can
