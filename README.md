@@ -89,7 +89,7 @@ EXORsim is a terminal program- it's invoked at the UNIX shell and runs in
 the user's ANSI terminal emulator (such as XTerm).  This allows you to use
 terminal emulator features such as scroll-back.  I find this to be more
 useful than some emulators which run under MS-Windows, but provide only a
-very rudimentary terimnal.
+very rudimentary terminal.
 
 EXORsim Simulates 6800 CPU and the following peripherals:
 
@@ -104,9 +104,6 @@ EXORsim Simulates 6800 CPU and the following peripherals:
   * SWTPC [MF68](https://deramp.com/swtpc.com/MF_68/MF_68_Index.htm) with DC_1 emulated by hardware emulation of the [FD1771](https://en.wikipedia.org/wiki/Western_Digital_FD1771) controller.
 
 <h3>Example session</h3>
-
-Right now the exbug.bin (or swtbug.bin for SWTPC) files must be in the
-current directory.
 
 '=' is the MDOS command prompt.
 
@@ -237,13 +234,13 @@ Also see [EXORsim usage guide](doc/usage.md) for more usage information.
 
 ## SWTPC FLEX
 
-To simulate SWTPC instead, run with the --swtpc option:
+To simulate SWTPC instead, use the swtpc command:
 
 <pre style="font-family: Andale Mono, Lucida Console, Monaco, fixed,
 monospace; color: #000000; background-color: #eee;font-size: 12px;border:
 1px dashed #999999;line-height: 14px;padding: 5px; overflow: auto; width:
 100%"><code>
-~/exor-1.0$ ./exor --swtpc
+~/exor-1.0$ ./swtpc
 Load facts file 'facts'
 'swtbug.bin' loaded.
 'flex.dsk' opened for drive 0 (tracks=80 sectors=72)
