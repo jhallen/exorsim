@@ -81,7 +81,7 @@ original 6800-based one.  It can run both MDOS and MDOS09.
 EXORsim also simulates a [SWTPC 6800 Computer System](https://deramp.com/swtpc.html), which allows you to run
 the [TSC FLEX](http://en.wikipedia.org/wiki/FLEX_%28operating_system%29) operating system.
 
-<a title="Rama, CC BY-SA 2.0 FR &lt;https://creativecommons.org/licenses/by-sa/2.0/fr/deed.en&gt;, via Wikimedia Commons" href="https://commons.wikimedia.org/wiki/File:SWTPC-6800-01.jpg"><img width="512" alt="SWTPC-6800-01" src="https://upload.wikimedia.org/wikipedia/commons/thumb/3/37/SWTPC-6800-01.jpg/512px-SWTPC-6800-01.jpg"></a>)
+<a title="Rama, CC BY-SA 2.0 FR &lt;https://creativecommons.org/licenses/by-sa/2.0/fr/deed.en&gt;, via Wikimedia Commons" href="https://commons.wikimedia.org/wiki/File:SWTPC-6800-01.jpg"><img width="512" alt="SWTPC-6800-01" src="https://upload.wikimedia.org/wikipedia/commons/thumb/3/37/SWTPC-6800-01.jpg/960px-SWTPC-6800-01.jpg"></a>)
 
 ## EXORsim
 
