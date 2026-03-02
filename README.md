@@ -111,7 +111,7 @@ EXORsim Simulates 6800 CPU and the following peripherals:
 monospace; color: #000000; background-color: #eee;font-size: 12px;border:
 1px dashed #999999;line-height: 14px;padding: 5px; overflow: auto; width:
 100%"><code>
-~/exor-1.0$ ./exor
+~/exor-1.0$ exor
 Load facts file 'facts'
 'exbug.bin' loaded.
 'mdos.dsk' opened for drive 0 (double sided)
@@ -196,7 +196,7 @@ monospace; color: #000000; background-color: #eee;font-size: 12px;border:
 1px dashed #999999;line-height: 14px;padding: 5px; overflow: auto; width:
 100%"><code>
 
-~/exorsim$ ./exor09
+~/exorsim$ exor09
 Load facts file 'facts09'
 'exbug09.bin' loaded.
   EXBUG09-2.1 detected
@@ -240,7 +240,7 @@ To simulate SWTPC instead, use the swtpc command:
 monospace; color: #000000; background-color: #eee;font-size: 12px;border:
 1px dashed #999999;line-height: 14px;padding: 5px; overflow: auto; width:
 100%"><code>
-~/exor-1.0$ ./swtpc
+~/exor-1.0$ swtpc
 Load facts file 'facts'
 'swtbug.bin' loaded.
 'flex.dsk' opened for drive 0 (tracks=80 sectors=72)
@@ -285,7 +285,8 @@ in your home directory before running it:
 
 This will install the binaries in /usr/local/bin and install the data files
 in /usr/local/share/exorsim.  When you run exor or exor09, the default drive 0
-disk image is copied to $HOME/.exorsim.
+disk image is copied to $HOME/.exorsim so that you can make personal
+changes.
 
 The search order for data files is:
 
