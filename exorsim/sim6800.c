@@ -331,7 +331,7 @@ void show_trace(int insn_no, struct trace_entry *t)
 				case 0x00: {
 				        if (t->insn[0] == 0x8D) {
         					sprintf(buf + strlen(buf), "%2.2X ", t->insn[1]);
-        					sprintf(operand, " $%4.4X", t->pc + (char)t->insn[1]);
+        					sprintf(operand, " $%4.4X", t->pc + (signed char)t->insn[1]);
                                         } else {
         					sprintf(buf + strlen(buf), "%2.2X ", t->insn[1]);
         					sprintf(buf + strlen(buf), "%2.2X ", t->insn[2]);
@@ -360,7 +360,7 @@ void show_trace(int insn_no, struct trace_entry *t)
 					insn = "CPX";
 					break;
 				} case 0x8D: /* BSR REL */ {
-					sprintf(operand, " %4.4X", t->pc + 2 + (char)t->insn[1]);
+					sprintf(operand, " %4.4X", t->pc + 2 + (signed char)t->insn[1]);
 				        if (t->cc & 0x80)
                                                 sprintf(buf3, "EA=%4.4X%s", t->ea, buf_ea);
 					subr = 1;
@@ -527,105 +527,105 @@ void show_trace(int insn_no, struct trace_entry *t)
 				break;
 			} case 0x20: /* BRA */ {
 				sprintf(buf + strlen(buf), "%2.2X ", t->insn[1]);
-				sprintf(operand, " %4.4X", t->pc + 2 + (char)t->insn[1]);
+				sprintf(operand, " %4.4X", t->pc + 2 + (signed char)t->insn[1]);
                                 if (t->cc & 0x80)
                                         sprintf(buf3, "EA=%4.4X%s", t->ea, buf_ea);
 				insn = "BRA";
 				break;
 			} case 0x22: /* BHI */ {
 				sprintf(buf + strlen(buf), "%2.2X ", t->insn[1]);
-				sprintf(operand, " %4.4X", t->pc + 2 + (char)t->insn[1]);
+				sprintf(operand, " %4.4X", t->pc + 2 + (signed char)t->insn[1]);
                                 if (t->cc & 0x80)
                                         sprintf(buf3, "EA=%4.4X%s", t->ea, buf_ea);
 				insn = "BHI";
 				break;
 			} case 0x23: /* BLS */ {
 				sprintf(buf + strlen(buf), "%2.2X ", t->insn[1]);
-				sprintf(operand, " %4.4X", t->pc + 2 + (char)t->insn[1]);
+				sprintf(operand, " %4.4X", t->pc + 2 + (signed char)t->insn[1]);
                                 if (t->cc & 0x80)
                                         sprintf(buf3, "EA=%4.4X%s", t->ea, buf_ea);
 				insn = "BLS";
 				break;
 			} case 0x24: /* BCC */ {
 				sprintf(buf + strlen(buf), "%2.2X ", t->insn[1]);
-				sprintf(operand, " %4.4X", t->pc + 2 + (char)t->insn[1]);
+				sprintf(operand, " %4.4X", t->pc + 2 + (signed char)t->insn[1]);
                                 if (t->cc & 0x80)
                                         sprintf(buf3, "EA=%4.4X%s", t->ea, buf_ea);
 				insn = "BCC";
 				break;
 			} case 0x25: /* BCS */ {
 				sprintf(buf + strlen(buf), "%2.2X ", t->insn[1]);
-				sprintf(operand, " %4.4X", t->pc + 2 + (char)t->insn[1]);
+				sprintf(operand, " %4.4X", t->pc + 2 + (signed char)t->insn[1]);
                                 if (t->cc & 0x80)
                                         sprintf(buf3, "EA=%4.4X%s", t->ea, buf_ea);
 				insn = "BCS";
 				break;
 			} case 0x26: /* BNE */ {
 				sprintf(buf + strlen(buf), "%2.2X ", t->insn[1]);
-				sprintf(operand, " %4.4X", t->pc + 2 + (char)t->insn[1]);
+				sprintf(operand, " %4.4X", t->pc + 2 + (signed char)t->insn[1]);
                                 if (t->cc & 0x80)
                                         sprintf(buf3, "EA=%4.4X%s", t->ea, buf_ea);
 				insn = "BNE";
 				break;
 			} case 0x27: /* BEQ */ {
 				sprintf(buf + strlen(buf), "%2.2X ", t->insn[1]);
-				sprintf(operand, " %4.4X", t->pc + 2 + (char)t->insn[1]);
+				sprintf(operand, " %4.4X", t->pc + 2 + (signed char)t->insn[1]);
                                 if (t->cc & 0x80)
                                         sprintf(buf3, "EA=%4.4X%s", t->ea, buf_ea);
 				insn = "BEQ";
 				break;
 			} case 0x28: /* BVC */ {
 				sprintf(buf + strlen(buf), "%2.2X ", t->insn[1]);
-				sprintf(operand, " %4.4X", t->pc + 2 + (char)t->insn[1]);
+				sprintf(operand, " %4.4X", t->pc + 2 + (signed char)t->insn[1]);
                                 if (t->cc & 0x80)
                                         sprintf(buf3, "EA=%4.4X%s", t->ea, buf_ea);
 				insn = "BVC";
 				break;
 			} case 0x29: /* BVS */ {
 				sprintf(buf + strlen(buf), "%2.2X ", t->insn[1]);
-				sprintf(operand, " %4.4X", t->pc + 2 + (char)t->insn[1]);
+				sprintf(operand, " %4.4X", t->pc + 2 + (signed char)t->insn[1]);
                                 if (t->cc & 0x80)
                                         sprintf(buf3, "EA=%4.4X%s", t->ea, buf_ea);
 				insn = "BVS";
 				break;
 			} case 0x2A: /* BPL */ {
 				sprintf(buf + strlen(buf), "%2.2X ", t->insn[1]);
-				sprintf(operand, " %4.4X", t->pc + 2 + (char)t->insn[1]);
+				sprintf(operand, " %4.4X", t->pc + 2 + (signed char)t->insn[1]);
                                 if (t->cc & 0x80)
                                         sprintf(buf3, "EA=%4.4X%s", t->ea, buf_ea);
 				insn = "BPL";
 				break;
 			} case 0x2B: /* BMI */ {
 				sprintf(buf + strlen(buf), "%2.2X ", t->insn[1]);
-				sprintf(operand, " %4.4X", t->pc + 2 + (char)t->insn[1]);
+				sprintf(operand, " %4.4X", t->pc + 2 + (signed char)t->insn[1]);
                                 if (t->cc & 0x80)
                                         sprintf(buf3, "EA=%4.4X%s", t->ea, buf_ea);
 				insn = "BMI";
 				break;
 			} case 0x2C: /* BGE */ {
 				sprintf(buf + strlen(buf), "%2.2X ", t->insn[1]);
-				sprintf(operand, " %4.4X", t->pc + 2 + (char)t->insn[1]);
+				sprintf(operand, " %4.4X", t->pc + 2 + (signed char)t->insn[1]);
                                 if (t->cc & 0x80)
                                         sprintf(buf3, "EA=%4.4X%s", t->ea, buf_ea);
 				insn = "BGE";
 				break;
 			} case 0x2D: /* BLT */ {
 				sprintf(buf + strlen(buf), "%2.2X ", t->insn[1]);
-				sprintf(operand, " %4.4X", t->pc + 2 + (char)t->insn[1]);
+				sprintf(operand, " %4.4X", t->pc + 2 + (signed char)t->insn[1]);
                                 if (t->cc & 0x80)
                                         sprintf(buf3, "EA=%4.4X%s", t->ea, buf_ea);
 				insn = "BLT";
 				break;
 			} case 0x2E: /* BGT */ {
 				sprintf(buf + strlen(buf), "%2.2X ", t->insn[1]);
-				sprintf(operand, " %4.4X", t->pc + 2 + (char)t->insn[1]);
+				sprintf(operand, " %4.4X", t->pc + 2 + (signed char)t->insn[1]);
                                 if (t->cc & 0x80)
                                         sprintf(buf3, "EA=%4.4X%s", t->ea, buf_ea);
 				insn = "BGT";
 				break;
 			} case 0x2F: /* BLE */ {
 				sprintf(buf + strlen(buf), "%2.2X ", t->insn[1]);
-				sprintf(operand, " %4.4X", t->pc + 2 + (char)t->insn[1]);
+				sprintf(operand, " %4.4X", t->pc + 2 + (signed char)t->insn[1]);
                                 if (t->cc & 0x80)
                                         sprintf(buf3, "EA=%4.4X%s", t->ea, buf_ea);
 				insn = "BLE";
@@ -718,7 +718,7 @@ void sim(void)
 	for (;;) {
 	        int org_trace_idx = trace_idx;
 		struct trace_entry *t = (trace_buf + (trace_idx++ & (TRACESIZE - 1)));
-		char offset;
+		signed char offset;
 		unsigned short ea;
 		unsigned char a;
 		unsigned char b;
@@ -951,7 +951,7 @@ void sim(void)
 						break;
 					} case 0x8D: /* BSR REL */ {
 						push2(pc - 1);
-						jump(t->ea = (pc - 1 + (char)mread(ea)));
+						jump(t->ea = (pc - 1 + (signed char)mread(ea)));
 						break;
 					} case 0x8E: case 0x9E: case 0xAE: case 0xBE: /* LDS N,Z,V */ {
 						sp = mread2(ea);
@@ -1388,3 +1388,4 @@ void sim(void)
                 }
 	}
 }
+

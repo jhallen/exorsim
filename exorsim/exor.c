@@ -241,7 +241,7 @@ void jump(unsigned short addr)
         pc = addr;
 }
 
-void ctrl_c()
+void ctrl_c(int sig)
 {
         printf("\nInterrupt!\n");
         stop = 1;

@@ -229,7 +229,7 @@ void unasm_line(unsigned char *mem, unsigned short *at_pc, char *outbuf, int *at
 
         buf[0] = 0;
         operand[0] = 0;
-	char offset;
+	signed char offset;
 
 	/* Fetch */
 
@@ -722,3 +722,4 @@ void unasm_line(unsigned char *mem, unsigned short *at_pc, char *outbuf, int *at
 	if (is_jsr)
 		*at_target = branch_target;
 }
+
