@@ -269,20 +269,15 @@ You can get FLEX2 disk images here:
 
 2. (Linux)
 
-	cd exorsim
+	cd exorsim/exorsim
 
 	sudo make install
 
 2. (Cygwin) "run as administrator" the Cygwin terminal, then:
 
-	cd exorsim
+	cd exorsim/exorsim
 
 	make install
-
-3. If you are updating to a new version of exorsim, delete the local files
-in your home directory before running it:
-
-	rm -r ~/.exorsim
 
 This will install the binaries in /usr/local/bin and install the data files
 in /usr/local/share/exorsim.  When you run exor or exor09, the default drive 0

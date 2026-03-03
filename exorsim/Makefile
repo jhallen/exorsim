@@ -13,6 +13,9 @@ OBJS = utils.o exor.o sim.o asm.o unasm.o exorterm.o mon.o lpt.o drive.o
 
 exor : $(OBJS)
 	$(CC) -o exor $(OBJS)
+	ln -sf exor exor09
+	ln -sf exor exor1
+	ln -sf exor swtpc
 
 mdos : mdos.o utils.o
 	$(CC) -o mdos mdos.o utils.o
@@ -50,9 +53,9 @@ install : mdos exor edos unasm6800 lpf imdx
 	install -D lpf $(BINDIR)lpf
 	install -D imdx $(BINDIR)imdx
 	install -D exor $(BINDIR)exor
-	install -D exor $(BINDIR)exor1
-	install -D exor $(BINDIR)swtpc
-	install -D exor $(BINDIR)exor09
+	ln -sf $(BINDIR)exor $(BINDIR)exor1
+	ln -sf $(BINDIR)exor $(BINDIR)swtpc
+	ln -sf $(BINDIR)exor $(BINDIR)exor09
 	install -D mdos $(BINDIR)mdos
 	install -D edos $(BINDIR)edos
 	install -D -m 644 facts $(DATADIR)facts
