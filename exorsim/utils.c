@@ -566,14 +566,18 @@ int copyfile(const char *src, const char *dest)
         }
 }
 
-/* Find state file */
-/* If 'copy' set, make a writable copy of the file in the user's home directory */
+/* Find setup file:
+     1. Use one in current directory if it exists
+     2. Use one in $HOME/.exorsim if it exists and is newer or same as system one
+     3. Install system one into $HOME/.exorsim and use it
+*/
 
 const char *local_prefix;
 
 const char *choose_config_file(const char *name)
 {
         FILE *f;
+
         /* Create path $HOME/.exorsim */
         if (!local_prefix)
         {
@@ -588,47 +592,118 @@ const char *choose_config_file(const char *name)
         f = fopen(name, "r");
         if (f)
         {
+                /* It exists here, so use this one */
                 fclose(f);
                 return name;
         }
         else
         {
-                /* Next, try ~/.exorsim */
-                char *local = malloc(strlen(local_prefix) + 1 + strlen(name) + 1);
+                /* Does not exist in local directory */
+                struct stat local_stat;
+                struct stat sys_stat;
+                char *local;
+                char *sys;
+                char *bkup;
+
+                /* Create $HOME/.exorsim/name */
+                local = malloc(strlen(local_prefix) + 1 + strlen(name) + 1);
                 sprintf(local, "%s/%s", local_prefix, name);
-                f = fopen(local, "r");
-                if (f)
+
+                /* Create $HOME/.exorsim/name.old */
+                bkup = malloc(strlen(local) + 5);
+                sprintf(bkup, "%s.old", name);
+
+                /* Create /usr/local/share/exorsim/name */
+                sys = malloc(strlen(DATADIR) + strlen(name) + 1);
+                sprintf(sys, "%s%s", DATADIR, name);
+
+                if (!stat(sys, &sys_stat))
                 {
-                        fclose(f);
-                        return local;
+                        /* System version exists */
+                        if (!stat(local, &local_stat))
+                        {
+                                /* Local version exists */
+                                if (local_stat.st_mtime >= sys_stat.st_mtime)
+                                {
+                                        /* Local one is newer or same, so use it */
+                                        return local;
+                                }
+                                else
+                                {
+                                        printf("%s is out of date! ", local);
+                                        /* Save out of date existing one by renaming it */
+                                        if (rename(local, bkup))
+                                        {
+                                                printf("\n");
+                                                /* Couldn't rename? */
+                                                perror("choose_config_file");
+                                                exit(-1);
+                                        }
+                                }
+                        }
+                        else
+                        {
+                                printf("%s is missing! ", local);
+                        }
+                        /* Copy system to local */
+                        copyfile(sys, local);
                 }
                 else
                 {
-                        /* Doesn't exist, try /usr/local/share/exorsim */
-                        char *sys = malloc(strlen(DATADIR) + strlen(name) + 1);
-                        sprintf(sys, "%s%s", DATADIR, name);
-                        /* Try to make local copy */
-                        copyfile(sys, local);
-                        return local;
+                        /* System one doesn't exist? */
                 }
+                return local;
         }
 }
 
+/* Install config file into current directory if it's
+   not already there or if the system one is newer.  */
+
 void install_config_file(const char *name)
 {
-        FILE *f = fopen(name, "r");
-        if (f)
+        char *sys = malloc(strlen(DATADIR) + strlen(name) + 1);
+        char *bkup = malloc(strlen(name) + 5);
+        struct stat cur_stat;
+        struct stat sys_stat;
+
+        sprintf(sys, "%s%s", DATADIR, name);
+        sprintf(bkup, "%s.old", name);
+
+        if (!stat(sys, &sys_stat))
         {
-                fclose(f);
-                return;
+                // printf("%s exists\n", sys);
+                /* System version exists */
+                if (!stat(name, &cur_stat))
+                {
+                        // printf("%s exists\n", name);
+                        if (cur_stat.st_mtime >= sys_stat.st_mtime)
+                        {
+                                // printf("%s is good\n", name);
+                                /* Leave existing one alone */
+                                return;
+                        }
+                        else
+                        {
+                                printf("%s is out of date! ", name);
+                                /* Save out of date existing one by renaming it */
+                                if (rename(name, bkup))
+                                {
+                                        printf("\n");
+                                        /* Couldn't rename, use existing one.. */
+                                        perror("intall_config_file");
+                                        exit(-1);
+                                }
+                        }
+                }
+                else
+                {
+                        printf("%s does not exist! ", name);
+                }
+                /* Copy system to current */
+                copyfile(sys, name);
         }
         else
         {
-                /* Doesn't exist, try /usr/local/share/exorsim */
-                char *sys = malloc(strlen(DATADIR) + strlen(name) + 1);
-                sprintf(sys, "%s%s", DATADIR, name);
-                /* Try to make local copy */
-                copyfile(sys, name);
-                return;
+                /* System one doesn't exist? */
         }
 }

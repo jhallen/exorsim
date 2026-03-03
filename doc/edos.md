@@ -105,7 +105,7 @@ they ignore the S0 and the S9 records.  It's possible to merge S19 files
 together, then these functions will load the S1 records from all of them. 
 These functions stop reading when they run out of the requested number of
 sectors, or when they see a special S record: 'S' followed by ESC.  It's
-common that there are many NULs for padding or between the S19 records.
+common that there are many NULs for padding between the S19 records.
 
 "Restore" resets the input file.  This means that it overwrites the input
 file pointer from a temporary file pointer.  The temporary file pointer is
