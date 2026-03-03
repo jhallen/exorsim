@@ -50,9 +50,9 @@ storage, for example as included with a [TI ASR 733](https://terminals-wiki.org/
 But it was much more pleasant if you did have floppy drives, such as the
 EXORdisk-I,-II, or -III.  In this case, there were a number of available operating systems:
 
-* EDOS-I  (OS with no file names- files are refered to by number, for EXORdisk-I)
-* EDOS-II   (OS with 5 character file names, for EXORdisk-I)
-* MDOS   (CP/M-like OS with 8 character file names with two character extensions, for EXORdisk-II/-III)
+* EDOS-I  (no file names- files are refered to by number, for EXORdisk-I)
+* EDOS-II   (5 character file names, for EXORdisk-I)
+* MDOS   (8 character file names with two character extensions, for EXORdisk-II/-III)
 * MDOS09  (same as MDOS, but for 6809-based EXORcisers)
 
 Information about EDOS can be found here:
