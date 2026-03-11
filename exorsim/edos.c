@@ -497,8 +497,15 @@ int put_file_lsn(int lsn, char *local_name, int free_sects, char sys, char rawmo
                 if (rawmode) {
                         buf[x++] = c;
                 } else if (c == '\n') {
-                        /* EDOS line terminator is LF */
+                        /* EDOS EDIT uses \n\r\0 as terminator */
+                        /* But S19 files usually have \r\n */
+                        buf[x++] = '\r';
                         buf[x++] = '\n';
+/*
+                        buf[x++] = '\n';
+                        buf[x++] = '\r';
+                        buf[x++] = 0;
+*/
                 } else if (c == '\r') {
                         /* Ignore carriage returns */
                 } else {
@@ -829,13 +836,13 @@ int main(int argc, char *argv[])
                                 fprintf(stderr, "Unknown option %s\n", argv[x]);
                                 return -1;
                         }
-                        else if (!mdos_name)
-                        {
-                                mdos_name = argv[x];
-                        }
                         else if (!local_name)
                         {
                                 local_name = argv[x];
+                        }
+                        else if (!mdos_name)
+                        {
+                                mdos_name = argv[x];
                         }
                         else
                         {
