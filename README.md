@@ -314,8 +314,8 @@ A number of utilities are built in addition to "exor":
 
 [EXORsim usage guide](doc/usage.md)
 <br>
-[MPL language](mpl/readme.md)
+[MPL language](stuff/mpl/readme.md)
 <br>
 [EXORterm info](doc/exorterm.md)
 <br>
-[Notes](adoc/notes.md)
+[Notes](doc/notes.md)
